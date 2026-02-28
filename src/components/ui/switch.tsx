@@ -18,8 +18,8 @@ const Switch = React.forwardRef<HTMLButtonElement, SwitchProps>(
         className={cn(
           "relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border border-transparent transition-colors",
           checked
-            ? "bg-[var(--accent-primary)]"
-            : "bg-[var(--border-color)]",
+            ? "bg-primary"
+            : "bg-[var(--border)]",
           className,
         )}
         onClick={(event) => {

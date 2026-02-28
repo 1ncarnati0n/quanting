@@ -6,7 +6,7 @@ const Command = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivEle
     <div
       ref={ref}
       className={cn(
-        "flex h-full w-full flex-col overflow-hidden rounded-md border border-[var(--border-color)] bg-[var(--bg-secondary)]",
+        "flex h-full w-full flex-col overflow-hidden rounded-md border border-border bg-card",
         className,
       )}
       {...props}
@@ -21,7 +21,7 @@ const CommandInput = React.forwardRef<HTMLInputElement, React.InputHTMLAttribute
     <input
       ref={ref}
       className={cn(
-        "h-9 w-full border-0 border-b border-[var(--border-color)] bg-transparent px-3 text-sm text-[var(--text-primary)] outline-none placeholder:text-[var(--text-secondary)]",
+        "h-9 w-full border-0 border-b border-border bg-transparent px-3 text-sm text-foreground outline-none placeholder:text-muted-foreground",
         className,
       )}
       {...props}
@@ -51,7 +51,7 @@ const CommandGroup = React.forwardRef<HTMLDivElement, CommandGroupProps>(
   ({ className, heading, children, ...props }, ref) => (
     <div ref={ref} className={cn("py-1", className)} {...props}>
       {heading ? (
-        <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-[var(--text-secondary)]">
+        <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
           {heading}
         </div>
       ) : null}
@@ -66,7 +66,7 @@ const CommandEmpty = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLD
   ({ className, ...props }, ref) => (
     <div
       ref={ref}
-      className={cn("px-3 py-6 text-center text-xs text-[var(--text-secondary)]", className)}
+      className={cn("px-3 py-6 text-center text-xs text-muted-foreground", className)}
       {...props}
     />
   ),
@@ -84,8 +84,8 @@ const CommandItem = React.forwardRef<HTMLButtonElement, CommandItemProps>(
       ref={ref}
       type="button"
       className={cn(
-        "flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-tertiary)]",
-        active && "bg-[var(--accent-soft)]",
+        "flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm text-foreground transition-colors hover:bg-secondary",
+        active && "bg-accent",
         className,
       )}
       {...props}
@@ -99,7 +99,7 @@ function CommandSeparator({ className, ...props }: React.HTMLAttributes<HTMLDivE
   return (
     <div
       role="separator"
-      className={cn("my-1 h-px bg-[var(--border-color)]", className)}
+      className={cn("my-1 h-px bg-[var(--border)]", className)}
       {...props}
     />
   );

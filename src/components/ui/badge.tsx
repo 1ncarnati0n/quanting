@@ -5,11 +5,11 @@ type BadgeVariant = "default" | "secondary" | "outline" | "destructive";
 
 const VARIANT_CLASSES: Record<BadgeVariant, string> = {
   default:
-    "border-transparent bg-[var(--accent-primary)] text-[var(--accent-contrast)]",
+    "border-transparent bg-primary text-primary-foreground",
   secondary:
-    "border-transparent bg-[var(--bg-tertiary)] text-[var(--text-primary)]",
-  outline: "border-[var(--border-color)] bg-transparent text-[var(--text-primary)]",
-  destructive: "border-transparent bg-[var(--danger-color)] text-white",
+    "border-transparent bg-secondary text-foreground",
+  outline: "border-border bg-transparent text-foreground",
+  destructive: "border-transparent bg-destructive text-white",
 };
 
 export interface BadgeProps

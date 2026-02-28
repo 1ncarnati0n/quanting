@@ -38,14 +38,14 @@ function Metric({
     <div
       className="rounded-md border px-2 py-1.5"
       style={{
-        borderColor: "var(--border-color)",
-        background: "color-mix(in srgb, var(--bg-tertiary) 74%, transparent)",
+        borderColor: "var(--border)",
+        background: "color-mix(in srgb, var(--secondary) 74%, transparent)",
       }}
     >
-      <div className="text-[9px] uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>
+      <div className="text-[9px] uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>
         {label}
       </div>
-      <div className="mt-0.5 font-mono text-[11px] font-semibold" style={{ color: "var(--text-primary)" }}>
+      <div className="mt-0.5 font-mono text-[11px] font-semibold" style={{ color: "var(--foreground)" }}>
         {value}
       </div>
     </div>
@@ -80,17 +80,17 @@ export default function FundamentalsOverlay() {
     <section
       className="pointer-events-auto absolute right-3 top-11 z-[11] w-[min(22rem,calc(100%-1.5rem))] rounded-lg border p-2.5"
       style={{
-        borderColor: "var(--border-color)",
-        background: "color-mix(in srgb, var(--bg-primary) 90%, transparent)",
+        borderColor: "var(--border)",
+        background: "color-mix(in srgb, var(--background) 90%, transparent)",
         backdropFilter: "blur(6px)",
       }}
     >
       <div className="mb-2 flex items-center justify-between gap-2">
         <div className="min-w-0">
-          <div className="truncate text-[11px] font-semibold" style={{ color: "var(--text-primary)" }}>
+          <div className="truncate text-[11px] font-semibold" style={{ color: "var(--foreground)" }}>
             {currentData?.shortName || symbol}
           </div>
-          <div className="text-[10px] font-mono" style={{ color: "var(--text-secondary)" }}>
+          <div className="text-[10px] font-mono" style={{ color: "var(--muted-foreground)" }}>
             {symbol}
             {currentData?.currency ? ` · ${currentData.currency}` : ""}
           </div>
@@ -98,8 +98,8 @@ export default function FundamentalsOverlay() {
         <span
           className="rounded px-1.5 py-0.5 text-[9px] font-semibold"
           style={{
-            background: "var(--accent-soft)",
-            color: "var(--accent-primary)",
+            background: "var(--accent)",
+            color: "var(--primary)",
           }}
         >
           재무
@@ -107,19 +107,19 @@ export default function FundamentalsOverlay() {
       </div>
 
       {market === "crypto" && (
-        <div className="rounded border px-2 py-2 text-[10px]" style={{ borderColor: "var(--border-color)", color: "var(--text-secondary)" }}>
+        <div className="rounded border px-2 py-2 text-[10px]" style={{ borderColor: "var(--border)", color: "var(--muted-foreground)" }}>
           암호화폐 심볼은 재무 지표를 제공하지 않습니다.
         </div>
       )}
 
       {market !== "crypto" && fundamentalsLoading && !currentData && (
-        <div className="rounded border px-2 py-2 text-[10px]" style={{ borderColor: "var(--border-color)", color: "var(--text-secondary)" }}>
+        <div className="rounded border px-2 py-2 text-[10px]" style={{ borderColor: "var(--border)", color: "var(--muted-foreground)" }}>
           재무 데이터 조회 중...
         </div>
       )}
 
       {market !== "crypto" && !fundamentalsLoading && fundamentalsError && !currentData && (
-        <div className="rounded border px-2 py-2 text-[10px]" style={{ borderColor: "var(--border-color)", color: "var(--danger-color)" }}>
+        <div className="rounded border px-2 py-2 text-[10px]" style={{ borderColor: "var(--border)", color: "var(--destructive)" }}>
           {fundamentalsError}
         </div>
       )}

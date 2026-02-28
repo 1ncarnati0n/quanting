@@ -60,7 +60,7 @@ export default function ChartContainer() {
       next.push({
         id: "volume",
         label: "거래량",
-        color: "var(--success-color)",
+        color: "var(--success)",
         weight: Math.max(0.2, indicators.layout.volumeWeight),
         value: lastCandle ? compactFormatter.format(lastCandle.volume) : "-",
       });
@@ -80,7 +80,7 @@ export default function ChartContainer() {
       next.push({
         id: "macd",
         label: "MACD",
-        color: "var(--accent-primary)",
+        color: "var(--primary)",
         weight: Math.max(0.2, indicators.layout.macdWeight),
         value: lastMacd ? `${lastMacd.macd.toFixed(2)} / ${lastMacd.signal.toFixed(2)}` : "-",
       });
@@ -159,12 +159,12 @@ export default function ChartContainer() {
 
   if (error) {
     return (
-      <div className="flex h-full w-full items-center justify-center rounded-lg border p-6" style={{ borderColor: "var(--border-color)", background: "var(--bg-secondary)" }}>
+      <div className="flex h-full w-full items-center justify-center rounded-lg border p-6" style={{ borderColor: "var(--border)", background: "var(--card)" }}>
         <div className="text-center">
-          <p className="mb-2 text-sm" style={{ color: "var(--danger-color)" }}>
+          <p className="mb-2 text-sm" style={{ color: "var(--destructive)" }}>
             {error}
           </p>
-          <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
+          <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>
             심볼명 또는 네트워크 연결을 확인해 주세요
           </p>
         </div>
@@ -174,13 +174,13 @@ export default function ChartContainer() {
 
   if (isLoading && !data) {
     return (
-      <div className="flex h-full w-full items-center justify-center rounded-lg border p-6" style={{ borderColor: "var(--border-color)", background: "var(--bg-secondary)" }}>
+      <div className="flex h-full w-full items-center justify-center rounded-lg border p-6" style={{ borderColor: "var(--border)", background: "var(--card)" }}>
         <div className="text-center">
           <div
             className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-2 border-t-transparent"
-            style={{ borderColor: "var(--accent-primary)", borderTopColor: "transparent" }}
+            style={{ borderColor: "var(--primary)", borderTopColor: "transparent" }}
           />
-          <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+          <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>
             데이터 불러오는 중...
           </p>
         </div>
@@ -192,18 +192,18 @@ export default function ChartContainer() {
     <div
       className="relative flex h-full w-full flex-col overflow-hidden rounded-lg border"
       style={{
-        borderColor: "var(--border-color)",
-        background: "var(--bg-secondary)",
+        borderColor: "var(--border)",
+        background: "var(--card)",
       }}
     >
       {isLoading && (
         <div
           className="h-0.5 w-full overflow-hidden"
-          style={{ background: "var(--bg-tertiary)" }}
+          style={{ background: "var(--secondary)" }}
         >
           <div
             className="h-full animate-pulse"
-            style={{ background: "var(--accent-primary)", width: "40%" }}
+            style={{ background: "var(--primary)", width: "40%" }}
           />
         </div>
       )}
@@ -231,7 +231,7 @@ export default function ChartContainer() {
               className="chart-band-label"
               style={{
                 top: `calc(${(band.top * 100).toFixed(2)}% + 4px)`,
-                borderColor: `color-mix(in srgb, ${band.color} 30%, var(--border-color))`,
+                borderColor: `color-mix(in srgb, ${band.color} 30%, var(--border))`,
               }}
             >
               <span className="chart-band-label__title" style={{ color: band.color }}>

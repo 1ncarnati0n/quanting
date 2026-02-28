@@ -23,19 +23,19 @@ function HeaderMetric({
 }) {
   const color =
     tone === "positive"
-      ? "var(--success-color)"
+      ? "var(--success)"
       : tone === "negative"
-        ? "var(--danger-color)"
-        : "var(--text-primary)";
+        ? "var(--destructive)"
+        : "var(--foreground)";
   return (
     <div
       className="rounded-md border px-2 py-1.5 md:px-2.5 md:py-2 xl:px-3 xl:py-2.5"
       style={{
-        borderColor: "var(--border-color)",
-        background: "color-mix(in srgb, var(--bg-tertiary) 80%, transparent)",
+        borderColor: "var(--border)",
+        background: "color-mix(in srgb, var(--secondary) 80%, transparent)",
       }}
     >
-      <div className="text-[9px] uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>
+      <div className="text-[9px] uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>
         {label}
       </div>
       <div className="font-mono text-[11px] font-semibold md:text-xs" style={{ color }}>
@@ -57,19 +57,19 @@ export default function MarketHeader({
   const prevCandle = candles.length > 1 ? candles[candles.length - 2] : null;
   const change = lastCandle && prevCandle ? lastCandle.close - prevCandle.close : 0;
   const changePct = prevCandle && prevCandle.close !== 0 ? (change / prevCandle.close) * 100 : 0;
-  const changeColor = change >= 0 ? "var(--success-color)" : "var(--danger-color)";
+  const changeColor = change >= 0 ? "var(--success)" : "var(--destructive)";
   const high = candles.length > 0 ? Math.max(...candles.map((c) => c.high)) : null;
   const low = candles.length > 0 ? Math.min(...candles.map((c) => c.low)) : null;
   const marketBadge =
     market === "crypto" ? "코인" : market === "krStock" ? "KR" : market === "forex" ? "FX" : "US";
   const marketColor =
     market === "crypto"
-      ? "var(--warning-color)"
+      ? "var(--warning)"
       : market === "krStock"
         ? "#EC4899"
         : market === "forex"
           ? "#14B8A6"
-          : "var(--accent-primary)";
+          : "var(--primary)";
 
   const formatVolume = (volume: number | null) => {
     if (volume === null) return "-";
@@ -87,33 +87,33 @@ export default function MarketHeader({
         <section
           className="rounded-xl border px-3 py-2.5 sm:px-4 sm:py-3 md:px-4 md:py-3.5 xl:px-5 xl:py-4"
           style={{
-            borderColor: "var(--border-color)",
+            borderColor: "var(--border)",
             background:
-              "linear-gradient(120deg, color-mix(in srgb, var(--bg-card) 88%, transparent), color-mix(in srgb, var(--bg-tertiary) 35%, transparent))",
+              "linear-gradient(120deg, color-mix(in srgb, var(--card) 88%, transparent), color-mix(in srgb, var(--secondary) 35%, transparent))",
           }}
         >
           <div className="flex min-w-0 items-center gap-2 sm:gap-2.5 lg:gap-3">
-            <span className="text-sm font-semibold tracking-wide" style={{ color: "var(--accent-primary)" }}>
+            <span className="text-sm font-semibold tracking-wide" style={{ color: "var(--primary)" }}>
               Quanting
             </span>
             <span
               className="rounded px-1.5 py-0.5 text-[9px] font-bold"
-              style={{ background: marketColor, color: "var(--accent-contrast)" }}
+              style={{ background: marketColor, color: "var(--primary-foreground)" }}
             >
               {marketBadge}
             </span>
-            <span className="hidden items-center gap-1 rounded bg-[var(--bg-tertiary)] px-1.5 py-0.5 text-[9px] text-[var(--text-secondary)] sm:inline-flex">
-              <span className={`h-1.5 w-1.5 rounded-full ${isLoading ? "" : "header-live-dot"}`} style={{ background: isLoading ? "var(--warning-color)" : "var(--success-color)" }} />
+            <span className="hidden items-center gap-1 rounded bg-[var(--secondary)] px-1.5 py-0.5 text-[9px] text-[var(--muted-foreground)] sm:inline-flex">
+              <span className={`h-1.5 w-1.5 rounded-full ${isLoading ? "" : "header-live-dot"}`} style={{ background: isLoading ? "var(--warning)" : "var(--success)" }} />
               {isLoading ? "갱신중" : "LIVE"}
             </span>
           </div>
 
           <div className="mt-2.5 flex min-w-0 items-end justify-between gap-2.5 sm:mt-3 sm:gap-3 lg:gap-4">
             <div className="min-w-0">
-              <div className="truncate text-sm font-semibold lg:text-[15px]" style={{ color: "var(--text-primary)" }}>
+              <div className="truncate text-sm font-semibold lg:text-[15px]" style={{ color: "var(--foreground)" }}>
                 {symbolLabel ? `${symbol} · ${symbolLabel}` : symbol}
               </div>
-              <div className="mt-1 text-[10px] sm:mt-1.5" style={{ color: "var(--text-secondary)" }}>
+              <div className="mt-1 text-[10px] sm:mt-1.5" style={{ color: "var(--muted-foreground)" }}>
                 {lastCandle ? `최근 갱신 ${formatShortTime(lastCandle.time)}` : "데이터 대기중"}
               </div>
             </div>
@@ -121,14 +121,14 @@ export default function MarketHeader({
               <div
                 className="shrink-0 rounded-md border px-2 py-1.5 sm:px-2.5 sm:py-2 xl:px-3 xl:py-2.5"
                 style={{
-                  borderColor: "var(--border-color)",
-                  background: "color-mix(in srgb, var(--accent-primary) 12%, transparent)",
+                  borderColor: "var(--border)",
+                  background: "color-mix(in srgb, var(--primary) 12%, transparent)",
                 }}
               >
-                <div className="text-[9px] uppercase tracking-wide" style={{ color: "var(--text-secondary)" }}>
+                <div className="text-[9px] uppercase tracking-wide" style={{ color: "var(--muted-foreground)" }}>
                   Range
                 </div>
-                <div className="font-mono text-[11px] font-semibold" style={{ color: "var(--accent-primary)" }}>
+                <div className="font-mono text-[11px] font-semibold" style={{ color: "var(--primary)" }}>
                   {rangePct.toFixed(2)}%
                 </div>
               </div>
@@ -139,14 +139,14 @@ export default function MarketHeader({
         <section
           className="rounded-xl border px-3 py-2.5 sm:px-4 sm:py-3 md:px-4 md:py-3.5 xl:px-5 xl:py-4"
           style={{
-            borderColor: "var(--border-color)",
+            borderColor: "var(--border)",
             background:
-              "linear-gradient(140deg, color-mix(in srgb, var(--bg-card) 86%, transparent), color-mix(in srgb, var(--accent-primary) 10%, transparent))",
+              "linear-gradient(140deg, color-mix(in srgb, var(--card) 86%, transparent), color-mix(in srgb, var(--primary) 10%, transparent))",
           }}
         >
           <div className="flex items-start justify-between gap-2.5 sm:gap-3 lg:gap-4">
             <div className="min-w-0">
-              <div className="price-display font-mono text-2xl font-bold" style={{ color: "var(--text-primary)" }}>
+              <div className="price-display font-mono text-2xl font-bold" style={{ color: "var(--foreground)" }}>
                 {lastCandle ? formatPrice(lastCandle.close, market) : "-"}
               </div>
               {lastCandle && prevCandle ? (
@@ -162,7 +162,7 @@ export default function MarketHeader({
                   {changePct.toFixed(2)}%)
                 </div>
               ) : (
-                <div className="mt-1.5 text-[10px] sm:mt-2" style={{ color: "var(--text-secondary)" }}>
+                <div className="mt-1.5 text-[10px] sm:mt-2" style={{ color: "var(--muted-foreground)" }}>
                   변동 데이터 없음
                 </div>
               )}
@@ -185,8 +185,8 @@ export default function MarketHeader({
       <section
         className="rounded-xl border px-2.5 py-2 sm:px-3 sm:py-2.5 lg:px-3.5 lg:py-3"
         style={{
-          borderColor: "var(--border-color)",
-          background: "color-mix(in srgb, var(--bg-card) 92%, transparent)",
+          borderColor: "var(--border)",
+          background: "color-mix(in srgb, var(--card) 92%, transparent)",
         }}
       >
         <div className="flex min-w-0 flex-wrap items-center gap-2 sm:gap-2.5">
@@ -207,7 +207,7 @@ export default function MarketHeader({
               variant="ghost"
               size="icon"
               onClick={onToggleWatchlist}
-              className="h-8 w-8 text-[var(--text-secondary)]"
+              className="h-8 w-8 text-[var(--muted-foreground)]"
               title="관심종목 패널 접기/펼치기 (Ctrl/Cmd+B)"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -220,7 +220,7 @@ export default function MarketHeader({
               variant="ghost"
               size="icon"
               onClick={onToggleSettings}
-              className="h-8 w-8 text-[var(--text-secondary)]"
+              className="h-8 w-8 text-[var(--muted-foreground)]"
               title="설정 패널 접기/펼치기 (Ctrl/Cmd+,)"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -233,7 +233,7 @@ export default function MarketHeader({
               variant="ghost"
               size="icon"
               onClick={toggleTheme}
-              className="h-8 w-8 text-[var(--text-secondary)]"
+              className="h-8 w-8 text-[var(--muted-foreground)]"
               title={theme === "dark" ? "라이트 모드로 전환" : "다크 모드로 전환"}
             >
               {theme === "dark" ? (
@@ -259,10 +259,10 @@ export default function MarketHeader({
         </div>
 
         <div className="mt-1.5 flex flex-wrap items-center justify-between gap-2 text-[10px] sm:mt-2">
-          <span style={{ color: "var(--text-secondary)" }}>
+          <span style={{ color: "var(--muted-foreground)" }}>
             단축키: <span className="font-mono">Ctrl/Cmd+K</span> 검색 · <span className="font-mono">Ctrl/Cmd+B</span> 관심종목
           </span>
-          <span style={{ color: "var(--text-secondary)" }}>
+          <span style={{ color: "var(--muted-foreground)" }}>
             {isLoading ? "데이터 업데이트 중..." : "실시간 모니터링 활성"}
           </span>
         </div>

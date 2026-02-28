@@ -41,9 +41,9 @@ export default function PeriodsInput({ periods, onChange, max = 7 }: PeriodsInpu
             key={p}
             className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium"
             style={{
-              background: "var(--bg-tertiary)",
-              color: "var(--text-primary)",
-              border: "1px solid var(--border-color)",
+              background: "var(--secondary)",
+              color: "var(--foreground)",
+              border: "1px solid var(--border)",
             }}
           >
             {p}
@@ -51,7 +51,7 @@ export default function PeriodsInput({ periods, onChange, max = 7 }: PeriodsInpu
               <button
                 onClick={() => removePeriod(p)}
                 className="ml-0.5 leading-none opacity-60 hover:opacity-100"
-                style={{ color: "var(--text-secondary)" }}
+                style={{ color: "var(--muted-foreground)" }}
               >
                 x
               </button>

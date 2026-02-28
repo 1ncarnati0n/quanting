@@ -45,9 +45,9 @@ export default function ChartToolbar() {
     <div
       className="pointer-events-auto absolute right-3 top-2 z-10 flex items-center gap-0.5 rounded-lg px-1 py-0.5"
       style={{
-        background: "color-mix(in srgb, var(--bg-primary) 85%, transparent)",
+        background: "color-mix(in srgb, var(--background) 85%, transparent)",
         backdropFilter: "blur(6px)",
-        border: "1px solid var(--border-color)",
+        border: "1px solid var(--border)",
       }}
     >
       {/* Chart Type Dropdown */}
@@ -67,8 +67,8 @@ export default function ChartToolbar() {
                 key={opt.value}
                 className="gap-2.5"
                 style={{
-                  background: chartType === opt.value ? "var(--accent-soft)" : undefined,
-                  color: chartType === opt.value ? "var(--accent-primary)" : "var(--text-primary)",
+                  background: chartType === opt.value ? "var(--accent)" : undefined,
+                  color: chartType === opt.value ? "var(--primary)" : "var(--foreground)",
                 }}
                 onSelect={() => setChartType(opt.value)}
               >
@@ -106,7 +106,7 @@ export default function ChartToolbar() {
         </div>
       </DropdownMenu>
 
-      <div className="mx-0.5 h-4 w-px" style={{ background: "var(--border-color)" }} />
+      <div className="mx-0.5 h-4 w-px" style={{ background: "var(--border)" }} />
 
       {/* Bar Replay */}
       <button
@@ -115,8 +115,8 @@ export default function ChartToolbar() {
         className="chart-toolbar-btn"
         title="바 리플레이 (R)"
         style={{
-          color: replayEnabled ? "var(--warning-color)" : undefined,
-          background: replayEnabled ? "color-mix(in srgb, var(--warning-color) 16%, transparent)" : undefined,
+          color: replayEnabled ? "var(--warning)" : undefined,
+          background: replayEnabled ? "color-mix(in srgb, var(--warning) 16%, transparent)" : undefined,
         }}
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -139,7 +139,7 @@ export default function ChartToolbar() {
         </svg>
       </button>
 
-      <DropdownMenuSeparator className="mx-0.5 h-4 w-px self-stretch bg-[var(--border-color)]" />
+      <DropdownMenuSeparator className="mx-0.5 h-4 w-px self-stretch bg-[var(--border)]" />
 
       {/* Zoom controls */}
       <button
@@ -177,7 +177,7 @@ export default function ChartToolbar() {
         </svg>
       </button>
 
-      <DropdownMenuSeparator className="mx-0.5 h-4 w-px self-stretch bg-[var(--border-color)]" />
+      <DropdownMenuSeparator className="mx-0.5 h-4 w-px self-stretch bg-[var(--border)]" />
 
       {/* Fullscreen */}
       <button

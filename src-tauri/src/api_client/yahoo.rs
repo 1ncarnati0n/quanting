@@ -212,7 +212,7 @@ impl YahooClient {
     fn interval_to_range(interval: &str) -> &'static str {
         match interval {
             "1m" => "7d",
-            "5m" | "15m" => "60d",
+            "2m" | "5m" | "15m" | "30m" => "60d",
             "1h" => "2y",
             "1d" => "2y",
             "1w" => "10y",
@@ -224,8 +224,10 @@ impl YahooClient {
     fn map_interval(interval: &str) -> &'static str {
         match interval {
             "1m" => "1m",
+            "2m" => "2m",
             "5m" => "5m",
             "15m" => "15m",
+            "30m" => "30m",
             "1h" => "1h",
             "1d" => "1d",
             "1w" => "1wk",

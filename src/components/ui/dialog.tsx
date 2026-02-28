@@ -48,7 +48,7 @@ function DialogContent({
         role="dialog"
         aria-modal="true"
         className={cn(
-          "relative z-[201] max-h-[calc(100vh-4rem)] w-[min(100%-2rem,480px)] overflow-y-auto rounded-xl border border-[var(--border-color)] bg-[var(--bg-secondary)] p-6 shadow-[var(--panel-shadow)]",
+          "relative z-[201] max-h-[calc(100vh-4rem)] w-[min(100%-2rem,480px)] overflow-y-auto rounded-xl border border-border bg-card p-6 shadow-[var(--shadow-elevated)]",
           className,
         )}
         {...props}
@@ -73,7 +73,7 @@ function DialogHeader({ className, ...props }: React.HTMLAttributes<HTMLDivEleme
 function DialogTitle({ className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) {
   return (
     <h2
-      className={cn("text-sm font-semibold text-[var(--text-primary)]", className)}
+      className={cn("text-sm font-semibold text-foreground", className)}
       {...props}
     />
   );

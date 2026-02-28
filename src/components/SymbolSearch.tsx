@@ -19,10 +19,10 @@ function watchKey(symbol: string, market: MarketType): string {
 }
 
 function marketMeta(market: MarketType) {
-  if (market === "crypto") return { text: "코인", color: "var(--warning-color)" };
+  if (market === "crypto") return { text: "코인", color: "var(--warning)" };
   if (market === "krStock") return { text: "KR", color: "#EC4899" };
   if (market === "forex") return { text: "FX", color: "#14B8A6" };
-  return { text: "US", color: "var(--accent-primary)" };
+  return { text: "US", color: "var(--primary)" };
 }
 
 export default function SymbolSearch() {
@@ -236,8 +236,8 @@ export default function SymbolSearch() {
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent className="w-[min(100%-2rem,620px)] overflow-hidden p-0">
-          <Command className="h-[min(72vh,580px)] rounded-none border-0 bg-[var(--surface-elevated)]">
-            <div className="border-b border-[var(--border-color)] p-2.5">
+          <Command className="h-[min(72vh,580px)] rounded-none border-0 bg-[var(--muted)]">
+            <div className="border-b border-[var(--border)] p-2.5">
               <CommandInput
                 ref={inputRef}
                 type="text"
@@ -246,10 +246,10 @@ export default function SymbolSearch() {
                 onKeyDown={handleFilterKeyDown}
                 placeholder="심볼 검색..."
                 spellCheck={false}
-                className="h-8 rounded-md border border-[var(--border-color)] bg-[var(--bg-tertiary)] text-sm"
+                className="h-8 rounded-md border border-[var(--border)] bg-[var(--secondary)] text-sm"
               />
               <div className="mt-2 flex items-center justify-between">
-                <div className="text-[10px]" style={{ color: "var(--text-secondary)" }}>
+                <div className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>
                   즐겨찾기 {favorites.length}개 · 최근 {recentSymbols.length}개
                 </div>
                 <Button
@@ -269,7 +269,7 @@ export default function SymbolSearch() {
                 <section>
                   <div
                     className="flex items-center justify-between px-2 py-1 text-[10px] font-bold uppercase tracking-wider"
-                    style={{ color: "var(--text-secondary)" }}
+                    style={{ color: "var(--muted-foreground)" }}
                   >
                     <span>최근</span>
                     <Button
@@ -299,9 +299,9 @@ export default function SymbolSearch() {
                           className="min-w-0 flex-1 gap-2 py-1.5"
                           style={{
                             background: isHighlighted
-                              ? "color-mix(in srgb, var(--accent-primary) 16%, transparent)"
+                              ? "color-mix(in srgb, var(--primary) 16%, transparent)"
                               : isActive
-                                ? "var(--bg-tertiary)"
+                                ? "var(--secondary)"
                                 : undefined,
                           }}
                         >
@@ -315,7 +315,7 @@ export default function SymbolSearch() {
                             {badge.text}
                           </span>
                           <span className="min-w-[72px] font-mono text-xs">{item.symbol}</span>
-                          <span className="truncate text-xs" style={{ color: "var(--text-secondary)" }}>
+                          <span className="truncate text-xs" style={{ color: "var(--muted-foreground)" }}>
                             {item.label}
                           </span>
                         </CommandItem>
@@ -326,7 +326,7 @@ export default function SymbolSearch() {
                           className="h-7 w-7 text-[13px]"
                           title={favoriteSet.has(key) ? "즐겨찾기 해제" : "즐겨찾기 추가"}
                           style={{
-                            color: favoriteSet.has(key) ? "var(--warning-color)" : "var(--text-secondary)",
+                            color: favoriteSet.has(key) ? "var(--warning)" : "var(--muted-foreground)",
                           }}
                         >
                           {favoriteSet.has(key) ? "★" : "☆"}
@@ -341,7 +341,7 @@ export default function SymbolSearch() {
                 <section>
                   <div
                     className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider"
-                    style={{ color: "var(--text-secondary)" }}
+                    style={{ color: "var(--muted-foreground)" }}
                   >
                     즐겨찾기
                   </div>
@@ -362,9 +362,9 @@ export default function SymbolSearch() {
                           className="min-w-0 flex-1 gap-2 py-1.5"
                           style={{
                             background: isHighlighted
-                              ? "color-mix(in srgb, var(--accent-primary) 16%, transparent)"
+                              ? "color-mix(in srgb, var(--primary) 16%, transparent)"
                               : isActive
-                                ? "var(--bg-tertiary)"
+                                ? "var(--secondary)"
                                 : undefined,
                           }}
                         >
@@ -378,7 +378,7 @@ export default function SymbolSearch() {
                             {badge.text}
                           </span>
                           <span className="min-w-[72px] font-mono text-xs">{item.symbol}</span>
-                          <span className="truncate text-xs" style={{ color: "var(--text-secondary)" }}>
+                          <span className="truncate text-xs" style={{ color: "var(--muted-foreground)" }}>
                             {item.label}
                           </span>
                         </CommandItem>
@@ -388,7 +388,7 @@ export default function SymbolSearch() {
                           onClick={() => toggleFavorite(item.symbol, item.market)}
                           className="h-7 w-7 text-[13px]"
                           title="즐겨찾기 해제"
-                          style={{ color: "var(--warning-color)" }}
+                          style={{ color: "var(--warning)" }}
                         >
                           ★
                         </Button>
@@ -403,7 +403,7 @@ export default function SymbolSearch() {
                   <section key={cat.name}>
                     <div
                       className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider"
-                      style={{ color: "var(--text-secondary)" }}
+                      style={{ color: "var(--muted-foreground)" }}
                     >
                       {cat.name}
                     </div>
@@ -425,9 +425,9 @@ export default function SymbolSearch() {
                             className="min-w-0 flex-1 gap-2 py-1.5"
                             style={{
                               background: isHighlighted
-                                ? "color-mix(in srgb, var(--accent-primary) 16%, transparent)"
+                                ? "color-mix(in srgb, var(--primary) 16%, transparent)"
                                 : isActive
-                                  ? "var(--bg-tertiary)"
+                                  ? "var(--secondary)"
                                   : undefined,
                             }}
                           >
@@ -441,7 +441,7 @@ export default function SymbolSearch() {
                               {badge.text}
                             </span>
                             <span className="min-w-[72px] font-mono text-xs">{item.symbol}</span>
-                            <span className="truncate text-xs" style={{ color: "var(--text-secondary)" }}>
+                            <span className="truncate text-xs" style={{ color: "var(--muted-foreground)" }}>
                               {item.label}
                             </span>
                           </CommandItem>
@@ -452,7 +452,7 @@ export default function SymbolSearch() {
                             className="h-7 w-7 text-[13px]"
                             title={isFavorite ? "즐겨찾기 해제" : "즐겨찾기 추가"}
                             style={{
-                              color: isFavorite ? "var(--warning-color)" : "var(--text-secondary)",
+                              color: isFavorite ? "var(--warning)" : "var(--muted-foreground)",
                             }}
                           >
                             {isFavorite ? "★" : "☆"}

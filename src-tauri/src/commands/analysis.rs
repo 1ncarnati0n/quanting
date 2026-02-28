@@ -3,10 +3,198 @@ use tauri::State;
 use crate::api_client::{BinanceClient, YahooClient};
 use crate::cache::CacheDb;
 use crate::models::{
-    AnalysisParams, AnalysisResponse, FundamentalsParams, FundamentalsResponse, MarketType,
+    AnalysisParams, AnalysisResponse, Candle, FundamentalsParams, FundamentalsResponse, MarketType,
     WatchlistSnapshot, WatchlistSnapshotParams,
 };
 use crate::ta_engine;
+
+const ANALYSIS_OUTPUT_LIMIT: u32 = 500;
+const MAX_WATCHLIST_ITEMS: usize = 24;
+
+#[derive(Debug, Clone)]
+struct IntervalPlan {
+    requested: String,
+    source: String,
+    factor: u32,
+    needs_resample: bool,
+}
+
+fn market_prefix(market: &MarketType) -> &'static str {
+    match market {
+        MarketType::Crypto => "crypto",
+        MarketType::Forex => "fx",
+        MarketType::UsStock => "us",
+        MarketType::KrStock => "kr",
+    }
+}
+
+fn native_intervals(market: &MarketType) -> &'static [&'static str] {
+    match market {
+        MarketType::Crypto => &[
+            "1m", "3m", "5m", "15m", "30m", "1h", "2h", "4h", "6h", "8h", "12h", "1d", "1w",
+            "1M",
+        ],
+        MarketType::Forex | MarketType::UsStock | MarketType::KrStock => {
+            &["1m", "2m", "5m", "15m", "30m", "1h", "1d", "1w", "1M"]
+        }
+    }
+}
+
+fn interval_seconds(interval: &str) -> Option<i64> {
+    let normalized = interval.trim();
+    if normalized.is_empty() {
+        return None;
+    }
+
+    let mut digits = String::new();
+    let mut unit: Option<char> = None;
+    for ch in normalized.chars() {
+        if ch.is_ascii_digit() {
+            digits.push(ch);
+        } else {
+            unit = Some(ch);
+            break;
+        }
+    }
+
+    if digits.is_empty() {
+        return None;
+    }
+    let value = digits.parse::<i64>().ok()?;
+    if value <= 0 {
+        return None;
+    }
+
+    match unit {
+        Some('m') => Some(value * 60),
+        Some('h') => Some(value * 3_600),
+        Some('d') => Some(value * 86_400),
+        Some('w') => Some(value * 604_800),
+        Some('M') => Some(value * 2_592_000),
+        _ => None,
+    }
+}
+
+fn resolve_interval_plan(interval: &str, market: &MarketType) -> IntervalPlan {
+    let requested = {
+        let trimmed = interval.trim();
+        if trimmed.is_empty() {
+            "1d".to_string()
+        } else {
+            trimmed.to_string()
+        }
+    };
+
+    let native = native_intervals(market);
+    if native.iter().any(|candidate| *candidate == requested) {
+        return IntervalPlan {
+            requested: requested.clone(),
+            source: requested,
+            factor: 1,
+            needs_resample: false,
+        };
+    }
+
+    let target_seconds = interval_seconds(&requested);
+    let Some(target_seconds) = target_seconds else {
+        return IntervalPlan {
+            requested: "1d".to_string(),
+            source: "1d".to_string(),
+            factor: 1,
+            needs_resample: false,
+        };
+    };
+
+    let mut best_source = "1d";
+    let mut best_seconds = 86_400_i64;
+    let mut found_divisor = false;
+
+    for candidate in native {
+        let Some(source_seconds) = interval_seconds(candidate) else {
+            continue;
+        };
+        if source_seconds > target_seconds {
+            continue;
+        }
+        if target_seconds % source_seconds != 0 {
+            continue;
+        }
+        if !found_divisor || source_seconds > best_seconds {
+            found_divisor = true;
+            best_source = candidate;
+            best_seconds = source_seconds;
+        }
+    }
+
+    if !found_divisor {
+        best_source = native.first().copied().unwrap_or("1d");
+        best_seconds = interval_seconds(best_source).unwrap_or(86_400);
+    }
+
+    let factor = if best_seconds > 0 {
+        (target_seconds / best_seconds).max(1) as u32
+    } else {
+        1
+    };
+
+    IntervalPlan {
+        requested: requested.clone(),
+        source: best_source.to_string(),
+        factor,
+        needs_resample: requested != best_source,
+    }
+}
+
+fn requested_source_limit(output_limit: u32, plan: &IntervalPlan, market: &MarketType) -> u32 {
+    let factor = plan.factor.max(1);
+    let expanded = output_limit.saturating_mul(factor.saturating_add(1));
+    match market {
+        MarketType::Crypto => expanded.clamp(output_limit, 1_000),
+        MarketType::Forex | MarketType::UsStock | MarketType::KrStock => {
+            expanded.clamp(output_limit, 2_500)
+        }
+    }
+}
+
+fn resample_candles(candles: &[Candle], plan: &IntervalPlan) -> Vec<Candle> {
+    if !plan.needs_resample || candles.is_empty() {
+        return candles.to_vec();
+    }
+
+    let Some(bucket_seconds) = interval_seconds(&plan.requested) else {
+        return candles.to_vec();
+    };
+
+    let mut output: Vec<Candle> = Vec::new();
+    for candle in candles {
+        let bucket_start = (candle.time / bucket_seconds) * bucket_seconds;
+
+        if let Some(last) = output.last_mut() {
+            if last.time == bucket_start {
+                if candle.high > last.high {
+                    last.high = candle.high;
+                }
+                if candle.low < last.low {
+                    last.low = candle.low;
+                }
+                last.close = candle.close;
+                last.volume += candle.volume;
+                continue;
+            }
+        }
+
+        output.push(Candle {
+            time: bucket_start,
+            open: candle.open,
+            high: candle.high,
+            low: candle.low,
+            close: candle.close,
+            volume: candle.volume,
+        });
+    }
+
+    output
+}
 
 #[tauri::command]
 pub async fn fetch_analysis(
@@ -15,38 +203,33 @@ pub async fn fetch_analysis(
     yahoo_client: State<'_, YahooClient>,
     cache: State<'_, CacheDb>,
 ) -> Result<AnalysisResponse, String> {
-    let market_prefix = match params.market {
-        MarketType::Crypto => "crypto",
-        MarketType::Forex => "fx",
-        MarketType::UsStock => "us",
-        MarketType::KrStock => "kr",
-    };
+    let market_prefix = market_prefix(&params.market);
     let cache_key_symbol = format!("{}:{}", market_prefix, params.symbol);
+    let plan = resolve_interval_plan(&params.interval, &params.market);
+    let source_limit = requested_source_limit(ANALYSIS_OUTPUT_LIMIT, &plan, &params.market);
 
-    // Check cache first
-    if let Some(cached_candles) = cache.get(&cache_key_symbol, &params.interval) {
-        let response = ta_engine::analyze(&cached_candles, &params);
+    if let Some(cached_source_candles) = cache.get(&cache_key_symbol, &plan.source) {
+        let candles = resample_candles(&cached_source_candles, &plan);
+        let response = ta_engine::analyze(&candles, &params);
         return Ok(response);
     }
 
-    // Fetch from appropriate API
-    let candles = match params.market {
+    let source_candles = match params.market {
         MarketType::Crypto => {
             binance_client
-                .fetch_klines(&params.symbol, &params.interval, 500)
+                .fetch_klines(&params.symbol, &plan.source, source_limit)
                 .await?
         }
         MarketType::Forex | MarketType::UsStock | MarketType::KrStock => {
             yahoo_client
-                .fetch_klines(&params.symbol, &params.interval, 500)
+                .fetch_klines(&params.symbol, &plan.source, source_limit)
                 .await?
         }
     };
 
-    // Store in cache
-    let _ = cache.set(&cache_key_symbol, &params.interval, &candles);
+    let _ = cache.set(&cache_key_symbol, &plan.source, &source_candles);
+    let candles = resample_candles(&source_candles, &plan);
 
-    // Run analysis
     let response = ta_engine::analyze(&candles, &params);
     Ok(response)
 }
@@ -70,27 +253,24 @@ pub async fn fetch_watchlist_snapshots(
     let limit = params.limit.clamp(32, 240) as usize;
     let mut snapshots: Vec<WatchlistSnapshot> = Vec::with_capacity(params.items.len());
 
-    for item in params.items.iter().take(24) {
-        let market_prefix = match item.market {
-            MarketType::Crypto => "crypto",
-            MarketType::Forex => "fx",
-            MarketType::UsStock => "us",
-            MarketType::KrStock => "kr",
-        };
+    for item in params.items.iter().take(MAX_WATCHLIST_ITEMS) {
+        let market_prefix = market_prefix(&item.market);
         let cache_key_symbol = format!("{}:{}", market_prefix, item.symbol);
+        let plan = resolve_interval_plan(&interval, &item.market);
+        let source_limit = requested_source_limit(limit as u32, &plan, &item.market);
 
-        let candles = if let Some(cached) = cache.get(&cache_key_symbol, &interval) {
+        let source_candles = if let Some(cached) = cache.get(&cache_key_symbol, &plan.source) {
             cached
         } else {
             let fetched_result = match item.market {
                 MarketType::Crypto => {
                     binance_client
-                        .fetch_klines(&item.symbol, &interval, limit as u32)
+                        .fetch_klines(&item.symbol, &plan.source, source_limit)
                         .await
                 }
                 MarketType::Forex | MarketType::UsStock | MarketType::KrStock => {
                     yahoo_client
-                        .fetch_klines(&item.symbol, &interval, limit as u32)
+                        .fetch_klines(&item.symbol, &plan.source, source_limit)
                         .await
                 }
             };
@@ -98,9 +278,10 @@ pub async fn fetch_watchlist_snapshots(
                 Ok(candles) => candles,
                 Err(_) => continue,
             };
-            let _ = cache.set(&cache_key_symbol, &interval, &fetched);
+            let _ = cache.set(&cache_key_symbol, &plan.source, &fetched);
             fetched
         };
+        let candles = resample_candles(&source_candles, &plan);
 
         if candles.len() < 2 {
             continue;

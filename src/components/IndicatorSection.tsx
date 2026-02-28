@@ -22,7 +22,7 @@ export default function IndicatorSection({
       {/* Header */}
       <div
         className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 transition-colors"
-        style={{ background: "var(--bg-tertiary)" }}
+        style={{ background: "var(--secondary)" }}
         onClick={() => setOpen(!open)}
       >
         {/* Color dot */}
@@ -35,7 +35,7 @@ export default function IndicatorSection({
         <span
           className="flex-1 text-xs font-medium"
           style={{
-            color: enabled ? "var(--text-primary)" : "var(--text-secondary)",
+            color: enabled ? "var(--foreground)" : "var(--muted-foreground)",
           }}
         >
           {title}
@@ -50,7 +50,7 @@ export default function IndicatorSection({
           stroke="currentColor"
           strokeWidth="2"
           style={{
-            color: "var(--text-secondary)",
+            color: "var(--muted-foreground)",
             transform: open ? "rotate(180deg)" : "rotate(0deg)",
             transition: "transform 0.15s",
           }}
@@ -66,7 +66,7 @@ export default function IndicatorSection({
           }}
           className="relative ml-1 h-4 w-7 rounded-full transition-colors"
           style={{
-            background: enabled ? color : "var(--border-color)",
+            background: enabled ? color : "var(--border)",
           }}
         >
           <div

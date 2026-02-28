@@ -12,15 +12,15 @@ type ButtonSize = "default" | "sm" | "lg" | "icon";
 
 const VARIANT_CLASSES: Record<ButtonVariant, string> = {
   default:
-    "bg-[var(--accent-primary)] text-[var(--accent-contrast)] hover:bg-[var(--accent-hover)]",
+    "bg-primary text-primary-foreground hover:bg-primary",
   secondary:
-    "bg-[var(--bg-tertiary)] text-[var(--text-primary)] hover:bg-[var(--bg-elevated)]",
+    "bg-secondary text-foreground hover:bg-muted",
   outline:
-    "border border-[var(--border-color)] bg-transparent text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]",
+    "border border-border bg-transparent text-foreground hover:bg-secondary",
   ghost:
-    "bg-transparent text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]",
-  destructive: "bg-[var(--danger-color)] text-white hover:opacity-90",
-  link: "bg-transparent text-[var(--accent-primary)] underline-offset-4 hover:underline",
+    "bg-transparent text-muted-foreground hover:bg-secondary hover:text-foreground",
+  destructive: "bg-destructive text-white hover:opacity-90",
+  link: "bg-transparent text-primary underline-offset-4 hover:underline",
 };
 
 const SIZE_CLASSES: Record<ButtonSize, string> = {

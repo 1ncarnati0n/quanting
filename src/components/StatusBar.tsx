@@ -22,7 +22,7 @@ type PillIndicatorKey =
   | "obv";
 
 const INDICATOR_PILLS: { key: PillIndicatorKey; label: string; color: string }[] = [
-  { key: "bb", label: "BB", color: "var(--accent-primary)" },
+  { key: "bb", label: "BB", color: "var(--primary)" },
   { key: "rsi", label: "RSI", color: "#A78BFA" },
   { key: "sma", label: "SMA", color: "#F59E0B" },
   { key: "ema", label: "EMA", color: "#8B5CF6" },
@@ -33,9 +33,9 @@ const INDICATOR_PILLS: { key: PillIndicatorKey; label: string; color: string }[]
   { key: "supertrend", label: "SUPER", color: "#22C55E" },
   { key: "psar", label: "PSAR", color: "#F97316" },
   { key: "atr", label: "ATR", color: "#38BDF8" },
-  { key: "macd", label: "MACD", color: "var(--accent-primary)" },
+  { key: "macd", label: "MACD", color: "var(--primary)" },
   { key: "stochastic", label: "STOCH", color: "#F59E0B" },
-  { key: "volume", label: "VOL", color: "var(--success-color)" },
+  { key: "volume", label: "VOL", color: "var(--success)" },
   { key: "obv", label: "OBV", color: "#14B8A6" },
 ];
 
@@ -88,33 +88,33 @@ export default function StatusBar() {
     <div
       className="flex min-w-0 flex-wrap items-center gap-2 border-t px-3 py-1.5 text-xs md:flex-nowrap"
       style={{
-        background: "var(--bg-secondary)",
-        borderColor: "var(--border-color)",
-        color: "var(--text-secondary)",
+        background: "var(--card)",
+        borderColor: "var(--border)",
+        color: "var(--muted-foreground)",
       }}
     >
       <div className="min-w-0 flex-1">
         {lastSignal ? (
           <div className="flex min-w-0 items-center gap-2">
             <SignalBadge signalType={lastSignal.signalType} source={lastSignal.source} />
-            <span className="truncate text-[11px]" style={{ color: "var(--text-secondary)" }}>
+            <span className="truncate text-[11px]" style={{ color: "var(--muted-foreground)" }}>
               {formatTime(lastSignal.time)} · 진입 {formatPrice(lastSignal.price, market)}
               {lastRsi ? ` · RSI ${lastRsi.value.toFixed(1)}` : ""}
             </span>
           </div>
         ) : (
-          <span className="text-[11px]" style={{ color: "var(--text-secondary)" }}>
+          <span className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
             최근 신호 없음
           </span>
         )}
-        <div className="mt-0.5 text-[10px]" style={{ color: "var(--text-secondary)" }}>
+        <div className="mt-0.5 text-[10px]" style={{ color: "var(--muted-foreground)" }}>
           {interval} 차트
           {lastCandle ? ` · 종가 ${formatPrice(lastCandle.close, market)}` : ""}
         </div>
       </div>
 
       <div className="hidden items-center gap-1 md:flex">
-        <span className="text-[10px]" style={{ color: "var(--text-secondary)" }}>
+        <span className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>
           {enabledIndicators.length}개 활성
         </span>
         {enabledIndicators.map(({ key, label, color }) => (
@@ -137,19 +137,19 @@ export default function StatusBar() {
           <div
             className="font-mono text-[12px]"
             style={{
-              color: lastCandle.close >= lastCandle.open ? "var(--success-color)" : "var(--danger-color)",
+              color: lastCandle.close >= lastCandle.open ? "var(--success)" : "var(--destructive)",
             }}
           >
             {formatPrice(lastCandle.close, market)}
           </div>
         )}
         {lastCandle && (
-          <div className="text-[10px]" style={{ color: "var(--text-secondary)" }}>
+          <div className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>
             {formatTime(lastCandle.time)}
           </div>
         )}
         {performance.trades > 0 && (
-          <div className="mt-0.5 text-[10px] font-mono" style={{ color: "var(--text-secondary)" }}>
+          <div className="mt-0.5 text-[10px] font-mono" style={{ color: "var(--muted-foreground)" }}>
             성과 {performance.winRate.toFixed(1)}% · {performance.avgReturn >= 0 ? "+" : ""}
             {performance.avgReturn.toFixed(2)}%
           </div>

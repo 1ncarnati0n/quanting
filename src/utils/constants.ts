@@ -1,9 +1,47 @@
 import type { MarketType } from "../types";
 
 // --- Intervals ---
-export const CRYPTO_INTERVALS = ["1m", "5m", "15m", "1h", "4h", "1d", "1w", "1M"] as const;
-export const STOCK_INTERVALS = ["1m", "5m", "15m", "1h", "1d", "1w", "1M"] as const;
-export type Interval = "1m" | "5m" | "15m" | "1h" | "4h" | "1d" | "1w" | "1M";
+export const CRYPTO_INTERVALS = [
+  "1m",
+  "2m",
+  "3m",
+  "5m",
+  "10m",
+  "15m",
+  "30m",
+  "45m",
+  "54m",
+  "1h",
+  "2h",
+  "3h",
+  "4h",
+  "6h",
+  "12h",
+  "1d",
+  "1w",
+  "1M",
+] as const;
+export const STOCK_INTERVALS = [
+  "1m",
+  "2m",
+  "3m",
+  "5m",
+  "10m",
+  "15m",
+  "30m",
+  "45m",
+  "54m",
+  "1h",
+  "2h",
+  "3h",
+  "4h",
+  "6h",
+  "12h",
+  "1d",
+  "1w",
+  "1M",
+] as const;
+export type Interval = (typeof CRYPTO_INTERVALS)[number] | (typeof STOCK_INTERVALS)[number];
 
 export function getIntervalsForMarket(market: MarketType): readonly Interval[] {
   return market === "crypto" ? CRYPTO_INTERVALS : STOCK_INTERVALS;
@@ -87,69 +125,6 @@ export const INDICATOR_DEFAULTS = {
 
 // --- Theme ---
 export type Theme = "dark" | "light";
-
-export const THEME_COLORS = {
-  dark: {
-    bgApp: "#0a0f1a",
-    bgSurface: "#111827",
-    bgCard: "#1a2332",
-    bgCardHover: "#1f2b3d",
-    bgInput: "#243044",
-    bgElevated: "#2a3a52",
-    bgPrimary: "#0a0f1a",
-    bgSecondary: "#1a2332",
-    bgTertiary: "#243044",
-    surfaceElevated: "#2a3a52",
-    textPrimary: "#e5edf7",
-    textSecondary: "#9eb0c8",
-    borderColor: "#2a3a56",
-    accentPrimary: "#2f7cff",
-    accentHover: "#4a91ff",
-    accentActive: "#1a6aef",
-    accentGlow: "0 0 12px rgba(47,124,255,0.25)",
-    accentBorder: "rgba(47,124,255,0.30)",
-    accentContrast: "#ffffff",
-    accentSoft: "rgba(47,124,255,0.14)",
-    successColor: "#22c55e",
-    dangerColor: "#ef4444",
-    warningColor: "#f59e0b",
-    panelShadow: "0 10px 28px rgba(2,6,23,0.35)",
-    chartBg: "#0d1421",
-    chartText: "#9eb0c8",
-    chartGrid: "#1b273b",
-    chartBorder: "#2a3a56",
-  },
-  light: {
-    bgApp: "#eef3fb",
-    bgSurface: "#ffffff",
-    bgCard: "#ffffff",
-    bgCardHover: "#f5f8ff",
-    bgInput: "#e8eef8",
-    bgElevated: "#f6f9ff",
-    bgPrimary: "#eef3fb",
-    bgSecondary: "#ffffff",
-    bgTertiary: "#e8eef8",
-    surfaceElevated: "#f6f9ff",
-    textPrimary: "#111b2d",
-    textSecondary: "#475569",
-    borderColor: "#c6d3e5",
-    accentPrimary: "#1f6fff",
-    accentHover: "#3d84ff",
-    accentActive: "#1359d9",
-    accentGlow: "0 0 10px rgba(31,111,255,0.20)",
-    accentBorder: "rgba(31,111,255,0.28)",
-    accentContrast: "#ffffff",
-    accentSoft: "rgba(31,111,255,0.12)",
-    successColor: "#16a34a",
-    dangerColor: "#dc2626",
-    warningColor: "#d97706",
-    panelShadow: "0 8px 20px rgba(15,23,42,0.10)",
-    chartBg: "#ffffff",
-    chartText: "#334155",
-    chartGrid: "#e2e8f0",
-    chartBorder: "#c6d3e5",
-  },
-} as const;
 
 // --- Preset Symbols ---
 export interface PresetSymbol {

@@ -49,8 +49,8 @@ export default function ReplayControls() {
     <div
       className="pointer-events-auto absolute bottom-2 left-2 z-[11] rounded-md border px-2 py-1.5"
       style={{
-        background: "color-mix(in srgb, var(--bg-primary) 88%, transparent)",
-        borderColor: "var(--border-color)",
+        background: "color-mix(in srgb, var(--background) 88%, transparent)",
+        borderColor: "var(--border)",
         backdropFilter: "blur(6px)",
       }}
     >
@@ -59,9 +59,9 @@ export default function ReplayControls() {
           type="button"
           className="rounded px-1.5 py-0.5 text-[10px] font-semibold"
           style={{
-            background: enabled ? "rgba(239,68,68,0.16)" : "var(--accent-soft)",
-            color: enabled ? "#fca5a5" : "var(--accent-primary)",
-            border: "1px solid var(--border-color)",
+            background: enabled ? "rgba(239,68,68,0.16)" : "var(--accent)",
+            color: enabled ? "#fca5a5" : "var(--primary)",
+            border: "1px solid var(--border)",
           }}
           onClick={() => {
             if (enabled) {
@@ -79,7 +79,7 @@ export default function ReplayControls() {
             <button
               type="button"
               className="rounded px-1.5 py-0.5 text-[10px]"
-              style={{ border: "1px solid var(--border-color)", color: "var(--text-primary)" }}
+              style={{ border: "1px solid var(--border)", color: "var(--foreground)" }}
               onClick={() => step(-1, totalBars)}
               title="이전 바"
             >
@@ -88,7 +88,7 @@ export default function ReplayControls() {
             <button
               type="button"
               className="rounded px-1.5 py-0.5 text-[10px]"
-              style={{ border: "1px solid var(--border-color)", color: "var(--text-primary)" }}
+              style={{ border: "1px solid var(--border)", color: "var(--foreground)" }}
               onClick={togglePlaying}
               title={playing ? "일시정지" : "재생"}
             >
@@ -97,7 +97,7 @@ export default function ReplayControls() {
             <button
               type="button"
               className="rounded px-1.5 py-0.5 text-[10px]"
-              style={{ border: "1px solid var(--border-color)", color: "var(--text-primary)" }}
+              style={{ border: "1px solid var(--border)", color: "var(--foreground)" }}
               onClick={() => step(1, totalBars)}
               title="다음 바"
             >
@@ -119,15 +119,15 @@ export default function ReplayControls() {
               onChange={(e) => setCurrentIndex(Number(e.target.value), totalBars)}
               className="w-44"
               aria-label="리플레이 진행"
-              style={{ accentColor: "var(--accent-primary)" }}
+              style={{ accentColor: "var(--primary)" }}
             />
-            <span className="text-[10px] font-mono" style={{ color: "var(--text-secondary)" }}>
+            <span className="text-[10px] font-mono" style={{ color: "var(--muted-foreground)" }}>
               {progress.toFixed(0)}%
             </span>
           </div>
 
           <div className="flex items-center justify-between gap-2">
-            <span className="text-[10px] font-mono" style={{ color: "var(--text-secondary)" }}>
+            <span className="text-[10px] font-mono" style={{ color: "var(--muted-foreground)" }}>
               {cappedIndex + 1}/{totalBars} · {formatReplayTime(replayTime)}
             </span>
             <div className="flex items-center gap-1">
@@ -137,9 +137,9 @@ export default function ReplayControls() {
                   type="button"
                   className="rounded px-1 py-0.5 text-[10px]"
                   style={{
-                    background: speed === option ? "var(--accent-soft)" : "transparent",
-                    color: speed === option ? "var(--accent-primary)" : "var(--text-secondary)",
-                    border: "1px solid var(--border-color)",
+                    background: speed === option ? "var(--accent)" : "transparent",
+                    color: speed === option ? "var(--primary)" : "var(--muted-foreground)",
+                    border: "1px solid var(--border)",
                   }}
                   onClick={() => setSpeed(option)}
                 >

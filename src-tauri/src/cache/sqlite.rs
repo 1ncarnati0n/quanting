@@ -62,16 +62,30 @@ impl CacheDb {
     }
 
     fn ttl_seconds(interval: &str) -> i64 {
-        match interval {
-            "1m" => 60,
-            "5m" => 300,
-            "15m" => 900,
-            "1h" => 3600,
-            "4h" => 14400,
-            "1d" => 86400,
-            "1w" => 604800,
-            "1M" => 2592000,
-            _ => 3600,
+        if interval == "1M" {
+            return 2_592_000;
         }
+
+        let mut digits = String::new();
+        let mut unit: Option<char> = None;
+        for ch in interval.chars() {
+            if ch.is_ascii_digit() {
+                digits.push(ch);
+            } else {
+                unit = Some(ch);
+                break;
+            }
+        }
+
+        let value = digits.parse::<i64>().ok().unwrap_or(0);
+        let seconds = match unit {
+            Some('m') if value > 0 => value * 60,
+            Some('h') if value > 0 => value * 3_600,
+            Some('d') if value > 0 => value * 86_400,
+            Some('w') if value > 0 => value * 604_800,
+            _ => 3_600,
+        };
+
+        seconds.clamp(60, 2_592_000)
     }
 }

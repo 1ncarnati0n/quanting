@@ -32,7 +32,7 @@ const Slider = React.forwardRef<HTMLInputElement, SliderProps>(
         step={step}
         value={resolvedValue}
         onChange={(event) => onValueChange?.([Number(event.target.value)])}
-        className={cn("h-2 w-full cursor-pointer accent-[var(--accent-primary)]", className)}
+        className={cn("h-2 w-full cursor-pointer accent-[var(--primary)]", className)}
         {...props}
       />
     );

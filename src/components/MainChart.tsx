@@ -21,7 +21,6 @@ import {
   CHART_PRICE_SCALE_WIDTH,
   COLORS,
   MA_COLORS,
-  THEME_COLORS,
 } from "../utils/constants";
 import { formatPrice } from "../utils/formatters";
 import { DEFAULTS } from "../utils/constants";
@@ -129,6 +128,32 @@ function clipByTime<T extends { time: number }>(items: T[], maxTime: number): T[
   return items.filter((item) => item.time <= maxTime);
 }
 
+type ChartPalette = {
+  background: string;
+  foreground: string;
+  grid: string;
+  border: string;
+};
+
+function readChartPalette(): ChartPalette {
+  if (typeof window === "undefined") {
+    return {
+      background: "#0d1421",
+      foreground: "#9eb0c8",
+      grid: "#1b273b",
+      border: "#2a3a56",
+    };
+  }
+  const styles = window.getComputedStyle(document.documentElement);
+  const value = (name: string, fallback: string) => styles.getPropertyValue(name).trim() || fallback;
+  return {
+    background: value("--chart-bg", "#0d1421"),
+    foreground: value("--chart-foreground", "#9eb0c8"),
+    grid: value("--chart-grid", "#1b273b"),
+    border: value("--chart-border", "#2a3a56"),
+  };
+}
+
 /** Determine whether a chart type uses OHLC data */
 function isOhlcType(ct: ChartType): boolean {
   return ct === "candlestick" || ct === "heikinAshi" || ct === "bar";
@@ -158,7 +183,6 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
   const priceAlerts = useSettingsStore((s) => s.priceAlerts);
   const replayEnabled = useReplayStore((s) => s.enabled);
   const replayIndex = useReplayStore((s) => s.currentIndex);
-  const initialThemeRef = useRef(theme);
 
   const clearDynamicSeries = useCallback(() => {
     if (!chartRef.current) return;
@@ -251,20 +275,20 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
     compareSeriesRef.current = null;
     alertLinesRef.current = [];
 
-    const tc = THEME_COLORS[initialThemeRef.current];
+    const palette = readChartPalette();
     const ps = useSettingsStore.getState().priceScale;
     const chart = createChart(containerRef.current, {
       layout: {
-        background: { type: ColorType.Solid, color: tc.chartBg },
-        textColor: tc.chartText,
+        background: { type: ColorType.Solid, color: palette.background },
+        textColor: palette.foreground,
       },
       grid: {
-        vertLines: { color: tc.chartGrid },
-        horzLines: { color: tc.chartGrid },
+        vertLines: { color: palette.grid },
+        horzLines: { color: palette.grid },
       },
       crosshair: { mode: 0 },
       rightPriceScale: {
-        borderColor: tc.chartBorder,
+        borderColor: palette.border,
         minimumWidth: CHART_PRICE_SCALE_WIDTH,
         mode: mapPriceScaleMode(ps.mode),
         autoScale: ps.autoScale,
@@ -273,7 +297,7 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
       leftPriceScale: { visible: false },
       timeScale: {
         visible: true,
-        borderColor: tc.chartBorder,
+        borderColor: palette.border,
         timeVisible: true,
         secondsVisible: false,
       },
@@ -550,18 +574,18 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
   // Theme update
   useEffect(() => {
     if (!chartRef.current) return;
-    const tc = THEME_COLORS[theme];
+    const palette = readChartPalette();
     chartRef.current.applyOptions({
       layout: {
-        background: { type: ColorType.Solid, color: tc.chartBg },
-        textColor: tc.chartText,
+        background: { type: ColorType.Solid, color: palette.background },
+        textColor: palette.foreground,
       },
       grid: {
-        vertLines: { color: tc.chartGrid },
-        horzLines: { color: tc.chartGrid },
+        vertLines: { color: palette.grid },
+        horzLines: { color: palette.grid },
       },
-      rightPriceScale: { borderColor: tc.chartBorder },
-      timeScale: { borderColor: tc.chartBorder },
+      rightPriceScale: { borderColor: palette.border },
+      timeScale: { borderColor: palette.border },
     });
   }, [theme]);
 

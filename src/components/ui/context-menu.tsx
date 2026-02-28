@@ -105,7 +105,7 @@ const ContextMenuContent = React.forwardRef<HTMLDivElement, ContextMenuContentPr
         }}
         role="menu"
         className={cn(
-          "fixed z-[140] min-w-[10rem] overflow-hidden rounded-md border border-[var(--border-color)] bg-[var(--bg-secondary)] p-1 shadow-[var(--panel-shadow)]",
+          "fixed z-[140] min-w-[10rem] overflow-hidden rounded-md border border-border bg-card p-1 shadow-[var(--shadow-elevated)]",
           className,
         )}
         style={{
@@ -137,7 +137,7 @@ const ContextMenuItem = React.forwardRef<HTMLButtonElement, ContextMenuItemProps
         type="button"
         role="menuitem"
         className={cn(
-          "flex w-full items-center gap-2 rounded-sm px-2.5 py-1.5 text-left text-xs text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-tertiary)] disabled:pointer-events-none disabled:opacity-50",
+          "flex w-full items-center gap-2 rounded-sm px-2.5 py-1.5 text-left text-xs text-foreground transition-colors hover:bg-secondary disabled:pointer-events-none disabled:opacity-50",
           className,
         )}
         onClick={(event) => {
@@ -158,7 +158,7 @@ function ContextMenuSeparator({ className, ...props }: React.HTMLAttributes<HTML
   return (
     <div
       role="separator"
-      className={cn("my-1 h-px bg-[var(--border-color)]", className)}
+      className={cn("my-1 h-px bg-[var(--border)]", className)}
       {...props}
     />
   );

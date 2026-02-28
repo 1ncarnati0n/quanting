@@ -69,7 +69,7 @@ export default function ShortcutsModal() {
             variant="ghost"
             size="icon"
             onClick={() => setOpen(false)}
-            className="h-8 w-8 text-[var(--text-secondary)]"
+            className="h-8 w-8 text-[var(--muted-foreground)]"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M18 6L6 18M6 6l12 12" />
@@ -82,14 +82,14 @@ export default function ShortcutsModal() {
             <div key={group.title}>
               <div
                 className="mb-2 text-[10px] font-semibold uppercase tracking-wider"
-                style={{ color: "var(--text-secondary)" }}
+                style={{ color: "var(--muted-foreground)" }}
               >
                 {group.title}
               </div>
               <div className="space-y-1">
                 {group.items.map((item) => (
                   <div key={item.desc} className="flex items-center justify-between py-1">
-                    <span className="text-xs" style={{ color: "var(--text-primary)" }}>
+                    <span className="text-xs" style={{ color: "var(--foreground)" }}>
                       {item.desc}
                     </span>
                     <div className="flex items-center gap-1">
@@ -98,9 +98,9 @@ export default function ShortcutsModal() {
                           <kbd
                             className="inline-block rounded px-1.5 py-0.5 font-mono text-[10px]"
                             style={{
-                              background: "var(--bg-tertiary)",
-                              border: "1px solid var(--border-color)",
-                              color: "var(--text-primary)",
+                              background: "var(--secondary)",
+                              border: "1px solid var(--border)",
+                              color: "var(--foreground)",
                             }}
                           >
                             {key}

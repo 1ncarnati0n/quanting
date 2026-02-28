@@ -56,8 +56,8 @@ export default function CollapsibleSidebar({
         style={{
           width: isOpen ? expandedWidth : 0,
           transition: "width 220ms ease, border-color 180ms ease, box-shadow 180ms ease",
-          borderColor: isOpen ? "var(--border-color)" : "transparent",
-          boxShadow: isOpen ? "var(--panel-shadow)" : "none",
+          borderColor: isOpen ? "var(--border)" : "transparent",
+          boxShadow: isOpen ? "var(--shadow-elevated)" : "none",
         }}
       >
         <CollapsibleContent

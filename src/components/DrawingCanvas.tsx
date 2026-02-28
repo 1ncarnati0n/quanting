@@ -549,7 +549,7 @@ export default function DrawingCanvas({ chart, mainSeries }: DrawingCanvasProps)
                 ry={4}
                 width={textWidth}
                 height={textHeight}
-                fill="color-mix(in srgb, var(--bg-primary) 80%, transparent)"
+                fill="color-mix(in srgb, var(--background) 80%, transparent)"
                 stroke={item.color}
                 strokeWidth={selectedStroke(item.id, 1)}
               />
@@ -766,7 +766,7 @@ export default function DrawingCanvas({ chart, mainSeries }: DrawingCanvasProps)
           cx={coord.x}
           cy={coord.y}
           r={4}
-          fill="var(--accent-primary)"
+          fill="var(--primary)"
         />,
       );
     });
@@ -802,7 +802,7 @@ export default function DrawingCanvas({ chart, mainSeries }: DrawingCanvasProps)
               y1={start.y}
               x2={hover.x}
               y2={hover.y}
-              stroke="var(--accent-primary)"
+              stroke="var(--primary)"
               strokeWidth={1.5}
               strokeDasharray="4 3"
             />,
@@ -899,9 +899,9 @@ export default function DrawingCanvas({ chart, mainSeries }: DrawingCanvasProps)
         <div
           className="pointer-events-none absolute left-1/2 top-3 z-[9] -translate-x-1/2 rounded px-2 py-1 text-[10px] font-medium"
           style={{
-            background: "color-mix(in srgb, var(--bg-primary) 84%, transparent)",
-            border: "1px solid var(--border-color)",
-            color: "var(--text-secondary)",
+            background: "color-mix(in srgb, var(--background) 84%, transparent)",
+            border: "1px solid var(--border)",
+            color: "var(--muted-foreground)",
             backdropFilter: "blur(4px)",
           }}
         >

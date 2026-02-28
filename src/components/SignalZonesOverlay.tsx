@@ -143,7 +143,7 @@ export default function SignalZonesOverlay({ chart, data }: SignalZonesOverlayPr
               className="absolute left-1 top-1 rounded px-1 py-0.5 text-[9px] font-mono"
               style={{
                 color: positive ? "#22C55E" : "#F87171",
-                background: "color-mix(in srgb, var(--bg-primary) 75%, transparent)",
+                background: "color-mix(in srgb, var(--background) 75%, transparent)",
               }}
             >
               {text}

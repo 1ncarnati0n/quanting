@@ -27,7 +27,7 @@ function ToggleGroup({
     <ToggleGroupContext.Provider value={{ value, onValueChange }}>
       <div
         className={cn(
-          "inline-flex items-center gap-1 rounded-md border border-[var(--border-color)] bg-[var(--bg-tertiary)] p-1",
+          "inline-flex items-center gap-1 rounded-md border border-border bg-secondary p-1",
           className,
         )}
         {...props}
@@ -63,8 +63,8 @@ function ToggleGroupItem({
       className={cn(
         "rounded px-2 py-1 text-xs font-semibold transition-colors",
         active
-          ? "bg-[var(--accent-primary)] text-[var(--accent-contrast)]"
-          : "text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)]",
+          ? "bg-primary text-primary-foreground"
+          : "text-muted-foreground hover:bg-muted",
         className,
       )}
       aria-pressed={active}

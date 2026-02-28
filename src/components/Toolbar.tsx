@@ -19,19 +19,19 @@ export default function Toolbar({ onToggleWatchlist, onToggleSettings }: Toolbar
   const prevCandle = candles.length > 1 ? candles[candles.length - 2] : null;
   const change = lastCandle && prevCandle ? lastCandle.close - prevCandle.close : 0;
   const changePct = prevCandle && prevCandle.close !== 0 ? (change / prevCandle.close) * 100 : 0;
-  const changeColor = change >= 0 ? "var(--success-color)" : "var(--danger-color)";
+  const changeColor = change >= 0 ? "var(--success)" : "var(--destructive)";
   const high = candles.length > 0 ? Math.max(...candles.map((c) => c.high)) : null;
   const low = candles.length > 0 ? Math.min(...candles.map((c) => c.low)) : null;
   const marketBadge =
     market === "crypto" ? "코인" : market === "krStock" ? "KR" : market === "forex" ? "FX" : "US";
   const marketColor =
     market === "crypto"
-      ? "var(--warning-color)"
+      ? "var(--warning)"
       : market === "krStock"
         ? "#EC4899"
         : market === "forex"
           ? "#14B8A6"
-          : "var(--accent-primary)";
+          : "var(--primary)";
 
   const formatVolume = (volume: number | null) => {
     if (volume === null) return "-";
@@ -45,8 +45,8 @@ export default function Toolbar({ onToggleWatchlist, onToggleSettings }: Toolbar
     <div
       className="flex flex-col gap-2 border-b px-3 py-2 shadow-sm"
       style={{
-        background: "var(--bg-secondary)",
-        borderColor: "var(--border-color)",
+        background: "var(--card)",
+        borderColor: "var(--border)",
       }}
     >
       <div className="flex min-w-0 flex-wrap items-start gap-2 xl:flex-nowrap">
@@ -54,7 +54,7 @@ export default function Toolbar({ onToggleWatchlist, onToggleSettings }: Toolbar
           type="button"
           onClick={onToggleWatchlist}
           className="btn-ghost rounded p-1.5 text-sm transition-colors xl:hidden"
-          style={{ color: "var(--text-secondary)" }}
+          style={{ color: "var(--muted-foreground)" }}
           title="관심종목 열기 (Ctrl/Cmd+B)"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -66,26 +66,26 @@ export default function Toolbar({ onToggleWatchlist, onToggleSettings }: Toolbar
 
         <div className="min-w-0 flex-1">
           <div className="flex min-w-0 items-center gap-2">
-            <span className="text-sm font-bold tracking-wide" style={{ color: "var(--accent-primary)" }}>
+            <span className="text-sm font-bold tracking-wide" style={{ color: "var(--primary)" }}>
               Quanting
             </span>
             <span
               className="rounded px-1.5 py-0.5 text-[9px] font-bold"
-              style={{ background: marketColor, color: "var(--accent-contrast)" }}
+              style={{ background: marketColor, color: "var(--primary-foreground)" }}
             >
               {marketBadge}
             </span>
-            <span className="truncate text-xs font-semibold" style={{ color: "var(--text-primary)" }}>
+            <span className="truncate text-xs font-semibold" style={{ color: "var(--foreground)" }}>
               {symbolLabel ? `${symbol} · ${symbolLabel}` : symbol}
             </span>
             {isLoading && (
-              <span className="text-[10px]" style={{ color: "var(--text-secondary)" }}>
+              <span className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>
                 업데이트 중...
               </span>
             )}
           </div>
           <div className="mt-0.5 flex items-center gap-2 text-[11px]">
-            <span className="font-mono font-semibold" style={{ color: "var(--text-primary)" }}>
+            <span className="font-mono font-semibold" style={{ color: "var(--foreground)" }}>
               {lastCandle ? formatPrice(lastCandle.close, market) : "-"}
             </span>
             {lastCandle && prevCandle && (
@@ -95,23 +95,23 @@ export default function Toolbar({ onToggleWatchlist, onToggleSettings }: Toolbar
                 {changePct.toFixed(2)}%)
               </span>
             )}
-            <span className="hidden sm:inline text-[10px]" style={{ color: "var(--text-secondary)" }}>
+            <span className="hidden sm:inline text-[10px]" style={{ color: "var(--muted-foreground)" }}>
               {lastCandle ? `갱신 ${formatShortTime(lastCandle.time)}` : "데이터 없음"}
             </span>
           </div>
         </div>
 
         <div className="hidden items-center gap-2 text-[10px] xl:flex">
-          <span style={{ color: "var(--text-secondary)" }}>H</span>
-          <span className="font-mono" style={{ color: "var(--text-primary)" }}>
+          <span style={{ color: "var(--muted-foreground)" }}>H</span>
+          <span className="font-mono" style={{ color: "var(--foreground)" }}>
             {high !== null ? formatPrice(high, market) : "-"}
           </span>
-          <span style={{ color: "var(--text-secondary)" }}>L</span>
-          <span className="font-mono" style={{ color: "var(--text-primary)" }}>
+          <span style={{ color: "var(--muted-foreground)" }}>L</span>
+          <span className="font-mono" style={{ color: "var(--foreground)" }}>
             {low !== null ? formatPrice(low, market) : "-"}
           </span>
-          <span style={{ color: "var(--text-secondary)" }}>VOL</span>
-          <span className="font-mono" style={{ color: "var(--text-primary)" }}>
+          <span style={{ color: "var(--muted-foreground)" }}>VOL</span>
+          <span className="font-mono" style={{ color: "var(--foreground)" }}>
             {formatVolume(lastCandle?.volume ?? null)}
           </span>
         </div>
@@ -125,7 +125,7 @@ export default function Toolbar({ onToggleWatchlist, onToggleSettings }: Toolbar
         <button
           onClick={toggleTheme}
           className="btn-ghost rounded p-1.5 text-sm transition-colors"
-          style={{ color: "var(--text-secondary)" }}
+          style={{ color: "var(--muted-foreground)" }}
           title={theme === "dark" ? "라이트 모드로 전환" : "다크 모드로 전환"}
         >
           {theme === "dark" ? (
@@ -150,7 +150,7 @@ export default function Toolbar({ onToggleWatchlist, onToggleSettings }: Toolbar
         <button
           onClick={onToggleSettings}
           className="btn-ghost rounded p-1.5 text-sm transition-colors 2xl:hidden"
-          style={{ color: "var(--text-secondary)" }}
+          style={{ color: "var(--muted-foreground)" }}
           title="설정 (Ctrl/Cmd+,)"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

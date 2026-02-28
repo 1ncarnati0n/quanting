@@ -139,7 +139,7 @@ function AccordionTrigger({
         stroke="currentColor"
         strokeWidth="2"
         style={{
-          color: "var(--text-secondary)",
+          color: "var(--muted-foreground)",
           transform: open ? "rotate(180deg)" : "rotate(0deg)",
           transition: "transform 160ms ease",
         }}

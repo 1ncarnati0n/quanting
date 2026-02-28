@@ -118,10 +118,10 @@ function SliderRow({
   return (
     <div className="mb-3">
       <div className="mb-1 flex items-center justify-between">
-        <span className="text-[10px]" style={{ color: "var(--text-secondary)" }}>
+        <span className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>
           {label}
         </span>
-        <span className="font-mono text-[10px]" style={{ color: "var(--text-primary)" }}>
+        <span className="font-mono text-[10px]" style={{ color: "var(--foreground)" }}>
           {formatValue ? formatValue(value) : step < 1 ? value.toFixed(1) : value}
         </span>
       </div>
@@ -149,7 +149,7 @@ function ToggleRow({
 }) {
   return (
     <label className="mb-2 flex cursor-pointer items-center justify-between gap-2">
-      <span className="text-[10px]" style={{ color: "var(--text-secondary)" }}>
+      <span className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>
         {label}
       </span>
       <Switch
@@ -196,16 +196,16 @@ function AccordionSection({
         <AccordionTrigger
           id={`${sectionId}-header`}
           style={{
-            borderColor: "var(--border-color)",
-            background: "var(--surface-elevated)",
+            borderColor: "var(--border)",
+            background: "var(--muted)",
           }}
         >
           <div className="min-w-0">
-            <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--text-primary)" }}>
+            <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--foreground)" }}>
               {title}
             </div>
             {subtitle && (
-              <div className="mt-0.5 text-[10px]" style={{ color: "var(--text-secondary)" }}>
+              <div className="mt-0.5 text-[10px]" style={{ color: "var(--muted-foreground)" }}>
                 {subtitle}
               </div>
             )}
@@ -216,7 +216,7 @@ function AccordionSection({
           role="region"
           aria-labelledby={`${sectionId}-header`}
           className="rounded-md border p-2.5"
-          style={{ borderColor: "var(--border-color)", background: "var(--surface-elevated)" }}
+          style={{ borderColor: "var(--border)", background: "var(--muted)" }}
         >
           {children}
         </AccordionContent>
@@ -358,17 +358,17 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
     <div
       className={`flex h-full min-w-0 flex-col ${embedded ? "w-full rounded-lg border" : "w-[min(24rem,calc(100vw-1rem))] border-l"}`}
       style={{
-        background: "var(--bg-secondary)",
-        borderColor: "var(--border-color)",
-        boxShadow: "var(--panel-shadow)",
+        background: "var(--card)",
+        borderColor: "var(--border)",
+        boxShadow: "var(--shadow-elevated)",
       }}
     >
       {/* Header */}
       <div
         className="flex items-center justify-between border-b px-4 py-3"
-        style={{ borderColor: "var(--border-color)" }}
+        style={{ borderColor: "var(--border)" }}
       >
-        <span className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
+        <span className="text-sm font-medium" style={{ color: "var(--foreground)" }}>
           지표 설정
         </span>
         {!embedded && (
@@ -376,7 +376,7 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
             variant="ghost"
             size="icon"
             onClick={onClose}
-            className="h-8 w-8 text-xs text-[var(--text-secondary)]"
+            className="h-8 w-8 text-xs text-[var(--muted-foreground)]"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M18 6L6 18M6 6l12 12" />
@@ -390,7 +390,7 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
         onValueChange={(value) => setActiveTab(value as SettingsTab)}
         className="flex min-h-0 flex-1 flex-col"
       >
-        <div className="border-b px-3 py-2" style={{ borderColor: "var(--border-color)" }}>
+        <div className="border-b px-3 py-2" style={{ borderColor: "var(--border)" }}>
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="indicators" aria-label="지표 탭">
               지표
@@ -415,7 +415,7 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
               onOpenChange={(open) => setOpenSections((prev) => ({ ...prev, appearance: open }))}
               sectionId="appearance"
             >
-              <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>
+              <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>
                 테마
               </div>
                   <div className="mb-3 flex gap-2">
@@ -423,9 +423,9 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
                       onClick={() => theme !== "dark" && toggleTheme()}
                       className="flex-1 rounded px-3 py-1.5 text-xs font-medium transition-colors"
                       style={{
-                        background: theme === "dark" ? "var(--accent-primary)" : "var(--bg-tertiary)",
-                        color: theme === "dark" ? "var(--accent-contrast)" : "var(--text-secondary)",
-                        border: `1px solid ${theme === "dark" ? "var(--accent-primary)" : "var(--border-color)"}`,
+                        background: theme === "dark" ? "var(--primary)" : "var(--secondary)",
+                        color: theme === "dark" ? "var(--primary-foreground)" : "var(--muted-foreground)",
+                        border: `1px solid ${theme === "dark" ? "var(--primary)" : "var(--border)"}`,
                       }}
                     >
                       다크
@@ -434,16 +434,16 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
                       onClick={() => theme !== "light" && toggleTheme()}
                       className="flex-1 rounded px-3 py-1.5 text-xs font-medium transition-colors"
                       style={{
-                        background: theme === "light" ? "var(--accent-primary)" : "var(--bg-tertiary)",
-                        color: theme === "light" ? "var(--accent-contrast)" : "var(--text-secondary)",
-                        border: `1px solid ${theme === "light" ? "var(--accent-primary)" : "var(--border-color)"}`,
+                        background: theme === "light" ? "var(--primary)" : "var(--secondary)",
+                        color: theme === "light" ? "var(--primary-foreground)" : "var(--muted-foreground)",
+                        border: `1px solid ${theme === "light" ? "var(--primary)" : "var(--border)"}`,
                       }}
                     >
                       라이트
                     </button>
                   </div>
 
-                  <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>
+                  <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>
                     차트 타입
                   </div>
                   <div className="grid grid-cols-3 gap-1.5">
@@ -459,9 +459,9 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
                         onClick={() => setChartType(opt.value)}
                         className="rounded px-2 py-1.5 text-[10px] font-medium transition-colors"
                         style={{
-                          background: chartType === opt.value ? "var(--accent-primary)" : "var(--bg-tertiary)",
-                          color: chartType === opt.value ? "var(--accent-contrast)" : "var(--text-secondary)",
-                          border: `1px solid ${chartType === opt.value ? "var(--accent-primary)" : "var(--border-color)"}`,
+                          background: chartType === opt.value ? "var(--primary)" : "var(--secondary)",
+                          color: chartType === opt.value ? "var(--primary-foreground)" : "var(--muted-foreground)",
+                          border: `1px solid ${chartType === opt.value ? "var(--primary)" : "var(--border)"}`,
                         }}
                       >
                         {opt.label}
@@ -469,7 +469,7 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
                     ))}
                   </div>
 
-                  <div className="mt-3 mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>
+                  <div className="mt-3 mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>
                     가격 스케일
                   </div>
                   <div className="mb-2 grid grid-cols-3 gap-1.5">
@@ -484,9 +484,9 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
                         onClick={() => setPriceScale({ mode: opt.value })}
                         className="rounded px-2 py-1 text-[10px] font-medium transition-colors"
                         style={{
-                          background: priceScale.mode === opt.value ? "var(--accent-primary)" : "var(--bg-tertiary)",
-                          color: priceScale.mode === opt.value ? "var(--accent-contrast)" : "var(--text-secondary)",
-                          border: `1px solid ${priceScale.mode === opt.value ? "var(--accent-primary)" : "var(--border-color)"}`,
+                          background: priceScale.mode === opt.value ? "var(--primary)" : "var(--secondary)",
+                          color: priceScale.mode === opt.value ? "var(--primary-foreground)" : "var(--muted-foreground)",
+                          border: `1px solid ${priceScale.mode === opt.value ? "var(--primary)" : "var(--border)"}`,
                         }}
                       >
                         {opt.label}
@@ -504,7 +504,7 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
                     onChange={(checked) => setPriceScale({ invertScale: checked })}
                   />
 
-                  <div className="mt-3 mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>
+                  <div className="mt-3 mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>
                     차트 비교(Overlay)
                   </div>
                   <ToggleRow
@@ -537,7 +537,7 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
                     onChange={(checked) => setCompare({ normalize: checked })}
                   />
 
-                  <div className="mt-3 mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>
+                  <div className="mt-3 mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>
                     멀티 차트 레이아웃
                   </div>
                   <div className="mb-2 grid grid-cols-3 gap-1.5">
@@ -552,9 +552,9 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
                         onClick={() => setMultiChartLayout(opt.value)}
                         className="rounded px-2 py-1 text-[10px] font-medium transition-colors"
                         style={{
-                          background: multiChartLayout === opt.value ? "var(--accent-primary)" : "var(--bg-tertiary)",
-                          color: multiChartLayout === opt.value ? "var(--accent-contrast)" : "var(--text-secondary)",
-                          border: `1px solid ${multiChartLayout === opt.value ? "var(--accent-primary)" : "var(--border-color)"}`,
+                          background: multiChartLayout === opt.value ? "var(--primary)" : "var(--secondary)",
+                          color: multiChartLayout === opt.value ? "var(--primary-foreground)" : "var(--muted-foreground)",
+                          border: `1px solid ${multiChartLayout === opt.value ? "var(--primary)" : "var(--border)"}`,
                         }}
                       >
                         {opt.label}
@@ -562,7 +562,7 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
                     ))}
                   </div>
 
-                  <div className="mt-3 mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>
+                  <div className="mt-3 mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>
                     워크스페이스
                   </div>
                   <div className="grid grid-cols-2 gap-1.5">
@@ -570,9 +570,9 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
                       type="button"
                       className="rounded px-2 py-1 text-[10px] font-medium transition-colors"
                       style={{
-                        background: "var(--bg-tertiary)",
-                        color: "var(--text-primary)",
-                        border: "1px solid var(--border-color)",
+                        background: "var(--secondary)",
+                        color: "var(--foreground)",
+                        border: "1px solid var(--border)",
                       }}
                       onClick={exportWorkspace}
                     >
@@ -582,9 +582,9 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
                       type="button"
                       className="rounded px-2 py-1 text-[10px] font-medium transition-colors"
                       style={{
-                        background: "var(--bg-tertiary)",
-                        color: "var(--text-primary)",
-                        border: "1px solid var(--border-color)",
+                        background: "var(--secondary)",
+                        color: "var(--foreground)",
+                        border: "1px solid var(--border)",
                       }}
                       onClick={importWorkspace}
                     >
@@ -603,7 +603,7 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
               onOpenChange={(open) => setOpenSections((prev) => ({ ...prev, layout: open }))}
               sectionId="layout"
             >
-              <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>
+              <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>
                 프리셋
               </div>
                   <div className="mb-3 grid grid-cols-3 gap-1">
@@ -618,9 +618,9 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
                           className="rounded px-1.5 py-1 text-[10px] font-medium transition-colors"
                           aria-label={`${preset.label} 레이아웃 프리셋 적용`}
                           style={{
-                            background: active ? "var(--accent-primary)" : "var(--bg-secondary)",
-                            color: active ? "var(--accent-contrast)" : "var(--text-secondary)",
-                            border: `1px solid ${active ? "var(--accent-primary)" : "var(--border-color)"}`,
+                            background: active ? "var(--primary)" : "var(--card)",
+                            color: active ? "var(--primary-foreground)" : "var(--muted-foreground)",
+                            border: `1px solid ${active ? "var(--primary)" : "var(--border)"}`,
                           }}
                         >
                           {preset.label}
@@ -695,9 +695,9 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
                     type="button"
                     className="mt-1 w-full rounded px-2 py-1 text-[10px] font-medium transition-colors"
                     style={{
-                      color: "var(--text-secondary)",
-                      background: "var(--bg-secondary)",
-                      border: `1px solid var(--border-color)`,
+                      color: "var(--muted-foreground)",
+                      background: "var(--card)",
+                      border: `1px solid var(--border)`,
                     }}
                     onClick={() => applyLayoutPreset("balanced")}
                   >
@@ -1023,7 +1023,7 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
               >
                 <IndicatorSection
                   title="거래량"
-                  color="var(--success-color)"
+                  color="var(--success)"
                   enabled={indicators.volume.enabled}
                   onToggle={() => toggleIndicator("volume")}
                 />
@@ -1084,7 +1084,7 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
                       ↓ 아래로
                     </button>
                   </div>
-                  <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>
+                  <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>
                     현재 알림 ({priceAlerts.filter((a) => a.symbol === symbol && a.market === market).length})
                   </div>
                   <div className="max-h-28 overflow-y-auto space-y-1">
@@ -1094,7 +1094,7 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
                         <div
                           key={alert.id}
                           className="flex items-center justify-between rounded border px-2 py-1 text-[10px]"
-                          style={{ borderColor: "var(--border-color)", color: "var(--text-primary)" }}
+                          style={{ borderColor: "var(--border)", color: "var(--foreground)" }}
                         >
                           <div className="font-mono">
                             {alert.condition === "above" ? "↑" : "↓"} {alert.price.toFixed(4)}
@@ -1105,7 +1105,7 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
                               className="rounded px-1.5 py-0.5"
                               style={{
                                 background: alert.active ? "rgba(34,197,94,0.15)" : "rgba(148,163,184,0.15)",
-                                color: alert.active ? "#22C55E" : "var(--text-secondary)",
+                                color: alert.active ? "#22C55E" : "var(--muted-foreground)",
                               }}
                               onClick={() => togglePriceAlert(alert.id)}
                             >
@@ -1123,20 +1123,20 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
                         </div>
                       ))}
                     {priceAlerts.filter((a) => a.symbol === symbol && a.market === market).length === 0 && (
-                      <div className="text-[10px]" style={{ color: "var(--text-secondary)" }}>
+                      <div className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>
                         등록된 알림이 없습니다.
                       </div>
                     )}
                   </div>
 
                   <div className="mt-2 mb-1 flex items-center justify-between">
-                    <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>
+                    <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>
                       알림 이력 ({alertHistory.length})
                     </div>
                     <button
                       type="button"
                       className="rounded px-1.5 py-0.5 text-[10px]"
-                      style={{ border: "1px solid var(--border-color)", color: "var(--text-secondary)" }}
+                      style={{ border: "1px solid var(--border)", color: "var(--muted-foreground)" }}
                       onClick={clearAlertHistory}
                     >
                       이력 초기화
@@ -1144,13 +1144,13 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
                   </div>
                 <div className="max-h-24 overflow-y-auto space-y-1">
                   {alertHistory.slice(0, 20).map((item) => (
-                    <div key={item.id} className="text-[10px] font-mono" style={{ color: "var(--text-secondary)" }}>
+                    <div key={item.id} className="text-[10px] font-mono" style={{ color: "var(--muted-foreground)" }}>
                       {item.symbol} {item.condition === "above" ? "↑" : "↓"} {item.price.toFixed(4)} @{" "}
                       {item.triggeredPrice.toFixed(4)}
                     </div>
                   ))}
                   {alertHistory.length === 0 && (
-                    <div className="text-[10px]" style={{ color: "var(--text-secondary)" }}>
+                    <div className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>
                       발생 이력이 없습니다.
                     </div>
                   )}

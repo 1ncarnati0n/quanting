@@ -26,15 +26,15 @@ export default function CrosshairLegend() {
     <div
       className="pointer-events-none absolute left-3 top-2 z-10 flex flex-col gap-0.5 rounded px-2 py-1"
       style={{
-        background: "color-mix(in srgb, var(--bg-primary) 80%, transparent)",
+        background: "color-mix(in srgb, var(--background) 80%, transparent)",
         backdropFilter: "blur(4px)",
       }}
     >
       <div className="flex items-center gap-2 text-[10px]">
-        <span className="font-semibold" style={{ color: "var(--accent-primary)" }}>
+        <span className="font-semibold" style={{ color: "var(--primary)" }}>
           {symbol}
         </span>
-        <span style={{ color: "var(--text-secondary)" }}>
+        <span style={{ color: "var(--muted-foreground)" }}>
           {CHART_TYPE_LABELS[chartType] ?? chartType}
         </span>
       </div>
@@ -43,31 +43,31 @@ export default function CrosshairLegend() {
         <div className="flex flex-wrap items-center gap-x-2 gap-y-0 font-mono text-[10px]">
           {!isLineType && (
             <>
-              <span style={{ color: "var(--text-secondary)" }}>O</span>
+              <span style={{ color: "var(--muted-foreground)" }}>O</span>
               <span style={{ color: changeColor }}>{formatPrice(open, market)}</span>
-              <span style={{ color: "var(--text-secondary)" }}>H</span>
+              <span style={{ color: "var(--muted-foreground)" }}>H</span>
               <span style={{ color: changeColor }}>{formatPrice(high, market)}</span>
-              <span style={{ color: "var(--text-secondary)" }}>L</span>
+              <span style={{ color: "var(--muted-foreground)" }}>L</span>
               <span style={{ color: changeColor }}>{formatPrice(low, market)}</span>
             </>
           )}
-          <span style={{ color: "var(--text-secondary)" }}>C</span>
+          <span style={{ color: "var(--muted-foreground)" }}>C</span>
           <span style={{ color: changeColor }}>{formatPrice(close, market)}</span>
           {volume > 0 && (
             <>
-              <span style={{ color: "var(--text-secondary)" }}>V</span>
-              <span style={{ color: "var(--text-primary)" }}>{compactFormat(volume)}</span>
+              <span style={{ color: "var(--muted-foreground)" }}>V</span>
+              <span style={{ color: "var(--foreground)" }}>{compactFormat(volume)}</span>
             </>
           )}
         </div>
       )}
 
       {Object.keys(indicators).length > 0 && (
-        <div className="flex flex-wrap gap-x-2 text-[9px]" style={{ color: "var(--text-secondary)" }}>
+        <div className="flex flex-wrap gap-x-2 text-[9px]" style={{ color: "var(--muted-foreground)" }}>
           {Object.entries(indicators).map(([key, val]) => (
             <span key={key}>
               <span className="font-medium uppercase">{key.replace(/-\d+$/, "").replace("-line", "")}</span>{" "}
-              <span className="font-mono" style={{ color: "var(--text-primary)" }}>{val}</span>
+              <span className="font-mono" style={{ color: "var(--foreground)" }}>{val}</span>
             </span>
           ))}
         </div>

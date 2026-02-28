@@ -72,7 +72,7 @@ const SheetContent = React.forwardRef<HTMLDivElement, SheetContentProps>(
         <div
           ref={ref}
           className={cn(
-            "fixed z-30 flex flex-col overflow-hidden rounded-lg border border-[var(--border-color)] bg-[var(--bg-secondary)] shadow-[var(--panel-shadow)] transition-transform duration-200 2xl:hidden",
+            "fixed z-30 flex flex-col overflow-hidden rounded-lg border border-border bg-card shadow-[var(--shadow-elevated)] transition-transform duration-200 2xl:hidden",
             className,
           )}
           style={{

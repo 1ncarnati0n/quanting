@@ -9,8 +9,25 @@ import ShortcutsModal from "./components/ShortcutsModal";
 import { useChartStore } from "./stores/useChartStore";
 import { useSettingsStore } from "./stores/useSettingsStore";
 import { useReplayStore } from "./stores/useReplayStore";
-import { THEME_COLORS } from "./utils/constants";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
+
+const BINANCE_STREAM_INTERVALS = new Set([
+  "1m",
+  "3m",
+  "5m",
+  "15m",
+  "30m",
+  "1h",
+  "2h",
+  "4h",
+  "6h",
+  "8h",
+  "12h",
+  "1d",
+  "3d",
+  "1w",
+  "1M",
+]);
 
 function App() {
   const [showWatchlist, setShowWatchlist] = useState(false);
@@ -33,45 +50,18 @@ function App() {
   const toggleFullscreen = useSettingsStore((s) => s.toggleFullscreen);
 
   const shellStyle: CSSProperties = {
-    background: "var(--bg-primary)",
+    background: "var(--background)",
     paddingTop: "calc(env(safe-area-inset-top, 0px) + 0.5rem)",
     paddingRight: "calc(env(safe-area-inset-right, 0px) + 0.5rem)",
     paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 0.5rem)",
     paddingLeft: "calc(env(safe-area-inset-left, 0px) + 0.5rem)",
   };
 
-  // Apply theme CSS variables
+  // Apply theme class (.dark) using shadcn token pattern
   useEffect(() => {
-    const colors = theme === "light" ? THEME_COLORS.light : THEME_COLORS.dark;
     const root = document.documentElement;
-    root.style.setProperty("--bg-app", colors.bgApp);
-    root.style.setProperty("--bg-surface", colors.bgSurface);
-    root.style.setProperty("--bg-card", colors.bgCard);
-    root.style.setProperty("--bg-card-hover", colors.bgCardHover);
-    root.style.setProperty("--bg-input", colors.bgInput);
-    root.style.setProperty("--bg-elevated", colors.bgElevated);
-    root.style.setProperty("--bg-primary", colors.bgPrimary);
-    root.style.setProperty("--bg-secondary", colors.bgSecondary);
-    root.style.setProperty("--bg-tertiary", colors.bgTertiary);
-    root.style.setProperty("--surface-elevated", colors.surfaceElevated);
-    root.style.setProperty("--text-primary", colors.textPrimary);
-    root.style.setProperty("--text-secondary", colors.textSecondary);
-    root.style.setProperty("--border-color", colors.borderColor);
-    root.style.setProperty("--accent-primary", colors.accentPrimary);
-    root.style.setProperty("--accent-hover", colors.accentHover);
-    root.style.setProperty("--accent-active", colors.accentActive);
-    root.style.setProperty("--accent-glow", colors.accentGlow);
-    root.style.setProperty("--accent-border", colors.accentBorder);
-    root.style.setProperty("--accent-contrast", colors.accentContrast);
-    root.style.setProperty("--accent-soft", colors.accentSoft);
-    root.style.setProperty("--success-color", colors.successColor);
-    root.style.setProperty("--danger-color", colors.dangerColor);
-    root.style.setProperty("--warning-color", colors.warningColor);
-    root.style.setProperty("--panel-shadow", colors.panelShadow);
-    root.style.setProperty("color-scheme", theme);
-
-    document.body.style.backgroundColor = colors.bgPrimary;
-    document.body.style.color = colors.textPrimary;
+    root.classList.toggle("dark", theme === "dark");
+    root.style.colorScheme = theme;
   }, [theme]);
 
   // Data fetching
@@ -160,6 +150,7 @@ function App() {
   useEffect(() => {
     if (market !== "crypto") return;
     if (!symbol || !interval) return;
+    if (!BINANCE_STREAM_INTERVALS.has(interval)) return;
 
     const stream = `${symbol.toLowerCase()}@kline_${interval}`;
     const ws = new WebSocket(`wss://stream.binance.com:9443/ws/${stream}`);
@@ -395,7 +386,7 @@ function App() {
     return (
       <div
         className="fixed inset-0 z-50 flex flex-col"
-        style={{ background: "var(--bg-primary)" }}
+        style={{ background: "var(--background)" }}
       >
         <div className="flex-1 min-h-0">
           <ChartContainer />

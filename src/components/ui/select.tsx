@@ -12,7 +12,7 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
       <select
         ref={ref}
         className={cn(
-          "h-8 w-full rounded-md border border-[var(--border-color)] bg-[var(--bg-tertiary)] px-2 text-xs text-[var(--text-primary)] outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] disabled:cursor-not-allowed disabled:opacity-50",
+          "h-8 w-full rounded-md border border-border bg-secondary px-2 text-xs text-foreground outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
           className,
         )}
         onChange={(event) => {
@@ -36,7 +36,7 @@ interface SelectItemProps
 
 function SelectItem({ className, children, ...props }: SelectItemProps) {
   return (
-    <option className={cn("bg-[var(--bg-tertiary)] text-[var(--text-primary)]", className)} {...props}>
+    <option className={cn("bg-secondary text-foreground", className)} {...props}>
       {children}
     </option>
   );

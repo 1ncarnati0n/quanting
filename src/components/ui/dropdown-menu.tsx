@@ -162,7 +162,7 @@ const DropdownMenuContent = React.forwardRef<HTMLDivElement, DropdownMenuContent
         ref={mergeRefs(contentRef, forwardedRef)}
         role="menu"
         className={cn(
-          "absolute top-full z-50 min-w-[8rem] overflow-hidden rounded-md border border-[var(--border-color)] bg-[var(--bg-secondary)] p-1 shadow-[var(--panel-shadow)]",
+          "absolute top-full z-50 min-w-[8rem] overflow-hidden rounded-md border border-border bg-card p-1 shadow-[var(--shadow-elevated)]",
           alignClass,
           className,
         )}
@@ -191,7 +191,7 @@ const DropdownMenuItem = React.forwardRef<HTMLButtonElement, DropdownMenuItemPro
         type="button"
         role="menuitem"
         className={cn(
-          "flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-xs text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-tertiary)] disabled:pointer-events-none disabled:opacity-50",
+          "flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-xs text-foreground transition-colors hover:bg-secondary disabled:pointer-events-none disabled:opacity-50",
           inset && "pl-7",
           className,
         )}
@@ -249,8 +249,8 @@ const DropdownMenuCheckboxItem = React.forwardRef<
         <span
           className="h-3 w-3 rounded-[3px] border"
           style={{
-            background: checked ? "var(--accent-primary)" : "transparent",
-            borderColor: checked ? "var(--accent-primary)" : "var(--border-color)",
+            background: checked ? "var(--primary)" : "transparent",
+            borderColor: checked ? "var(--primary)" : "var(--border)",
           }}
           aria-hidden="true"
         />
@@ -265,7 +265,7 @@ function DropdownMenuSeparator({ className, ...props }: React.HTMLAttributes<HTM
   return (
     <div
       role="separator"
-      className={cn("my-1 h-px bg-[var(--border-color)]", className)}
+      className={cn("my-1 h-px bg-[var(--border)]", className)}
       {...props}
     />
   );

@@ -64,9 +64,9 @@ export default function DrawingToolbar() {
       ref={menuRef}
       className="pointer-events-auto absolute left-3 top-2 z-10 flex items-center gap-1 rounded-lg px-1 py-0.5"
       style={{
-        background: "color-mix(in srgb, var(--bg-primary) 85%, transparent)",
+        background: "color-mix(in srgb, var(--background) 85%, transparent)",
         backdropFilter: "blur(6px)",
-        border: "1px solid var(--border-color)",
+        border: "1px solid var(--border)",
       }}
     >
       {TOOLS.map((tool) => (
@@ -77,15 +77,15 @@ export default function DrawingToolbar() {
           title={`${tool.label} 도구`}
           onClick={() => setActiveTool(tool.key)}
           style={{
-            background: activeTool === tool.key ? "var(--accent-soft)" : undefined,
-            color: activeTool === tool.key ? "var(--accent-primary)" : "var(--text-primary)",
+            background: activeTool === tool.key ? "var(--accent)" : undefined,
+            color: activeTool === tool.key ? "var(--primary)" : "var(--foreground)",
           }}
         >
           <span className="font-bold text-[10px]">{tool.icon}</span>
         </button>
       ))}
 
-      <div className="mx-0.5 h-4 w-px" style={{ background: "var(--border-color)" }} />
+      <div className="mx-0.5 h-4 w-px" style={{ background: "var(--border)" }} />
 
       <button
         type="button"
@@ -123,7 +123,7 @@ export default function DrawingToolbar() {
         title={`드로잉 목록 (${drawings.length})`}
         onClick={() => setShowList((prev) => !prev)}
         style={{
-          color: showList ? "var(--accent-primary)" : "var(--text-primary)",
+          color: showList ? "var(--primary)" : "var(--foreground)",
         }}
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -155,7 +155,7 @@ export default function DrawingToolbar() {
         <div className="chart-toolbar-dropdown" style={{ left: 0, minWidth: 220, top: "calc(100% + 4px)" }}>
           <div
             className="px-2 pb-1 text-[10px] font-semibold uppercase tracking-wider"
-            style={{ color: "var(--text-secondary)" }}
+            style={{ color: "var(--muted-foreground)" }}
           >
             드로잉 {drawings.length}개
           </div>
@@ -166,7 +166,7 @@ export default function DrawingToolbar() {
               style={{
                 background:
                   selectedDrawingId === item.id
-                    ? "color-mix(in srgb, var(--accent-primary) 16%, transparent)"
+                    ? "color-mix(in srgb, var(--primary) 16%, transparent)"
                     : undefined,
               }}
               onClick={() => setSelectedDrawing(item.id)}
@@ -179,7 +179,7 @@ export default function DrawingToolbar() {
               </span>
               <div className="flex items-center gap-1">
                 {selectedDrawingId === item.id && (
-                  <span className="text-[9px]" style={{ color: "var(--accent-primary)" }}>
+                  <span className="text-[9px]" style={{ color: "var(--primary)" }}>
                     선택
                   </span>
                 )}
@@ -187,8 +187,8 @@ export default function DrawingToolbar() {
                   type="button"
                   className="rounded px-1 py-0.5 text-[10px]"
                   style={{
-                    border: "1px solid var(--border-color)",
-                    color: "var(--danger-color)",
+                    border: "1px solid var(--border)",
+                    color: "var(--destructive)",
                   }}
                   onClick={(event) => {
                     event.stopPropagation();
@@ -202,7 +202,7 @@ export default function DrawingToolbar() {
             </div>
           ))}
           {recentDrawings.length === 0 && (
-            <div className="px-2 py-1 text-[10px]" style={{ color: "var(--text-secondary)" }}>
+            <div className="px-2 py-1 text-[10px]" style={{ color: "var(--muted-foreground)" }}>
               표시할 드로잉이 없습니다.
             </div>
           )}

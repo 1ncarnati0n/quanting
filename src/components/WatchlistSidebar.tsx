@@ -133,10 +133,10 @@ function snapshotKey(symbol: string, market: MarketType): string {
 }
 
 function marketBadge(market: MarketType) {
-  if (market === "crypto") return { text: "코인", color: "var(--warning-color)" };
+  if (market === "crypto") return { text: "코인", color: "var(--warning)" };
   if (market === "krStock") return { text: "KR", color: "#EC4899" };
   if (market === "forex") return { text: "FX", color: "#14B8A6" };
-  return { text: "US", color: "var(--accent-primary)" };
+  return { text: "US", color: "var(--primary)" };
 }
 
 function evaluateScreenerCondition(
@@ -218,7 +218,7 @@ function Sparkline({
     return (
       <div
         className="h-7 w-full rounded border border-dashed"
-        style={{ borderColor: "var(--border-color)", opacity: 0.5 }}
+        style={{ borderColor: "var(--border)", opacity: 0.5 }}
       />
     );
   }
@@ -518,20 +518,20 @@ export default function WatchlistSidebar({
         embedded ? "w-full rounded-lg border" : "w-[min(22rem,calc(100vw-1rem))] border-l"
       }`}
       style={{
-        background: "var(--bg-secondary)",
-        borderColor: "var(--border-color)",
-        boxShadow: "var(--panel-shadow)",
+        background: "var(--card)",
+        borderColor: "var(--border)",
+        boxShadow: "var(--shadow-elevated)",
       }}
     >
       <div
         className="flex items-center justify-between border-b px-3 py-2.5"
-        style={{ borderColor: "var(--border-color)" }}
+        style={{ borderColor: "var(--border)" }}
       >
         <div>
-          <p className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+          <p className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>
             관심종목
           </p>
-          <p className="text-[10px]" style={{ color: "var(--text-secondary)" }}>
+          <p className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>
             {activeLabel ? `${symbol} · ${activeLabel}` : symbol} ·{" "}
             {isLoadingSnapshots ? "스냅샷 갱신중" : `${interval} 기준 스냅샷`}
           </p>
@@ -540,7 +540,7 @@ export default function WatchlistSidebar({
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 text-[var(--text-secondary)]"
+            className="h-8 w-8 text-[var(--muted-foreground)]"
             onClick={() => toggleFavorite(symbol, market)}
             title={isCurrentFavorite ? "현재 종목 즐겨찾기 해제" : "현재 종목 즐겨찾기 추가"}
           >
@@ -551,7 +551,7 @@ export default function WatchlistSidebar({
               variant="ghost"
               size="icon"
               onClick={onClose}
-              className="h-8 w-8 text-[var(--text-secondary)]"
+              className="h-8 w-8 text-[var(--muted-foreground)]"
               title="관심종목 닫기"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -579,9 +579,9 @@ export default function WatchlistSidebar({
               onClick={() => setMarketFilter(mf)}
               className="rounded px-2 py-1 text-[10px] font-medium"
               style={{
-                background: marketFilter === mf ? "var(--accent-primary)" : "var(--bg-tertiary)",
-                color: marketFilter === mf ? "var(--accent-contrast)" : "var(--text-secondary)",
-                border: `1px solid ${marketFilter === mf ? "var(--accent-primary)" : "var(--border-color)"}`,
+                background: marketFilter === mf ? "var(--primary)" : "var(--secondary)",
+                color: marketFilter === mf ? "var(--primary-foreground)" : "var(--muted-foreground)",
+                border: `1px solid ${marketFilter === mf ? "var(--primary)" : "var(--border)"}`,
               }}
             >
               {mf === "all"
@@ -600,22 +600,22 @@ export default function WatchlistSidebar({
             onClick={() => setFavoriteOnly((prev) => !prev)}
             className="rounded px-2 py-1 text-[10px] font-medium"
             style={{
-              background: favoriteOnly ? "var(--warning-color)" : "var(--bg-tertiary)",
-              color: favoriteOnly ? "#111827" : "var(--text-secondary)",
-              border: `1px solid ${favoriteOnly ? "var(--warning-color)" : "var(--border-color)"}`,
+              background: favoriteOnly ? "var(--warning)" : "var(--secondary)",
+              color: favoriteOnly ? "#111827" : "var(--muted-foreground)",
+              border: `1px solid ${favoriteOnly ? "var(--warning)" : "var(--border)"}`,
             }}
             title="즐겨찾기 종목만 보기"
           >
             ★ 즐겨찾기
           </button>
         </div>
-        <div className="mt-1 text-[10px]" style={{ color: "var(--text-secondary)" }}>
+        <div className="mt-1 text-[10px]" style={{ color: "var(--muted-foreground)" }}>
           표시 {visibleItems.length}개 · 즐겨찾기 {favorites.length}개
         </div>
 
         {recentSymbols.length > 0 && (
           <div className="mt-2">
-            <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>
+            <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>
               최근 심볼
             </div>
             <div className="flex flex-wrap gap-1">
@@ -629,9 +629,9 @@ export default function WatchlistSidebar({
                   }}
                   className="rounded px-1.5 py-0.5 text-[10px] font-mono"
                   style={{
-                    border: "1px solid var(--border-color)",
-                    background: "var(--bg-tertiary)",
-                    color: "var(--text-primary)",
+                    border: "1px solid var(--border)",
+                    background: "var(--secondary)",
+                    color: "var(--foreground)",
                   }}
                 >
                   {item.symbol}
@@ -643,19 +643,19 @@ export default function WatchlistSidebar({
 
         <div
           className="mt-2 rounded border p-2"
-          style={{ borderColor: "var(--border-color)", background: "var(--surface-elevated)" }}
+          style={{ borderColor: "var(--border)", background: "var(--muted)" }}
         >
           <div className="mb-1.5 flex items-center justify-between">
-            <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>
+            <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>
               기술 스크리너
             </span>
             <button
               type="button"
               className="rounded px-2 py-1 text-[10px] font-semibold"
               style={{
-                background: "var(--accent-soft)",
-                color: "var(--accent-primary)",
-                border: "1px solid var(--border-color)",
+                background: "var(--accent)",
+                color: "var(--primary)",
+                border: "1px solid var(--border)",
               }}
               onClick={runScreener}
               disabled={isScanning}
@@ -673,9 +673,9 @@ export default function WatchlistSidebar({
                   onClick={() => toggleScreenerCondition(rule.value)}
                   className="rounded px-2 py-1 text-[10px] font-medium"
                   style={{
-                    background: active ? "var(--accent-primary)" : "var(--bg-tertiary)",
-                    color: active ? "var(--accent-contrast)" : "var(--text-secondary)",
-                    border: `1px solid ${active ? "var(--accent-primary)" : "var(--border-color)"}`,
+                    background: active ? "var(--primary)" : "var(--secondary)",
+                    color: active ? "var(--primary-foreground)" : "var(--muted-foreground)",
+                    border: `1px solid ${active ? "var(--primary)" : "var(--border)"}`,
                   }}
                 >
                   {rule.label}
@@ -696,16 +696,16 @@ export default function WatchlistSidebar({
                 style={{
                   background:
                     screenerMode === modeOption.value
-                      ? "color-mix(in srgb, var(--warning-color) 22%, transparent)"
-                      : "var(--bg-tertiary)",
+                      ? "color-mix(in srgb, var(--warning) 22%, transparent)"
+                      : "var(--secondary)",
                   color:
                     screenerMode === modeOption.value
-                      ? "var(--warning-color)"
-                      : "var(--text-secondary)",
+                      ? "var(--warning)"
+                      : "var(--muted-foreground)",
                   border: `1px solid ${
                     screenerMode === modeOption.value
-                      ? "var(--warning-color)"
-                      : "var(--border-color)"
+                      ? "var(--warning)"
+                      : "var(--border)"
                   }`,
                 }}
               >
@@ -727,11 +727,11 @@ export default function WatchlistSidebar({
                 className="rounded px-2 py-0.5 text-[10px]"
                 style={{
                   background:
-                    screenerSort === sortOption.value ? "var(--accent-soft)" : "var(--bg-tertiary)",
+                    screenerSort === sortOption.value ? "var(--accent)" : "var(--secondary)",
                   color:
-                    screenerSort === sortOption.value ? "var(--accent-primary)" : "var(--text-secondary)",
+                    screenerSort === sortOption.value ? "var(--primary)" : "var(--muted-foreground)",
                   border: `1px solid ${
-                    screenerSort === sortOption.value ? "var(--accent-primary)" : "var(--border-color)"
+                    screenerSort === sortOption.value ? "var(--primary)" : "var(--border)"
                   }`,
                 }}
               >
@@ -750,9 +750,9 @@ export default function WatchlistSidebar({
               type="button"
               className="rounded px-2 py-1 text-[10px] font-semibold"
               style={{
-                background: "var(--bg-tertiary)",
-                color: "var(--text-primary)",
-                border: "1px solid var(--border-color)",
+                background: "var(--secondary)",
+                color: "var(--foreground)",
+                border: "1px solid var(--border)",
               }}
               onClick={saveCurrentPreset}
               disabled={!presetName.trim() || screenerConditions.length === 0}
@@ -766,14 +766,14 @@ export default function WatchlistSidebar({
                 key={preset.id}
                 className="flex items-center justify-between gap-1 rounded border px-1.5 py-1"
                 style={{
-                  borderColor: "var(--border-color)",
-                  background: "var(--bg-tertiary)",
+                  borderColor: "var(--border)",
+                  background: "var(--secondary)",
                 }}
               >
                 <button
                   type="button"
                   className="min-w-0 flex-1 truncate text-left text-[10px]"
-                  style={{ color: "var(--text-primary)" }}
+                  style={{ color: "var(--foreground)" }}
                   onClick={() => applyPreset(preset)}
                   title={`${preset.name} 적용`}
                 >
@@ -782,7 +782,7 @@ export default function WatchlistSidebar({
                 <button
                   type="button"
                   className="rounded px-1 text-[10px]"
-                  style={{ color: "var(--text-secondary)" }}
+                  style={{ color: "var(--muted-foreground)" }}
                   onClick={() => removePreset(preset.id)}
                   title="프리셋 삭제"
                 >
@@ -798,9 +798,9 @@ export default function WatchlistSidebar({
                 type="button"
                 className="w-full rounded border px-2 py-1 text-left text-[10px]"
                 style={{
-                  borderColor: "var(--border-color)",
-                  background: "var(--bg-tertiary)",
-                  color: "var(--text-primary)",
+                  borderColor: "var(--border)",
+                  background: "var(--secondary)",
+                  color: "var(--foreground)",
                 }}
                 onClick={() => {
                   setSymbol(hit.symbol, hit.market);
@@ -811,16 +811,16 @@ export default function WatchlistSidebar({
                   <span>{hit.symbol}</span>
                   <span>{formatPrice(hit.close, hit.market)}</span>
                 </div>
-                <div style={{ color: "var(--text-secondary)" }}>
+                <div style={{ color: "var(--muted-foreground)" }}>
                   {hit.reasons.join(" · ")}
                 </div>
-                <div className="font-mono text-[9px]" style={{ color: "var(--accent-primary)" }}>
+                <div className="font-mono text-[9px]" style={{ color: "var(--primary)" }}>
                   score {hit.score.toFixed(1)}
                 </div>
               </button>
             ))}
             {screenerHits.length === 0 && (
-              <div className="text-[10px]" style={{ color: "var(--text-secondary)" }}>
+              <div className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>
                 {lastScannedAt ? "조건 일치 종목이 없습니다." : "조건 선택 후 스캔 실행"}
               </div>
             )}
@@ -850,9 +850,9 @@ export default function WatchlistSidebar({
                 className="w-full rounded-md border px-2.5 py-2 text-left transition-colors"
                 style={{
                   background: active
-                    ? "color-mix(in srgb, var(--accent-primary) 10%, var(--bg-tertiary))"
+                    ? "color-mix(in srgb, var(--primary) 10%, var(--secondary))"
                     : "transparent",
-                  borderColor: active ? "var(--accent-primary)" : "var(--border-color)",
+                  borderColor: active ? "var(--primary)" : "var(--border)",
                   cursor: "pointer",
                 }}
               >
@@ -861,7 +861,7 @@ export default function WatchlistSidebar({
                     <div className="flex min-w-0 items-center gap-2">
                       <p
                         className="truncate text-xs font-semibold font-mono"
-                        style={{ color: "var(--text-primary)" }}
+                        style={{ color: "var(--foreground)" }}
                       >
                         {item.symbol}
                       </p>
@@ -875,7 +875,7 @@ export default function WatchlistSidebar({
                         {badge.text}
                       </span>
                     </div>
-                    <p className="truncate text-[10px]" style={{ color: "var(--text-secondary)" }}>
+                    <p className="truncate text-[10px]" style={{ color: "var(--muted-foreground)" }}>
                       {item.label}
                     </p>
                   </div>
@@ -886,10 +886,10 @@ export default function WatchlistSidebar({
                         const isUp = snapshot ? snapshot.change >= 0 : null;
                         const priceColor =
                           isUp === null
-                            ? "var(--text-primary)"
+                            ? "var(--foreground)"
                             : isUp
-                              ? "var(--success-color)"
-                              : "var(--danger-color)";
+                              ? "var(--success)"
+                              : "var(--destructive)";
                         const changeLabel = snapshot
                           ? `${snapshot.changePct >= 0 ? "+" : ""}${snapshot.changePct.toFixed(2)}%`
                           : "로딩중";
@@ -914,7 +914,7 @@ export default function WatchlistSidebar({
                       className="rounded px-1 py-0.5 text-sm leading-none"
                       title={isFavorite ? "즐겨찾기 해제" : "즐겨찾기 추가"}
                       style={{
-                        color: isFavorite ? "var(--warning-color)" : "var(--text-secondary)",
+                        color: isFavorite ? "var(--warning)" : "var(--muted-foreground)",
                       }}
                     >
                       {isFavorite ? "★" : "☆"}
@@ -926,16 +926,16 @@ export default function WatchlistSidebar({
                   const snapshot = snapshots[snapshotKey(item.symbol, item.market)];
                   const trendColor = snapshot
                     ? snapshot.change >= 0
-                      ? "var(--success-color)"
-                      : "var(--danger-color)"
-                    : "var(--text-secondary)";
+                      ? "var(--success)"
+                      : "var(--destructive)"
+                    : "var(--muted-foreground)";
                   return (
                     <div className="mt-1.5">
                       <Sparkline values={snapshot?.sparkline ?? []} color={trendColor} />
                       {snapshot && (
                         <p
                           className="mt-0.5 text-[10px]"
-                          style={{ color: "var(--text-secondary)" }}
+                          style={{ color: "var(--muted-foreground)" }}
                         >
                           H {formatPrice(snapshot.high, item.market)} · L{" "}
                           {formatPrice(snapshot.low, item.market)}
@@ -948,7 +948,7 @@ export default function WatchlistSidebar({
             );
           })}
           {visibleItems.length === 0 && (
-            <div className="rounded border px-3 py-4 text-center text-xs" style={{ borderColor: "var(--border-color)", color: "var(--text-secondary)" }}>
+            <div className="rounded border px-3 py-4 text-center text-xs" style={{ borderColor: "var(--border)", color: "var(--muted-foreground)" }}>
               {favoriteOnly ? "즐겨찾기 종목이 없습니다" : "심볼이 없습니다"}
             </div>
           )}

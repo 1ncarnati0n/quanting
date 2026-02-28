@@ -11,11 +11,11 @@ export default function IntervalSelector() {
         <button
           key={iv}
           onClick={() => setInterval(iv as Interval)}
-          className="rounded px-2.5 py-1 text-xs font-medium transition-colors"
+          className={`rounded px-2.5 py-1 text-xs font-medium transition-colors ${interval !== iv ? "btn-ghost" : ""}`}
           style={{
-            background: interval === iv ? "#2563EB" : "var(--bg-tertiary)",
-            color: interval === iv ? "#fff" : "var(--text-secondary)",
-            border: `1px solid ${interval === iv ? "#2563EB" : "var(--border-color)"}`,
+            background: interval === iv ? "var(--accent-primary)" : "var(--bg-tertiary)",
+            color: interval === iv ? "var(--accent-contrast)" : "var(--text-secondary)",
+            border: `1px solid ${interval === iv ? "var(--accent-primary)" : "var(--border-color)"}`,
           }}
         >
           {iv}

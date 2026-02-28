@@ -10,8 +10,14 @@ pub fn calculate(candles: &[Candle], period: usize) -> Vec<RsiPoint> {
     // Calculate price changes
     let changes: Vec<f64> = closes.windows(2).map(|w| w[1] - w[0]).collect();
 
-    let gains: Vec<f64> = changes.iter().map(|&c| if c > 0.0 { c } else { 0.0 }).collect();
-    let losses: Vec<f64> = changes.iter().map(|&c| if c < 0.0 { -c } else { 0.0 }).collect();
+    let gains: Vec<f64> = changes
+        .iter()
+        .map(|&c| if c > 0.0 { c } else { 0.0 })
+        .collect();
+    let losses: Vec<f64> = changes
+        .iter()
+        .map(|&c| if c < 0.0 { -c } else { 0.0 })
+        .collect();
 
     let mut result = Vec::with_capacity(candles.len() - period);
 

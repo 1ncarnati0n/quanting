@@ -1,4 +1,4 @@
-# BB-RSI Checker
+# Quanting
 
 Bollinger Bands + RSI 기반 기술적 분석 데스크톱 앱
 

@@ -1,8 +1,8 @@
 {
   "$schema": "https://raw.githubusercontent.com/nicehash/tauri/dev/crates/tauri-config-schema/schema.json",
-  "productName": "BB-RSI Checker",
+  "productName": "Quanting",
   "version": "0.1.0",
-  "identifier": "com.quanting.bb-rsi-checker",
+  "identifier": "com.quanting.quanting",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "BB-RSI Checker",
+        "title": "Quanting",
         "width": 1280,
         "height": 800,
         "minWidth": 900,

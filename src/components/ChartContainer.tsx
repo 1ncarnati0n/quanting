@@ -1,102 +1,17 @@
-import { useRef, useCallback, useEffect } from "react";
-import type {
-  IChartApi,
-  ISeriesApi,
-  LogicalRange,
-  SeriesType,
-} from "lightweight-charts";
 import MainChart from "./MainChart";
-import RsiChart from "./RsiChart";
 import { useChartStore } from "../stores/useChartStore";
-
-interface ChartInfo {
-  chart: IChartApi;
-  series: ISeriesApi<SeriesType>;
-}
+import { useSettingsStore } from "../stores/useSettingsStore";
 
 export default function ChartContainer() {
   const { data, isLoading, error } = useChartStore();
-  const mainInfoRef = useRef<ChartInfo | null>(null);
-  const rsiInfoRef = useRef<ChartInfo | null>(null);
-  const isSyncing = useRef(false);
-  const syncCleanupRef = useRef<Array<() => void>>([]);
-
-  const clearSyncSubscriptions = useCallback(() => {
-    for (const cleanup of syncCleanupRef.current) {
-      try {
-        cleanup();
-      } catch {
-        // Ignore cleanup failures from already-disposed charts.
-      }
-    }
-    syncCleanupRef.current = [];
-    isSyncing.current = false;
-  }, []);
-
-  const syncCharts = useCallback(
-    (source: ChartInfo, target: ChartInfo) => {
-      const onVisibleRangeChange = (range: LogicalRange | null) => {
-        if (isSyncing.current || !range) return;
-        isSyncing.current = true;
-        try {
-          target.chart.timeScale().setVisibleLogicalRange(range);
-        } catch {
-          // Chart might be disposed during theme switch; ignore.
-        } finally {
-          isSyncing.current = false;
-        }
-      };
-
-      source.chart
-        .timeScale()
-        .subscribeVisibleLogicalRangeChange(onVisibleRangeChange);
-
-      return () => {
-        try {
-          source.chart.timeScale().unsubscribeVisibleLogicalRangeChange(onVisibleRangeChange);
-        } catch {
-          // Chart may have been removed before unsubscribe.
-        }
-      };
-    },
-    [],
-  );
-
-  const handleMainChartReady = useCallback(
-    (chart: IChartApi, series: ISeriesApi<"Candlestick">) => {
-      mainInfoRef.current = { chart, series };
-      if (rsiInfoRef.current) {
-        clearSyncSubscriptions();
-        syncCleanupRef.current = [
-          syncCharts(mainInfoRef.current, rsiInfoRef.current),
-          syncCharts(rsiInfoRef.current, mainInfoRef.current),
-        ];
-      }
-    },
-    [clearSyncSubscriptions, syncCharts],
-  );
-
-  const handleRsiChartReady = useCallback(
-    (chart: IChartApi, series: ISeriesApi<"Line">) => {
-      rsiInfoRef.current = { chart, series };
-      if (mainInfoRef.current) {
-        clearSyncSubscriptions();
-        syncCleanupRef.current = [
-          syncCharts(mainInfoRef.current, rsiInfoRef.current),
-          syncCharts(rsiInfoRef.current, mainInfoRef.current),
-        ];
-      }
-    },
-    [clearSyncSubscriptions, syncCharts],
-  );
-
-  useEffect(() => () => clearSyncSubscriptions(), [clearSyncSubscriptions]);
+  const symbol = useSettingsStore((s) => s.symbol);
+  const chartType = useSettingsStore((s) => s.chartType);
 
   if (error) {
     return (
-      <div className="flex flex-1 items-center justify-center">
+      <div className="flex h-full w-full items-center justify-center rounded-lg border p-6" style={{ borderColor: "var(--border-color)", background: "var(--bg-secondary)" }}>
         <div className="text-center">
-          <p className="mb-2 text-sm" style={{ color: "#EF4444" }}>
+          <p className="mb-2 text-sm" style={{ color: "var(--danger-color)" }}>
             {error}
           </p>
           <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
@@ -109,11 +24,11 @@ export default function ChartContainer() {
 
   if (isLoading && !data) {
     return (
-      <div className="flex flex-1 items-center justify-center">
+      <div className="flex h-full w-full items-center justify-center rounded-lg border p-6" style={{ borderColor: "var(--border-color)", background: "var(--bg-secondary)" }}>
         <div className="text-center">
           <div
             className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-2 border-t-transparent"
-            style={{ borderColor: "#2563EB", borderTopColor: "transparent" }}
+            style={{ borderColor: "var(--accent-primary)", borderTopColor: "transparent" }}
           />
           <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
             Loading data...
@@ -124,7 +39,13 @@ export default function ChartContainer() {
   }
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden">
+    <div
+      className="relative flex h-full w-full flex-col overflow-hidden rounded-lg border"
+      style={{
+        borderColor: "var(--border-color)",
+        background: "var(--bg-secondary)",
+      }}
+    >
       {isLoading && (
         <div
           className="h-0.5 w-full overflow-hidden"
@@ -132,19 +53,21 @@ export default function ChartContainer() {
         >
           <div
             className="h-full animate-pulse"
-            style={{ background: "#2563EB", width: "40%" }}
+            style={{ background: "var(--accent-primary)", width: "40%" }}
           />
         </div>
       )}
-      <div className="flex-[7] min-h-0">
-        <MainChart data={data} onChartReady={handleMainChartReady} />
-      </div>
-      <div
-        className="h-px"
-        style={{ background: "var(--border-color)" }}
-      />
-      <div className="flex-[3] min-h-0">
-        <RsiChart data={data} onChartReady={handleRsiChartReady} />
+      <span
+        className="absolute left-3 top-2 z-10 rounded px-1.5 py-0.5 text-[10px] font-medium pointer-events-none"
+        style={{
+          color: "var(--text-secondary)",
+          background: "var(--surface-elevated)",
+        }}
+      >
+        {symbol} · {chartType === "heikinAshi" ? "Heikin Ashi" : "Candlestick"}
+      </span>
+      <div className="flex-1 min-h-0">
+        <MainChart data={data} />
       </div>
     </div>
   );

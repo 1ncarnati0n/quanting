@@ -9,15 +9,15 @@ pub struct CacheDb {
 
 impl CacheDb {
     pub fn new() -> Result<Self, String> {
-        let conn = Connection::open_in_memory()
-            .map_err(|e| format!("Failed to open cache db: {}", e))?;
+        let conn =
+            Connection::open_in_memory().map_err(|e| format!("Failed to open cache db: {}", e))?;
 
         conn.execute_batch(
             "CREATE TABLE IF NOT EXISTS kline_cache (
                 cache_key TEXT PRIMARY KEY,
                 data TEXT NOT NULL,
                 cached_at INTEGER NOT NULL
-            );"
+            );",
         )
         .map_err(|e| format!("Failed to create cache table: {}", e))?;
 
@@ -37,15 +37,11 @@ impl CacheDb {
             .ok()?;
 
         let result: Option<(String, i64)> = stmt
-            .query_row(rusqlite::params![key], |row| {
-                Ok((row.get(0)?, row.get(1)?))
-            })
+            .query_row(rusqlite::params![key], |row| Ok((row.get(0)?, row.get(1)?)))
             .ok();
 
         match result {
-            Some((data, cached_at)) if now - cached_at < ttl => {
-                serde_json::from_str(&data).ok()
-            }
+            Some((data, cached_at)) if now - cached_at < ttl => serde_json::from_str(&data).ok(),
             _ => None,
         }
     }

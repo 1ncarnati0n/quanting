@@ -19,13 +19,67 @@ export interface RsiPoint {
   value: number;
 }
 
-export type SignalType = "strongBuy" | "weakBuy" | "strongSell" | "weakSell";
+// MA (SMA/EMA)
+export interface MaPoint {
+  time: number;
+  value: number;
+}
+
+export interface MovingAverageResult {
+  period: number;
+  data: MaPoint[];
+}
+
+// MACD
+export interface MacdPoint {
+  time: number;
+  macd: number;
+  signal: number;
+  histogram: number;
+}
+
+export interface MacdResult {
+  data: MacdPoint[];
+}
+
+// Stochastic
+export interface StochasticPoint {
+  time: number;
+  k: number;
+  d: number;
+}
+
+export interface StochasticResult {
+  data: StochasticPoint[];
+}
+
+// OBV (On-Balance Volume)
+export interface ObvPoint {
+  time: number;
+  value: number;
+}
+
+export interface ObvResult {
+  data: ObvPoint[];
+}
+
+// Signal types
+export type SignalType =
+  | "strongBuy"
+  | "weakBuy"
+  | "strongSell"
+  | "weakSell"
+  | "macdBullish"
+  | "macdBearish"
+  | "stochOversold"
+  | "stochOverbought";
 
 export interface SignalPoint {
   time: number;
   signalType: SignalType;
   price: number;
   rsi: number;
+  source: string;
 }
 
 export interface AnalysisResponse {
@@ -33,11 +87,45 @@ export interface AnalysisResponse {
   bollingerBands: BollingerBandsPoint[];
   rsi: RsiPoint[];
   signals: SignalPoint[];
+  sma: MovingAverageResult[];
+  ema: MovingAverageResult[];
+  macd: MacdResult | null;
+  stochastic: StochasticResult | null;
+  obv: ObvResult | null;
   symbol: string;
   interval: string;
 }
 
 export type MarketType = "crypto" | "usStock" | "krStock";
+
+export interface MacdParams {
+  fastPeriod: number;
+  slowPeriod: number;
+  signalPeriod: number;
+}
+
+export interface StochasticParams {
+  kPeriod: number;
+  dPeriod: number;
+  smooth: number;
+}
+
+export interface SignalFilterParams {
+  enabled: boolean;
+  applyRegimeFilter: boolean;
+  applyMomentumFilter: boolean;
+  applyVolatilityFilter: boolean;
+  regimePeriod: number;
+  regimeBuffer: number;
+  momentumPeriod: number;
+  minMomentumForBuy: number;
+  maxMomentumForSell: number;
+  volatilityPeriod: number;
+  volatilityRankPeriod: number;
+  highVolPercentile: number;
+  keepStrongCounterTrend: boolean;
+  keepStrongInHighVol: boolean;
+}
 
 export interface AnalysisParams {
   symbol: string;
@@ -46,4 +134,11 @@ export interface AnalysisParams {
   bbMultiplier: number;
   rsiPeriod: number;
   market: MarketType;
+  smaPeriods: number[];
+  emaPeriods: number[];
+  macd: MacdParams | null;
+  stochastic: StochasticParams | null;
+  showVolume: boolean;
+  showObv: boolean;
+  signalFilter: SignalFilterParams;
 }

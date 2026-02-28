@@ -73,11 +73,10 @@ impl YahooClient {
         let closes = indicators.get("close").and_then(|v| v.as_array());
         let volumes = indicators.get("volume").and_then(|v| v.as_array());
 
-        let (opens, highs, lows, closes, volumes) =
-            match (opens, highs, lows, closes, volumes) {
-                (Some(o), Some(h), Some(l), Some(c), Some(v)) => (o, h, l, c, v),
-                _ => return Err("Missing OHLCV data fields".to_string()),
-            };
+        let (opens, highs, lows, closes, volumes) = match (opens, highs, lows, closes, volumes) {
+            (Some(o), Some(h), Some(l), Some(c), Some(v)) => (o, h, l, c, v),
+            _ => return Err("Missing OHLCV data fields".to_string()),
+        };
 
         let candles: Vec<Candle> = timestamps
             .iter()

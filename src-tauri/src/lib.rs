@@ -14,9 +14,7 @@ pub fn run() {
         .manage(BinanceClient::new())
         .manage(YahooClient::new())
         .manage(CacheDb::new().expect("Failed to initialize cache database"))
-        .invoke_handler(tauri::generate_handler![
-            commands::analysis::fetch_analysis
-        ])
+        .invoke_handler(tauri::generate_handler![commands::analysis::fetch_analysis])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

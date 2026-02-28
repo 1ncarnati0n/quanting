@@ -33,6 +33,13 @@ export default function SymbolSearch() {
     }
   }, [isOpen]);
 
+  useEffect(() => {
+    const openFromShortcut = () => setIsOpen(true);
+    window.addEventListener("quanting:open-symbol-search", openFromShortcut as EventListener);
+    return () =>
+      window.removeEventListener("quanting:open-symbol-search", openFromShortcut as EventListener);
+  }, []);
+
   const displayLabel = getSymbolLabel(symbol);
   const lowerFilter = filter.toLowerCase();
 
@@ -59,14 +66,15 @@ export default function SymbolSearch() {
   };
 
   const marketBadge = market === "crypto" ? "CRYPTO" : market === "krStock" ? "KR" : "US";
-  const badgeColor = market === "crypto" ? "#F59E0B" : market === "krStock" ? "#EC4899" : "#2563EB";
+  const badgeColor = market === "crypto" ? "var(--warning-color)" : market === "krStock" ? "#EC4899" : "var(--accent-primary)";
 
   return (
     <div ref={containerRef} className="relative">
       {/* Trigger Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 rounded px-3 py-1.5 text-sm font-mono transition-colors"
+        className="flex max-w-[20rem] min-w-0 items-center gap-2 rounded px-3 py-1.5 text-sm font-mono transition-colors"
+        title="Open symbol search (Ctrl/Cmd+K)"
         style={{
           background: "var(--bg-tertiary)",
           border: "1px solid var(--border-color)",
@@ -75,11 +83,11 @@ export default function SymbolSearch() {
       >
         <span
           className="rounded px-1.5 py-0.5 text-[10px] font-bold"
-          style={{ background: badgeColor, color: "#fff" }}
+          style={{ background: badgeColor, color: "var(--accent-contrast)" }}
         >
           {marketBadge}
         </span>
-        <span>{displayLabel ? `${symbol} · ${displayLabel}` : symbol}</span>
+        <span className="truncate">{displayLabel ? `${symbol} · ${displayLabel}` : symbol}</span>
         <svg
           width="12"
           height="12"
@@ -99,10 +107,11 @@ export default function SymbolSearch() {
       {/* Dropdown */}
       {isOpen && (
         <div
-          className="absolute left-0 top-full z-50 mt-1 w-72 overflow-hidden rounded-lg shadow-xl"
+          className="absolute left-0 top-full z-50 mt-1 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-lg shadow-xl"
           style={{
-            background: "var(--bg-secondary)",
+            background: "var(--surface-elevated)",
             border: "1px solid var(--border-color)",
+            boxShadow: "var(--panel-shadow)",
           }}
         >
           {/* Search Filter */}
@@ -141,7 +150,7 @@ export default function SymbolSearch() {
                       setSymbol(item.symbol, item.market);
                       setIsOpen(false);
                     }}
-                    className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm transition-colors hover:brightness-125"
+                    className="dropdown-item flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm transition-colors"
                     style={{
                       background:
                         symbol === item.symbol
@@ -189,8 +198,8 @@ export default function SymbolSearch() {
             />
             <button
               onClick={handleManualSubmit}
-              className="rounded px-2 py-1 text-xs font-medium text-white"
-              style={{ background: "#2563EB" }}
+              className="rounded px-2 py-1 text-xs font-medium"
+              style={{ background: "var(--accent-primary)", color: "var(--accent-contrast)" }}
             >
               Go
             </button>

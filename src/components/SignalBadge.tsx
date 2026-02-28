@@ -9,14 +9,24 @@ const SIGNAL_CONFIG: Record<
   weakBuy: { label: "Weak Buy", color: COLORS.weakBuy },
   strongSell: { label: "Strong Sell", color: COLORS.strongSell },
   weakSell: { label: "Weak Sell", color: COLORS.weakSell },
+  macdBullish: { label: "MACD Bullish", color: COLORS.macdBullish },
+  macdBearish: { label: "MACD Bearish", color: COLORS.macdBearish },
+  stochOversold: { label: "Stoch Oversold", color: COLORS.stochOversold },
+  stochOverbought: { label: "Stoch Overbought", color: COLORS.stochOverbought },
 };
 
 interface SignalBadgeProps {
   signalType: SignalType;
+  source?: string;
 }
 
-export default function SignalBadge({ signalType }: SignalBadgeProps) {
+export default function SignalBadge({ signalType, source }: SignalBadgeProps) {
   const config = SIGNAL_CONFIG[signalType];
+  if (!config) return null;
+
+  const label = source && source !== "bb_rsi"
+    ? `${source.toUpperCase()} ${config.label}`
+    : config.label;
 
   return (
     <span
@@ -27,7 +37,7 @@ export default function SignalBadge({ signalType }: SignalBadgeProps) {
         border: `1px solid ${config.color}44`,
       }}
     >
-      {config.label}
+      {label}
     </span>
   );
 }

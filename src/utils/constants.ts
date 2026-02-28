@@ -9,6 +9,9 @@ export function getIntervalsForMarket(market: MarketType): readonly Interval[] {
   return market === "crypto" ? CRYPTO_INTERVALS : STOCK_INTERVALS;
 }
 
+// --- Chart layout ---
+export const CHART_PRICE_SCALE_WIDTH = 80;
+
 // --- Defaults ---
 export const DEFAULT_SYMBOL = "AAPL";
 export const DEFAULT_INTERVAL: Interval = "1d";
@@ -34,6 +37,52 @@ export const COLORS = {
   rsiOversold: "#22C55E",
   candleUp: "#22C55E",
   candleDown: "#EF4444",
+  // MACD
+  macdLine: "#2563EB",
+  macdSignal: "#EF4444",
+  macdHistUp: "#22C55E",
+  macdHistDown: "#EF4444",
+  // Stochastic
+  stochK: "#F59E0B",
+  stochD: "#A78BFA",
+  // Volume
+  volumeUp: "rgba(34,197,94,0.5)",
+  volumeDown: "rgba(239,68,68,0.5)",
+  // Signal extensions
+  macdBullish: "#2563EB",
+  macdBearish: "#F97316",
+  stochOversold: "#06B6D4",
+  stochOverbought: "#EC4899",
+} as const;
+
+// MA dynamic color palette (up to 7 lines)
+export const MA_COLORS = [
+  "#F59E0B", "#06B6D4", "#EC4899", "#8B5CF6",
+  "#14B8A6", "#F97316", "#6366F1",
+] as const;
+
+// Indicator defaults
+export const INDICATOR_DEFAULTS = {
+  sma: { periods: [20, 50, 200] },
+  ema: { periods: [12, 26] },
+  macd: { fastPeriod: 12, slowPeriod: 26, signalPeriod: 9 },
+  stochastic: { kPeriod: 14, dPeriod: 3, smooth: 3 },
+  signalFilter: {
+    enabled: true,
+    applyRegimeFilter: true,
+    applyMomentumFilter: true,
+    applyVolatilityFilter: true,
+    regimePeriod: 200,
+    regimeBuffer: 0.002,
+    momentumPeriod: 63,
+    minMomentumForBuy: -0.05,
+    maxMomentumForSell: 0.05,
+    volatilityPeriod: 20,
+    volatilityRankPeriod: 120,
+    highVolPercentile: 0.9,
+    keepStrongCounterTrend: true,
+    keepStrongInHighVol: true,
+  },
 } as const;
 
 // --- Theme ---
@@ -41,28 +90,44 @@ export type Theme = "dark" | "light";
 
 export const THEME_COLORS = {
   dark: {
-    bgPrimary: "#0f0f23",
-    bgSecondary: "#1a1a2e",
-    bgTertiary: "#16213e",
-    textPrimary: "#e0e0e0",
-    textSecondary: "#a0a0b0",
-    borderColor: "#2a2a4a",
-    chartBg: "#0f0f23",
-    chartText: "#a0a0b0",
-    chartGrid: "#1a1a2e",
-    chartBorder: "#2a2a4a",
+    bgPrimary: "#0d1421",
+    bgSecondary: "#161f31",
+    bgTertiary: "#1c2940",
+    surfaceElevated: "#22314a",
+    textPrimary: "#e5edf7",
+    textSecondary: "#9eb0c8",
+    borderColor: "#2a3a56",
+    accentPrimary: "#2f7cff",
+    accentContrast: "#ffffff",
+    accentSoft: "rgba(47,124,255,0.14)",
+    successColor: "#22c55e",
+    dangerColor: "#ef4444",
+    warningColor: "#f59e0b",
+    panelShadow: "0 10px 28px rgba(2,6,23,0.35)",
+    chartBg: "#0d1421",
+    chartText: "#9eb0c8",
+    chartGrid: "#1b273b",
+    chartBorder: "#2a3a56",
   },
   light: {
-    bgPrimary: "#f8f9fc",
+    bgPrimary: "#f2f5fa",
     bgSecondary: "#ffffff",
-    bgTertiary: "#eef1f6",
-    textPrimary: "#1a1a2e",
-    textSecondary: "#6b7280",
-    borderColor: "#d1d5db",
+    bgTertiary: "#e9eff7",
+    surfaceElevated: "#f7faff",
+    textPrimary: "#111b2d",
+    textSecondary: "#475569",
+    borderColor: "#c6d3e5",
+    accentPrimary: "#1f6fff",
+    accentContrast: "#ffffff",
+    accentSoft: "rgba(31,111,255,0.12)",
+    successColor: "#16a34a",
+    dangerColor: "#dc2626",
+    warningColor: "#d97706",
+    panelShadow: "0 8px 20px rgba(15,23,42,0.10)",
     chartBg: "#ffffff",
-    chartText: "#374151",
-    chartGrid: "#f0f0f0",
-    chartBorder: "#d1d5db",
+    chartText: "#334155",
+    chartGrid: "#e2e8f0",
+    chartBorder: "#c6d3e5",
   },
 } as const;
 

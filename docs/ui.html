@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Quant Analysis Dashboard V1</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#195de6",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#111621",
+                        "surface-dark": "#1a2233",
+                        "surface-darker": "#151b29",
+                        "text-primary": "#f8fafc",
+                        "text-secondary": "#94a3b8",
+                        "success": "#0bda5e",
+                        "danger": "#fa6238",
+                    },
+                    fontFamily: {
+                        display: ["Inter", "sans-serif"],
+                    },
+                    borderRadius: {
+                        DEFAULT: "0.25rem",
+                        lg: "0.5rem",
+                        xl: "0.75rem",
+                        full: "9999px",
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom scrollbar for a sleek look */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #111621; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #2d3748; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #4a5568; 
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-text-primary font-display h-screen flex overflow-hidden">
+<!-- Left Sidebar: Navigation & Stock List -->
+<aside class="w-80 flex flex-col border-r border-slate-200 dark:border-slate-800 bg-surface-darker flex-shrink-0">
+<!-- App Header -->
+<div class="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center gap-3">
+<div class="bg-center bg-no-repeat bg-cover rounded-full h-10 w-10 relative overflow-hidden flex-shrink-0 bg-primary/20 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-2xl">analytics</span>
+</div>
+<div class="flex flex-col">
+<h1 class="text-white text-base font-medium leading-none mb-1">QuantAI</h1>
+<p class="text-text-secondary text-xs font-normal leading-none">Pro Analyst</p>
+</div>
+</div>
+<!-- Navigation Menu -->
+<nav class="flex flex-col gap-1 p-3 border-b border-slate-200 dark:border-slate-800">
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg bg-primary/10 text-primary" href="#">
+<span class="material-symbols-outlined text-xl">dashboard</span>
+<span class="text-sm font-medium">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-text-secondary hover:text-white hover:bg-slate-800 transition-colors" href="#">
+<span class="material-symbols-outlined text-xl">currency_exchange</span>
+<span class="text-sm font-medium">Markets</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-text-secondary hover:text-white hover:bg-slate-800 transition-colors" href="#">
+<span class="material-symbols-outlined text-xl">work</span>
+<span class="text-sm font-medium">Portfolio</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-text-secondary hover:text-white hover:bg-slate-800 transition-colors" href="#">
+<span class="material-symbols-outlined text-xl">article</span>
+<span class="text-sm font-medium">Analysis</span>
+</a>
+</nav>
+<!-- Stock Search & List -->
+<div class="flex flex-col flex-1 overflow-hidden">
+<div class="p-4 pb-2">
+<div class="relative">
+<span class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary material-symbols-outlined text-lg">search</span>
+<input class="w-full bg-surface-dark border border-slate-700 rounded-lg py-2 pl-10 pr-4 text-sm text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary placeholder-slate-500" placeholder="Search symbol..." type="text"/>
+</div>
+<div class="mt-4 flex items-center justify-between">
+<h3 class="text-xs font-semibold text-text-secondary uppercase tracking-wider">Watchlist</h3>
+<button class="text-text-secondary hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-lg">add</span>
+</button>
+</div>
+</div>
+<div class="flex-1 overflow-y-auto px-2 pb-4 space-y-1">
+<!-- Stock Item Active -->
+<div class="p-3 rounded-lg bg-surface-dark border border-slate-700/50 cursor-pointer hover:border-slate-600 transition-all group">
+<div class="flex justify-between items-start mb-2">
+<div>
+<span class="block text-sm font-bold text-white">AAPL</span>
+<span class="text-xs text-text-secondary">Apple Inc.</span>
+</div>
+<div class="text-right">
+<span class="block text-sm font-medium text-white">$150.23</span>
+<span class="text-xs font-medium text-success flex items-center justify-end gap-0.5">
+<span class="material-symbols-outlined text-[10px]">arrow_upward</span> 1.2%
+                            </span>
+</div>
+</div>
+<!-- Mini Sparkline SVG -->
+<div class="h-8 w-full">
+<svg class="w-full h-full overflow-visible" preserveaspectratio="none" viewbox="0 0 100 20">
+<path d="M0 15 Q 10 18, 20 10 T 40 12 T 60 5 T 80 8 T 100 2" fill="none" stroke="#0bda5e" stroke-width="2"></path>
+<path d="M0 15 Q 10 18, 20 10 T 40 12 T 60 5 T 80 8 T 100 2 V 20 H 0 Z" fill="url(#gradSuccess)" opacity="0.2"></path>
+<defs>
+<lineargradient id="gradSuccess" x1="0%" x2="0%" y1="0%" y2="100%">
+<stop offset="0%" style="stop-color:#0bda5e;stop-opacity:1"></stop>
+<stop offset="100%" style="stop-color:#0bda5e;stop-opacity:0"></stop>
+</lineargradient>
+</defs>
+</svg>
+</div>
+</div>
+<!-- Stock Item -->
+<div class="p-3 rounded-lg hover:bg-surface-dark/50 cursor-pointer transition-colors group border border-transparent hover:border-slate-800">
+<div class="flex justify-between items-start mb-2">
+<div>
+<span class="block text-sm font-bold text-white">TSLA</span>
+<span class="text-xs text-text-secondary">Tesla, Inc.</span>
+</div>
+<div class="text-right">
+<span class="block text-sm font-medium text-white">$780.00</span>
+<span class="text-xs font-medium text-danger flex items-center justify-end gap-0.5">
+<span class="material-symbols-outlined text-[10px]">arrow_downward</span> 0.5%
+                            </span>
+</div>
+</div>
+<div class="h-8 w-full opacity-50 group-hover:opacity-80 transition-opacity">
+<svg class="w-full h-full overflow-visible" preserveaspectratio="none" viewbox="0 0 100 20">
+<path d="M0 5 Q 10 2, 20 8 T 40 15 T 60 12 T 80 18 T 100 15" fill="none" stroke="#fa6238" stroke-width="2"></path>
+</svg>
+</div>
+</div>
+<!-- Stock Item -->
+<div class="p-3 rounded-lg hover:bg-surface-dark/50 cursor-pointer transition-colors group border border-transparent hover:border-slate-800">
+<div class="flex justify-between items-start mb-2">
+<div>
+<span class="block text-sm font-bold text-white">MSFT</span>
+<span class="text-xs text-text-secondary">Microsoft</span>
+</div>
+<div class="text-right">
+<span class="block text-sm font-medium text-white">$290.11</span>
+<span class="text-xs font-medium text-success flex items-center justify-end gap-0.5">
+<span class="material-symbols-outlined text-[10px]">arrow_upward</span> 0.8%
+                            </span>
+</div>
+</div>
+<div class="h-8 w-full opacity-50 group-hover:opacity-80 transition-opacity">
+<svg class="w-full h-full overflow-visible" preserveaspectratio="none" viewbox="0 0 100 20">
+<path d="M0 12 Q 10 15, 20 10 T 40 8 T 60 5 T 80 3 T 100 1" fill="none" stroke="#0bda5e" stroke-width="2"></path>
+</svg>
+</div>
+</div>
+<!-- Stock Item -->
+<div class="p-3 rounded-lg hover:bg-surface-dark/50 cursor-pointer transition-colors group border border-transparent hover:border-slate-800">
+<div class="flex justify-between items-start mb-2">
+<div>
+<span class="block text-sm font-bold text-white">GOOGL</span>
+<span class="text-xs text-text-secondary">Alphabet Inc.</span>
+</div>
+<div class="text-right">
+<span class="block text-sm font-medium text-white">$2,800.50</span>
+<span class="text-xs font-medium text-success flex items-center justify-end gap-0.5">
+<span class="material-symbols-outlined text-[10px]">arrow_upward</span> 2.1%
+                            </span>
+</div>
+</div>
+<div class="h-8 w-full opacity-50 group-hover:opacity-80 transition-opacity">
+<svg class="w-full h-full overflow-visible" preserveaspectratio="none" viewbox="0 0 100 20">
+<path d="M0 18 Q 10 15, 20 12 T 40 10 T 60 5 T 80 8 T 100 2" fill="none" stroke="#0bda5e" stroke-width="2"></path>
+</svg>
+</div>
+</div>
+</div>
+<!-- User Settings -->
+<div class="p-4 border-t border-slate-200 dark:border-slate-800 mt-auto">
+<a class="flex items-center gap-3 text-text-secondary hover:text-white transition-colors" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="text-sm font-medium">Settings</span>
+</a>
+</div>
+</div>
+</aside>
+<!-- Center: Main Chart Area -->
+<main class="flex-1 flex flex-col min-w-0 bg-background-dark relative">
+<!-- Chart Header Toolbar -->
+<header class="h-16 border-b border-slate-800 bg-surface-dark px-6 flex items-center justify-between shrink-0">
+<div class="flex items-center gap-4">
+<div class="flex flex-col">
+<div class="flex items-center gap-2">
+<h2 class="text-xl font-bold text-white tracking-tight">AAPL</h2>
+<span class="bg-slate-700 text-xs px-1.5 py-0.5 rounded text-slate-300">NAS</span>
+</div>
+<div class="flex items-center gap-2 text-xs">
+<span class="text-success font-medium">Market Open</span>
+<span class="text-slate-500">•</span>
+<span class="text-slate-400">Vol: 45.2M</span>
+</div>
+</div>
+<div class="h-8 w-px bg-slate-700 mx-2"></div>
+<div class="flex items-center gap-4">
+<div class="text-right">
+<div class="text-sm font-bold text-white">$150.23</div>
+<div class="text-xs text-success">+1.85 (1.2%)</div>
+</div>
+<div class="text-right hidden xl:block">
+<div class="text-xs text-slate-400">High</div>
+<div class="text-xs text-white font-medium">151.45</div>
+</div>
+<div class="text-right hidden xl:block">
+<div class="text-xs text-slate-400">Low</div>
+<div class="text-xs text-white font-medium">148.90</div>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-2 bg-background-dark p-1 rounded-lg border border-slate-700">
+<button class="px-3 py-1 rounded text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-700 transition-colors">1D</button>
+<button class="px-3 py-1 rounded text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-700 transition-colors">1W</button>
+<button class="px-3 py-1 rounded text-xs font-medium bg-primary text-white shadow-sm">1M</button>
+<button class="px-3 py-1 rounded text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-700 transition-colors">3M</button>
+<button class="px-3 py-1 rounded text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-700 transition-colors">YTD</button>
+<button class="px-3 py-1 rounded text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-700 transition-colors">1Y</button>
+</div>
+<div class="flex items-center gap-3">
+<button class="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-700 transition-colors" title="Compare">
+<span class="material-symbols-outlined text-xl">compare_arrows</span>
+</button>
+<button class="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-700 transition-colors" title="Download Data">
+<span class="material-symbols-outlined text-xl">download</span>
+</button>
+</div>
+</header>
+<!-- Chart Container -->
+<div class="flex-1 relative p-6 flex flex-col gap-6 overflow-hidden">
+<!-- Toolbar for drawing tools -->
+<div class="absolute left-4 top-6 flex flex-col gap-2 z-10">
+<button class="w-8 h-8 flex items-center justify-center rounded bg-surface-dark border border-slate-700 text-slate-400 hover:text-primary hover:border-primary transition-colors">
+<span class="material-symbols-outlined text-lg">show_chart</span>
+</button>
+<button class="w-8 h-8 flex items-center justify-center rounded bg-surface-dark border border-slate-700 text-slate-400 hover:text-primary hover:border-primary transition-colors">
+<span class="material-symbols-outlined text-lg">edit</span>
+</button>
+<button class="w-8 h-8 flex items-center justify-center rounded bg-surface-dark border border-slate-700 text-slate-400 hover:text-primary hover:border-primary transition-colors">
+<span class="material-symbols-outlined text-lg">text_fields</span>
+</button>
+<button class="w-8 h-8 flex items-center justify-center rounded bg-surface-dark border border-slate-700 text-slate-400 hover:text-primary hover:border-primary transition-colors">
+<span class="material-symbols-outlined text-lg">delete</span>
+</button>
+</div>
+<!-- Main Chart Visualization -->
+<div class="flex-1 bg-surface-dark rounded-xl border border-slate-800 relative shadow-inner overflow-hidden">
+<!-- Grid Lines (Background) -->
+<div class="absolute inset-0 pointer-events-none opacity-10" style="background-image: linear-gradient(0deg, #334155 1px, transparent 1px), linear-gradient(90deg, #334155 1px, transparent 1px); background-size: 40px 40px;">
+</div>
+<!-- Mock Candlestick Chart SVG -->
+<svg class="w-full h-full absolute inset-0" preserveaspectratio="none">
+<!-- Volume Bars at bottom -->
+<g transform="scale(1, -1) translate(0, -600)"> <!-- Flipping for volume bars to grow up from bottom roughly -->
+<!-- This transform is tricky without exact heights, simulating volume bars -->
+</g>
+<!-- Candlesticks (Simplified representation) -->
+<!-- Green Candles -->
+<rect fill="#0bda5e" height="10%" rx="1" width="1.5%" x="5%" y="60%"></rect>
+<line stroke="#0bda5e" stroke-width="1" x1="5.75%" x2="5.75%" y1="55%" y2="75%"></line>
+<rect fill="#fa6238" height="15%" rx="1" width="1.5%" x="8%" y="58%"></rect>
+<line stroke="#fa6238" stroke-width="1" x1="8.75%" x2="8.75%" y1="55%" y2="76%"></line>
+<rect fill="#0bda5e" height="12%" rx="1" width="1.5%" x="11%" y="50%"></rect>
+<line stroke="#0bda5e" stroke-width="1" x1="11.75%" x2="11.75%" y1="45%" y2="65%"></line>
+<rect fill="#0bda5e" height="8%" rx="1" width="1.5%" x="14%" y="45%"></rect>
+<line stroke="#0bda5e" stroke-width="1" x1="14.75%" x2="14.75%" y1="42%" y2="58%"></line>
+<rect fill="#fa6238" height="20%" rx="1" width="1.5%" x="17%" y="48%"></rect>
+<line stroke="#fa6238" stroke-width="1" x1="17.75%" x2="17.75%" y1="40%" y2="70%"></line>
+<!-- More candles... Abstracting with path for the main trend line -->
+<path d="M 200 300 L 220 280 L 240 310 L 260 290 L 280 340 L 300 320 L 320 350 L 350 330" fill="none" stroke="transparent" stroke-width="2"></path>
+<!-- Moving Average Lines -->
+<path d="M0 400 C 100 380, 200 420, 300 350 S 500 300, 600 320 S 800 280, 1000 300" fill="none" opacity="0.8" stroke="#3b82f6" stroke-width="2"></path>
+<path d="M0 420 C 100 410, 200 440, 300 380 S 500 320, 600 340 S 800 310, 1000 330" fill="none" opacity="0.8" stroke="#a855f7" stroke-width="2"></path>
+<!-- Simulated Candlestick Pattern across width -->
+<defs>
+<pattern height="100%" id="candles" patternunits="userSpaceOnUse" width="40" x="0" y="0">
+<rect fill="#0bda5e" height="20%" opacity="0.8" width="8" x="10" y="40%"></rect>
+<line stroke="#0bda5e" stroke-width="1" x1="14" x2="14" y1="30%" y2="70%"></line>
+</pattern>
+</defs>
+<!-- Using a complex path to mimic a real chart look without 100s of rects -->
+<polyline fill="none" points="20,350 50,320 80,340 110,300 140,310 170,280 200,290 230,250 260,270 290,240 320,260 350,220 380,230 410,200 440,220 470,190 500,210 530,180" stroke="#0bda5e" stroke-linejoin="round" stroke-width="1.5"></polyline>
+<polyline fill="none" points="530,180 560,200 590,190 620,220 650,210 680,240 710,230 740,260 770,250 800,280 830,270 860,300 890,290 920,320 950,310" stroke="#fa6238" stroke-linejoin="round" stroke-width="1.5"></polyline>
+<!-- Current Price Line -->
+<line opacity="0.7" stroke="#0bda5e" stroke-dasharray="4 4" stroke-width="1" x1="0" x2="100%" y1="310" y2="310"></line>
+<rect fill="#0bda5e" height="20" rx="2" width="6%" x="94%" y="300"></rect>
+<text fill="white" font-family="Inter" font-size="10" font-weight="bold" x="95%" y="314">150.23</text>
+</svg>
+<!-- Time Axis Labels -->
+<div class="absolute bottom-0 left-0 w-full h-8 flex justify-between px-10 items-center border-t border-slate-800 text-xs text-slate-500 bg-surface-darker/50">
+<span>09:30</span>
+<span>10:30</span>
+<span>11:30</span>
+<span>12:30</span>
+<span>13:30</span>
+<span>14:30</span>
+<span>15:30</span>
+</div>
+</div>
+<!-- Bottom Indicators Panel (MACD/RSI) -->
+<div class="h-48 bg-surface-dark rounded-xl border border-slate-800 relative shadow-inner overflow-hidden flex flex-col">
+<div class="px-4 py-2 border-b border-slate-800 flex justify-between items-center">
+<span class="text-xs font-semibold text-slate-400">RSI (14)</span>
+<span class="text-xs font-bold text-white">45.2</span>
+</div>
+<div class="flex-1 relative">
+<!-- Grid Lines -->
+<div class="absolute inset-0 pointer-events-none opacity-10" style="background-image: linear-gradient(0deg, #334155 1px, transparent 1px); background-size: 100% 25%;">
+</div>
+<svg class="w-full h-full" preserveaspectratio="none">
+<!-- Overbought Zone -->
+<rect fill="#fa6238" height="30%" opacity="0.1" width="100%" x="0" y="0"></rect>
+<!-- Oversold Zone -->
+<rect fill="#0bda5e" height="30%" opacity="0.1" width="100%" x="0" y="70%"></rect>
+<!-- RSI Line -->
+<path d="M0 50 Q 50 20, 100 60 T 200 40 T 300 70 T 400 30 T 500 60 T 600 45 T 700 80 T 800 55" fill="none" stroke="#a855f7" stroke-width="2" vector-effect="non-scaling-stroke"></path>
+</svg>
+</div>
+</div>
+</div>
+</main>
+<!-- Right Sidebar: Technical Indicators & Settings -->
+<aside class="w-72 bg-surface-darker border-l border-slate-800 flex flex-col flex-shrink-0">
+<div class="p-4 border-b border-slate-800 flex items-center justify-between">
+<h3 class="text-sm font-semibold text-white">Technical Indicators</h3>
+<button class="text-slate-400 hover:text-white transition-colors">
+<span class="material-symbols-outlined text-lg">tune</span>
+</button>
+</div>
+<div class="flex-1 overflow-y-auto p-4 space-y-6">
+<!-- Indicator Group: Moving Averages -->
+<div class="space-y-3">
+<div class="flex items-center justify-between">
+<h4 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Overlays</h4>
+<span class="text-primary text-xs cursor-pointer hover:underline">Add New</span>
+</div>
+<!-- EMA 20 Item -->
+<div class="bg-surface-dark p-3 rounded-lg border border-slate-700/50 hover:border-slate-600 transition-colors">
+<div class="flex items-center justify-between mb-2">
+<div class="flex items-center gap-2">
+<div class="w-3 h-3 rounded-full bg-blue-500"></div>
+<span class="text-sm text-white font-medium">EMA 20</span>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
+</label>
+</div>
+<div class="grid grid-cols-2 gap-2 mt-2">
+<div>
+<label class="block text-[10px] text-slate-500 mb-1">Length</label>
+<input class="w-full bg-slate-800 border-none rounded px-2 py-1 text-xs text-white focus:ring-1 focus:ring-primary" type="number" value="20"/>
+</div>
+<div>
+<label class="block text-[10px] text-slate-500 mb-1">Source</label>
+<select class="w-full bg-slate-800 border-none rounded px-2 py-1 text-xs text-white focus:ring-1 focus:ring-primary">
+<option>Close</option>
+<option>Open</option>
+<option>High</option>
+<option>Low</option>
+</select>
+</div>
+</div>
+</div>
+<!-- SMA 50 Item -->
+<div class="bg-surface-dark p-3 rounded-lg border border-slate-700/50 hover:border-slate-600 transition-colors">
+<div class="flex items-center justify-between mb-2">
+<div class="flex items-center gap-2">
+<div class="w-3 h-3 rounded-full bg-purple-500"></div>
+<span class="text-sm text-white font-medium">SMA 50</span>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
+</label>
+</div>
+<div class="grid grid-cols-2 gap-2 mt-2">
+<div>
+<label class="block text-[10px] text-slate-500 mb-1">Length</label>
+<input class="w-full bg-slate-800 border-none rounded px-2 py-1 text-xs text-white focus:ring-1 focus:ring-primary" type="number" value="50"/>
+</div>
+<div>
+<label class="block text-[10px] text-slate-500 mb-1">Source</label>
+<select class="w-full bg-slate-800 border-none rounded px-2 py-1 text-xs text-white focus:ring-1 focus:ring-primary">
+<option>Close</option>
+</select>
+</div>
+</div>
+</div>
+</div>
+<hr class="border-slate-800"/>
+<!-- Indicator Group: Oscillators -->
+<div class="space-y-3">
+<div class="flex items-center justify-between">
+<h4 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Oscillators</h4>
+<span class="text-primary text-xs cursor-pointer hover:underline">Add New</span>
+</div>
+<!-- RSI Item -->
+<div class="bg-surface-dark p-3 rounded-lg border border-slate-700/50 hover:border-slate-600 transition-colors">
+<div class="flex items-center justify-between mb-2">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-sm text-slate-400">show_chart</span>
+<span class="text-sm text-white font-medium">RSI</span>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
+</label>
+</div>
+<div class="space-y-2 mt-2">
+<div class="flex items-center justify-between">
+<label class="text-[10px] text-slate-500">Period</label>
+<input class="w-12 bg-slate-800 border-none rounded px-1 py-0.5 text-xs text-white text-right focus:ring-1 focus:ring-primary" type="number" value="14"/>
+</div>
+<div class="flex items-center justify-between">
+<label class="text-[10px] text-slate-500">Overbought</label>
+<input class="w-12 bg-slate-800 border-none rounded px-1 py-0.5 text-xs text-white text-right focus:ring-1 focus:ring-primary" type="number" value="70"/>
+</div>
+<div class="flex items-center justify-between">
+<label class="text-[10px] text-slate-500">Oversold</label>
+<input class="w-12 bg-slate-800 border-none rounded px-1 py-0.5 text-xs text-white text-right focus:ring-1 focus:ring-primary" type="number" value="30"/>
+</div>
+</div>
+</div>
+<!-- MACD Item (Inactive) -->
+<div class="bg-surface-dark p-3 rounded-lg border border-slate-700/50 hover:border-slate-600 transition-colors opacity-60 hover:opacity-100">
+<div class="flex items-center justify-between mb-2">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-sm text-slate-400">waterfall_chart</span>
+<span class="text-sm text-white font-medium">MACD</span>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input class="sr-only peer" type="checkbox"/>
+<div class="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
+</label>
+</div>
+</div>
+</div>
+<div class="pt-4">
+<button class="w-full py-2 rounded-lg border border-slate-700 text-slate-400 text-sm hover:text-white hover:border-slate-500 transition-all flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-base">restart_alt</span>
+                    Reset Defaults
+                </button>
+</div>
+</div>
+</aside>
+</body></html>

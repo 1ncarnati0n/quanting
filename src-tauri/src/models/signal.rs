@@ -7,6 +7,10 @@ pub enum SignalType {
     WeakBuy,
     StrongSell,
     WeakSell,
+    MacdBullish,
+    MacdBearish,
+    StochOversold,
+    StochOverbought,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -16,4 +20,5 @@ pub struct SignalPoint {
     pub signal_type: SignalType,
     pub price: f64,
     pub rsi: f64,
+    pub source: String,
 }

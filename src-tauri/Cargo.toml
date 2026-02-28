@@ -1,10 +1,10 @@
 [package]
-name = "bb-rsi-checker"
+name = "quanting"
 version = "0.1.0"
 edition = "2021"
 
 [lib]
-name = "bb_rsi_checker_lib"
+name = "quanting_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]

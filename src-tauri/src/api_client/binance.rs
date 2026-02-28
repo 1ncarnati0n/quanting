@@ -56,7 +56,14 @@ impl BinanceClient {
                 let close = kline[4].as_str()?.parse::<f64>().ok()?;
                 let volume = kline[5].as_str()?.parse::<f64>().ok()?;
 
-                Some(Candle { time, open, high, low, close, volume })
+                Some(Candle {
+                    time,
+                    open,
+                    high,
+                    low,
+                    close,
+                    volume,
+                })
             })
             .collect();
 

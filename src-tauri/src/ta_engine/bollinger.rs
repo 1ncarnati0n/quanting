@@ -1,10 +1,6 @@
 use crate::models::{BollingerBandsPoint, Candle};
 
-pub fn calculate(
-    candles: &[Candle],
-    period: usize,
-    multiplier: f64,
-) -> Vec<BollingerBandsPoint> {
+pub fn calculate(candles: &[Candle], period: usize, multiplier: f64) -> Vec<BollingerBandsPoint> {
     if candles.len() < period {
         return Vec::new();
     }

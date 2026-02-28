@@ -9,6 +9,7 @@ import {
   createChart,
   createSeriesMarkers,
   type IChartApi,
+  type IPriceLine,
   type ISeriesApi,
   type ISeriesMarkersPluginApi,
   type SeriesMarker,
@@ -23,17 +24,24 @@ import {
   THEME_COLORS,
 } from "../utils/constants";
 import { formatPrice } from "../utils/formatters";
-import { useSettingsStore, type ChartType } from "../stores/useSettingsStore";
+import { DEFAULTS } from "../utils/constants";
+import {
+  useSettingsStore,
+  type ChartType,
+  type PriceScaleMode,
+} from "../stores/useSettingsStore";
 import { useCrosshairStore } from "../stores/useCrosshairStore";
+import { useReplayStore } from "../stores/useReplayStore";
+import { fetchAnalysis } from "../services/tauriApi";
 
 const SIGNAL_MARKERS: Record<
   SignalType,
   { position: "belowBar" | "aboveBar"; color: string; shape: "arrowUp" | "arrowDown"; text: string }
 > = {
-  strongBuy: { position: "belowBar", color: COLORS.strongBuy, shape: "arrowUp", text: "강매수" },
-  weakBuy: { position: "belowBar", color: COLORS.weakBuy, shape: "arrowUp", text: "약매수" },
-  strongSell: { position: "aboveBar", color: COLORS.strongSell, shape: "arrowDown", text: "강매도" },
-  weakSell: { position: "aboveBar", color: COLORS.weakSell, shape: "arrowDown", text: "약매도" },
+  strongBuy: { position: "belowBar", color: COLORS.strongBuy, shape: "arrowUp", text: "강" },
+  weakBuy: { position: "belowBar", color: COLORS.weakBuy, shape: "arrowUp", text: "약" },
+  strongSell: { position: "aboveBar", color: COLORS.strongSell, shape: "arrowDown", text: "강" },
+  weakSell: { position: "aboveBar", color: COLORS.weakSell, shape: "arrowDown", text: "약" },
   macdBullish: { position: "belowBar", color: COLORS.macdBullish, shape: "arrowUp", text: "MACD 상승" },
   macdBearish: { position: "aboveBar", color: COLORS.macdBearish, shape: "arrowDown", text: "MACD 하락" },
   stochOversold: { position: "belowBar", color: COLORS.stochOversold, shape: "arrowUp", text: "스토캐스틱 과매도" },
@@ -43,6 +51,7 @@ const SIGNAL_MARKERS: Record<
 interface MainChartProps {
   data: AnalysisResponse | null;
   onChartReady?: (chart: IChartApi) => void;
+  onMainSeriesReady?: (series: ISeriesApi<SeriesType> | null) => void;
 }
 
 function toHeikinAshi(candles: AnalysisResponse["candles"]): AnalysisResponse["candles"] {
@@ -109,12 +118,23 @@ function makePriceFormatter(market: MarketType) {
   return (price: number) => formatPrice(price, market);
 }
 
+function mapPriceScaleMode(mode: PriceScaleMode): 0 | 1 | 2 {
+  if (mode === "logarithmic") return 1;
+  if (mode === "percentage") return 2;
+  return 0;
+}
+
+function clipByTime<T extends { time: number }>(items: T[], maxTime: number): T[] {
+  if (!items.length) return items;
+  return items.filter((item) => item.time <= maxTime);
+}
+
 /** Determine whether a chart type uses OHLC data */
 function isOhlcType(ct: ChartType): boolean {
   return ct === "candlestick" || ct === "heikinAshi" || ct === "bar";
 }
 
-export default function MainChart({ data, onChartReady }: MainChartProps) {
+export default function MainChart({ data, onChartReady, onMainSeriesReady }: MainChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const mainSeriesRef = useRef<ISeriesApi<SeriesType> | null>(null);
@@ -123,6 +143,8 @@ export default function MainChart({ data, onChartReady }: MainChartProps) {
   const bbLowerRef = useRef<ISeriesApi<"Line"> | null>(null);
   const markersPluginRef = useRef<ISeriesMarkersPluginApi<Time> | null>(null);
   const dynamicSeriesRef = useRef<Map<string, ISeriesApi<SeriesType>>>(new Map());
+  const compareSeriesRef = useRef<ISeriesApi<"Line"> | null>(null);
+  const alertLinesRef = useRef<IPriceLine[]>([]);
   const resizeRafRef = useRef<number | null>(null);
   const fittedScopeRef = useRef<string | null>(null);
   const crosshairRafRef = useRef<number | null>(null);
@@ -131,6 +153,11 @@ export default function MainChart({ data, onChartReady }: MainChartProps) {
   const chartType = useSettingsStore((s) => s.chartType);
   const market = useSettingsStore((s) => s.market);
   const indicators = useSettingsStore((s) => s.indicators);
+  const priceScale = useSettingsStore((s) => s.priceScale);
+  const compare = useSettingsStore((s) => s.compare);
+  const priceAlerts = useSettingsStore((s) => s.priceAlerts);
+  const replayEnabled = useReplayStore((s) => s.enabled);
+  const replayIndex = useReplayStore((s) => s.currentIndex);
   const initialThemeRef = useRef(theme);
 
   const clearDynamicSeries = useCallback(() => {
@@ -162,6 +189,9 @@ export default function MainChart({ data, onChartReady }: MainChartProps) {
     }
     if (indicators.obv.enabled) {
       bandConfigs.push({ id: "obv", weight: Math.max(0.2, indicators.layout.obvWeight) });
+    }
+    if (indicators.atr.enabled) {
+      bandConfigs.push({ id: "atr", weight: Math.max(0.2, indicators.layout.atrWeight) });
     }
 
     if (bandConfigs.length === 0) {
@@ -202,6 +232,8 @@ export default function MainChart({ data, onChartReady }: MainChartProps) {
     indicators.layout.rsiWeight,
     indicators.layout.stochasticWeight,
     indicators.layout.volumeWeight,
+    indicators.layout.atrWeight,
+    indicators.atr.enabled,
     indicators.macd.enabled,
     indicators.obv.enabled,
     indicators.rsi.enabled,
@@ -216,8 +248,11 @@ export default function MainChart({ data, onChartReady }: MainChartProps) {
       chartRef.current.remove();
     }
     dynamicSeriesRef.current.clear();
+    compareSeriesRef.current = null;
+    alertLinesRef.current = [];
 
     const tc = THEME_COLORS[initialThemeRef.current];
+    const ps = useSettingsStore.getState().priceScale;
     const chart = createChart(containerRef.current, {
       layout: {
         background: { type: ColorType.Solid, color: tc.chartBg },
@@ -231,6 +266,9 @@ export default function MainChart({ data, onChartReady }: MainChartProps) {
       rightPriceScale: {
         borderColor: tc.chartBorder,
         minimumWidth: CHART_PRICE_SCALE_WIDTH,
+        mode: mapPriceScaleMode(ps.mode),
+        autoScale: ps.autoScale,
+        invertScale: ps.invertScale,
       },
       leftPriceScale: { visible: false },
       timeScale: {
@@ -303,6 +341,7 @@ export default function MainChart({ data, onChartReady }: MainChartProps) {
 
     chartRef.current = chart;
     mainSeriesRef.current = mainSeries;
+    onMainSeriesReady?.(mainSeries);
     bbUpperRef.current = bbUpper;
     bbMiddleRef.current = bbMiddle;
     bbLowerRef.current = bbLower;
@@ -372,7 +411,7 @@ export default function MainChart({ data, onChartReady }: MainChartProps) {
 
     applyIndicatorScaleLayout();
     onChartReady?.(chart);
-  }, [applyIndicatorScaleLayout, onChartReady, chartType]);
+  }, [applyIndicatorScaleLayout, onChartReady, onMainSeriesReady, chartType]);
 
   // Chart lifecycle
   useEffect(() => {
@@ -504,8 +543,9 @@ export default function MainChart({ data, onChartReady }: MainChartProps) {
         chartRef.current.remove();
         chartRef.current = null;
       }
+      onMainSeriesReady?.(null);
     };
-  }, [initChart, data]);
+  }, [initChart, data, onMainSeriesReady]);
 
   // Theme update
   useEffect(() => {
@@ -534,16 +574,62 @@ export default function MainChart({ data, onChartReady }: MainChartProps) {
   }, [market]);
 
   useEffect(() => {
+    if (!chartRef.current) return;
+    chartRef.current.applyOptions({
+      rightPriceScale: {
+        mode: mapPriceScaleMode(priceScale.mode),
+        autoScale: priceScale.autoScale,
+        invertScale: priceScale.invertScale,
+      },
+    });
+  }, [priceScale.autoScale, priceScale.invertScale, priceScale.mode]);
+
+  useEffect(() => {
     applyIndicatorScaleLayout();
   }, [applyIndicatorScaleLayout]);
 
   // Data effect
   useEffect(() => {
     if (!data || !chartRef.current || !mainSeriesRef.current) return;
+    if (data.candles.length === 0) return;
 
     const chart = chartRef.current;
-    const displayCandles =
-      chartType === "heikinAshi" ? toHeikinAshi(data.candles) : data.candles;
+    const cappedReplayIndex = replayEnabled
+      ? Math.min(Math.max(replayIndex, 0), data.candles.length - 1)
+      : data.candles.length - 1;
+    const replayTime = data.candles[cappedReplayIndex]?.time ?? data.candles[data.candles.length - 1].time;
+    const rawCandles = replayEnabled
+      ? data.candles.slice(0, cappedReplayIndex + 1)
+      : data.candles;
+    const displayCandles = chartType === "heikinAshi" ? toHeikinAshi(rawCandles) : rawCandles;
+    const filteredSignals = clipByTime(data.signals, replayTime);
+    const filteredRsi = clipByTime(data.rsi, replayTime);
+    const filteredSma = data.sma.map((ma) => ({ ...ma, data: clipByTime(ma.data, replayTime) }));
+    const filteredEma = data.ema.map((ma) => ({ ...ma, data: clipByTime(ma.data, replayTime) }));
+    const filteredMacd = data.macd
+      ? { ...data.macd, data: clipByTime(data.macd.data, replayTime) }
+      : null;
+    const filteredStochastic = data.stochastic
+      ? { ...data.stochastic, data: clipByTime(data.stochastic.data, replayTime) }
+      : null;
+    const filteredObv = data.obv
+      ? { ...data.obv, data: clipByTime(data.obv.data, replayTime) }
+      : null;
+    const filteredVwap = data.vwap
+      ? { ...data.vwap, data: clipByTime(data.vwap.data, replayTime) }
+      : null;
+    const filteredAtr = data.atr
+      ? { ...data.atr, data: clipByTime(data.atr.data, replayTime) }
+      : null;
+    const filteredIchimoku = data.ichimoku
+      ? { ...data.ichimoku, data: clipByTime(data.ichimoku.data, replayTime) }
+      : null;
+    const filteredSupertrend = data.supertrend
+      ? { ...data.supertrend, data: clipByTime(data.supertrend.data, replayTime) }
+      : null;
+    const filteredPsar = data.parabolicSar
+      ? { ...data.parabolicSar, data: clipByTime(data.parabolicSar.data, replayTime) }
+      : null;
 
     // Set main series data based on chart type
     if (chartType === "line" || chartType === "area") {
@@ -572,7 +658,7 @@ export default function MainChart({ data, onChartReady }: MainChartProps) {
             indicators.bb.period,
             indicators.bb.multiplier,
           )
-        : data.bollingerBands;
+        : clipByTime(data.bollingerBands, replayTime);
 
     if (indicators.bb.enabled && bollingerData.length > 0) {
       bbUpperRef.current?.setData(
@@ -592,8 +678,8 @@ export default function MainChart({ data, onChartReady }: MainChartProps) {
 
     clearDynamicSeries();
 
-    if (indicators.sma.enabled && data.sma.length > 0) {
-      data.sma.forEach((ma, idx) => {
+    if (indicators.sma.enabled && filteredSma.length > 0) {
+      filteredSma.forEach((ma, idx) => {
         const series = chart.addSeries(LineSeries, {
           color: MA_COLORS[idx % MA_COLORS.length],
           lineWidth: 1,
@@ -606,10 +692,10 @@ export default function MainChart({ data, onChartReady }: MainChartProps) {
       });
     }
 
-    if (indicators.ema.enabled && data.ema.length > 0) {
-      data.ema.forEach((ma, idx) => {
+    if (indicators.ema.enabled && filteredEma.length > 0) {
+      filteredEma.forEach((ma, idx) => {
         const series = chart.addSeries(LineSeries, {
-          color: MA_COLORS[(idx + data.sma.length) % MA_COLORS.length],
+          color: MA_COLORS[(idx + filteredSma.length) % MA_COLORS.length],
           lineWidth: 1,
           lineStyle: 2,
           priceLineVisible: false,
@@ -637,7 +723,7 @@ export default function MainChart({ data, onChartReady }: MainChartProps) {
       dynamicSeriesRef.current.set("volume", series as ISeriesApi<SeriesType>);
     }
 
-    if (indicators.rsi.enabled && data.rsi.length > 0) {
+    if (indicators.rsi.enabled && filteredRsi.length > 0) {
       const rsiSeries = chart.addSeries(LineSeries, {
         priceScaleId: "rsi",
         color: COLORS.rsiLine,
@@ -663,15 +749,15 @@ export default function MainChart({ data, onChartReady }: MainChartProps) {
         lastValueVisible: false,
         crosshairMarkerVisible: false,
       });
-      rsiSeries.setData(data.rsi.map((r) => ({ time: r.time as Time, value: r.value })));
-      overboughtSeries.setData(data.rsi.map((r) => ({ time: r.time as Time, value: 70 })));
-      oversoldSeries.setData(data.rsi.map((r) => ({ time: r.time as Time, value: 30 })));
+      rsiSeries.setData(filteredRsi.map((r) => ({ time: r.time as Time, value: r.value })));
+      overboughtSeries.setData(filteredRsi.map((r) => ({ time: r.time as Time, value: 70 })));
+      oversoldSeries.setData(filteredRsi.map((r) => ({ time: r.time as Time, value: 30 })));
       dynamicSeriesRef.current.set("rsi-line", rsiSeries as ISeriesApi<SeriesType>);
       dynamicSeriesRef.current.set("rsi-ob", overboughtSeries as ISeriesApi<SeriesType>);
       dynamicSeriesRef.current.set("rsi-os", oversoldSeries as ISeriesApi<SeriesType>);
     }
 
-    if (indicators.macd.enabled && data.macd?.data.length) {
+    if (indicators.macd.enabled && filteredMacd?.data.length) {
       const macdHist = chart.addSeries(HistogramSeries, {
         priceScaleId: "macd",
         priceLineVisible: false,
@@ -692,20 +778,20 @@ export default function MainChart({ data, onChartReady }: MainChartProps) {
         lastValueVisible: false,
       });
       macdHist.setData(
-        data.macd.data.map((p) => ({
+        filteredMacd.data.map((p) => ({
           time: p.time as Time,
           value: p.histogram,
           color: p.histogram >= 0 ? COLORS.macdHistUp : COLORS.macdHistDown,
         })),
       );
-      macdLine.setData(data.macd.data.map((p) => ({ time: p.time as Time, value: p.macd })));
-      signalLine.setData(data.macd.data.map((p) => ({ time: p.time as Time, value: p.signal })));
+      macdLine.setData(filteredMacd.data.map((p) => ({ time: p.time as Time, value: p.macd })));
+      signalLine.setData(filteredMacd.data.map((p) => ({ time: p.time as Time, value: p.signal })));
       dynamicSeriesRef.current.set("macd-h", macdHist as ISeriesApi<SeriesType>);
       dynamicSeriesRef.current.set("macd-l", macdLine as ISeriesApi<SeriesType>);
       dynamicSeriesRef.current.set("macd-s", signalLine as ISeriesApi<SeriesType>);
     }
 
-    if (indicators.stochastic.enabled && data.stochastic?.data.length) {
+    if (indicators.stochastic.enabled && filteredStochastic?.data.length) {
       const kLine = chart.addSeries(LineSeries, {
         priceScaleId: "stoch",
         color: COLORS.stochK,
@@ -738,17 +824,17 @@ export default function MainChart({ data, onChartReady }: MainChartProps) {
         lastValueVisible: false,
         crosshairMarkerVisible: false,
       });
-      kLine.setData(data.stochastic.data.map((p) => ({ time: p.time as Time, value: p.k })));
-      dLine.setData(data.stochastic.data.map((p) => ({ time: p.time as Time, value: p.d })));
-      obLine.setData(data.stochastic.data.map((p) => ({ time: p.time as Time, value: 80 })));
-      osLine.setData(data.stochastic.data.map((p) => ({ time: p.time as Time, value: 20 })));
+      kLine.setData(filteredStochastic.data.map((p) => ({ time: p.time as Time, value: p.k })));
+      dLine.setData(filteredStochastic.data.map((p) => ({ time: p.time as Time, value: p.d })));
+      obLine.setData(filteredStochastic.data.map((p) => ({ time: p.time as Time, value: 80 })));
+      osLine.setData(filteredStochastic.data.map((p) => ({ time: p.time as Time, value: 20 })));
       dynamicSeriesRef.current.set("stoch-k", kLine as ISeriesApi<SeriesType>);
       dynamicSeriesRef.current.set("stoch-d", dLine as ISeriesApi<SeriesType>);
       dynamicSeriesRef.current.set("stoch-ob", obLine as ISeriesApi<SeriesType>);
       dynamicSeriesRef.current.set("stoch-os", osLine as ISeriesApi<SeriesType>);
     }
 
-    if (indicators.obv.enabled && data.obv?.data.length) {
+    if (indicators.obv.enabled && filteredObv?.data.length) {
       const obvLine = chart.addSeries(LineSeries, {
         priceScaleId: "obv",
         color: "#14B8A6",
@@ -756,15 +842,143 @@ export default function MainChart({ data, onChartReady }: MainChartProps) {
         priceLineVisible: false,
         lastValueVisible: false,
       });
-      obvLine.setData(data.obv.data.map((p) => ({ time: p.time as Time, value: p.value })));
+      obvLine.setData(filteredObv.data.map((p) => ({ time: p.time as Time, value: p.value })));
       dynamicSeriesRef.current.set("obv", obvLine as ISeriesApi<SeriesType>);
+    }
+
+    if (indicators.vwap.enabled && filteredVwap?.data.length) {
+      const vwapLine = chart.addSeries(LineSeries, {
+        color: "#06B6D4",
+        lineWidth: 2,
+        lineStyle: 2,
+        priceLineVisible: false,
+        crosshairMarkerVisible: false,
+        title: "VWAP",
+      });
+      vwapLine.setData(filteredVwap.data.map((p) => ({ time: p.time as Time, value: p.value })));
+      dynamicSeriesRef.current.set("vwap", vwapLine as ISeriesApi<SeriesType>);
+    }
+
+    if (indicators.atr.enabled && filteredAtr?.data.length) {
+      const atrLine = chart.addSeries(LineSeries, {
+        priceScaleId: "atr",
+        color: "#38BDF8",
+        lineWidth: 2,
+        priceLineVisible: false,
+        lastValueVisible: false,
+        crosshairMarkerVisible: false,
+        title: "ATR",
+      });
+      atrLine.setData(filteredAtr.data.map((p) => ({ time: p.time as Time, value: p.value })));
+      dynamicSeriesRef.current.set("atr", atrLine as ISeriesApi<SeriesType>);
+    }
+
+    if (indicators.ichimoku.enabled && filteredIchimoku?.data.length) {
+      const conversionLine = chart.addSeries(LineSeries, {
+        color: "#F59E0B",
+        lineWidth: 1,
+        priceLineVisible: false,
+        crosshairMarkerVisible: false,
+        title: "전환선",
+      });
+      const baseLine = chart.addSeries(LineSeries, {
+        color: "#EF4444",
+        lineWidth: 1,
+        priceLineVisible: false,
+        crosshairMarkerVisible: false,
+        title: "기준선",
+      });
+      const spanALine = chart.addSeries(LineSeries, {
+        color: "rgba(34,197,94,0.8)",
+        lineWidth: 1,
+        priceLineVisible: false,
+        crosshairMarkerVisible: false,
+        title: "선행A",
+      });
+      const spanBLine = chart.addSeries(LineSeries, {
+        color: "rgba(239,68,68,0.8)",
+        lineWidth: 1,
+        priceLineVisible: false,
+        crosshairMarkerVisible: false,
+        title: "선행B",
+      });
+
+      const conversionData = filteredIchimoku.data
+        .filter((p) => p.conversion !== null)
+        .map((p) => ({ time: p.time as Time, value: p.conversion as number }));
+      const baseData = filteredIchimoku.data
+        .filter((p) => p.base !== null)
+        .map((p) => ({ time: p.time as Time, value: p.base as number }));
+      const spanAData = filteredIchimoku.data
+        .filter((p) => p.spanA !== null)
+        .map((p) => ({ time: p.time as Time, value: p.spanA as number }));
+      const spanBData = filteredIchimoku.data
+        .filter((p) => p.spanB !== null)
+        .map((p) => ({ time: p.time as Time, value: p.spanB as number }));
+
+      conversionLine.setData(conversionData);
+      baseLine.setData(baseData);
+      spanALine.setData(spanAData);
+      spanBLine.setData(spanBData);
+      dynamicSeriesRef.current.set("ichi-conv", conversionLine as ISeriesApi<SeriesType>);
+      dynamicSeriesRef.current.set("ichi-base", baseLine as ISeriesApi<SeriesType>);
+      dynamicSeriesRef.current.set("ichi-a", spanALine as ISeriesApi<SeriesType>);
+      dynamicSeriesRef.current.set("ichi-b", spanBLine as ISeriesApi<SeriesType>);
+    }
+
+    if (indicators.supertrend.enabled && filteredSupertrend?.data.length) {
+      const upLine = chart.addSeries(LineSeries, {
+        color: "#22C55E",
+        lineWidth: 2,
+        priceLineVisible: false,
+        crosshairMarkerVisible: false,
+        title: "Supertrend Up",
+      });
+      const downLine = chart.addSeries(LineSeries, {
+        color: "#EF4444",
+        lineWidth: 2,
+        priceLineVisible: false,
+        crosshairMarkerVisible: false,
+        title: "Supertrend Down",
+      });
+
+      const upData = filteredSupertrend.data.map((p) =>
+        p.direction > 0
+          ? ({ time: p.time as Time, value: p.value } as const)
+          : ({ time: p.time as Time } as const),
+      );
+      const downData = filteredSupertrend.data.map((p) =>
+        p.direction < 0
+          ? ({ time: p.time as Time, value: p.value } as const)
+          : ({ time: p.time as Time } as const),
+      );
+
+      upLine.setData(upData);
+      downLine.setData(downData);
+      dynamicSeriesRef.current.set("super-up", upLine as ISeriesApi<SeriesType>);
+      dynamicSeriesRef.current.set("super-down", downLine as ISeriesApi<SeriesType>);
+    }
+
+    if (indicators.psar.enabled && filteredPsar?.data.length) {
+      const psarLine = chart.addSeries(LineSeries, {
+        color: "#F97316",
+        lineWidth: 1,
+        lineStyle: 2,
+        priceLineVisible: false,
+        crosshairMarkerVisible: false,
+        title: "PSAR",
+      });
+      psarLine.setData(
+        filteredPsar.data.map((p) => ({ time: p.time as Time, value: p.value })),
+      );
+      dynamicSeriesRef.current.set("psar", psarLine as ISeriesApi<SeriesType>);
     }
 
     applyIndicatorScaleLayout();
 
     if (markersPluginRef.current) {
-      if (data.signals.length > 0) {
-        const markers: SeriesMarker<Time>[] = data.signals
+      if (filteredSignals.length > 0) {
+        const markers: SeriesMarker<Time>[] = filteredSignals
           .map((s) => {
             const config = SIGNAL_MARKERS[s.signalType];
             if (!config) return null;
@@ -785,7 +999,7 @@ export default function MainChart({ data, onChartReady }: MainChartProps) {
     }
 
     // Set last candle to crosshair store
-    const lastCandle = data.candles[data.candles.length - 1];
+    const lastCandle = rawCandles[rawCandles.length - 1];
     if (lastCandle) {
       useCrosshairStore.getState().setData({
         time: null,
@@ -798,7 +1012,7 @@ export default function MainChart({ data, onChartReady }: MainChartProps) {
       });
     }
 
-    const fitScope = `${data.symbol}:${data.interval}:${chartType}`;
+    const fitScope = `${data.symbol}:${data.interval}:${chartType}:${replayEnabled ? "replay" : "live"}`;
     if (fittedScopeRef.current !== fitScope) {
       chart.timeScale().fitContent();
       fittedScopeRef.current = fitScope;
@@ -812,12 +1026,146 @@ export default function MainChart({ data, onChartReady }: MainChartProps) {
     indicators.bb.multiplier,
     indicators.bb.period,
     indicators.ema.enabled,
+    indicators.ichimoku.enabled,
     indicators.macd.enabled,
     indicators.obv.enabled,
+    indicators.psar.enabled,
     indicators.rsi.enabled,
     indicators.sma.enabled,
     indicators.stochastic.enabled,
+    indicators.supertrend.enabled,
+    indicators.atr.enabled,
     indicators.volume.enabled,
+    indicators.vwap.enabled,
+    replayEnabled,
+    replayIndex,
+  ]);
+
+  useEffect(() => {
+    const chart = chartRef.current;
+    const mainSeries = mainSeriesRef.current;
+    if (!chart || !mainSeries) return;
+
+    for (const line of alertLinesRef.current) {
+      try {
+        mainSeries.removePriceLine(line);
+      } catch {}
+    }
+    alertLinesRef.current = [];
+
+    const currentSymbol = useSettingsStore.getState().symbol;
+    const currentMarket = useSettingsStore.getState().market;
+    const visibleAlerts = priceAlerts.filter(
+      (alert) => alert.symbol === currentSymbol && alert.market === currentMarket,
+    );
+
+    for (const alert of visibleAlerts) {
+      try {
+        const line = mainSeries.createPriceLine({
+          price: alert.price,
+          color: alert.active ? "#F59E0B" : "rgba(148,163,184,0.9)",
+          lineWidth: 1,
+          lineStyle: 2,
+          axisLabelVisible: true,
+          title: alert.active
+            ? `알림 ${alert.condition === "above" ? "↑" : "↓"}`
+            : "알림(완료)",
+        });
+        alertLinesRef.current.push(line);
+      } catch {}
+    }
+  }, [priceAlerts]);
+
+  useEffect(() => {
+    const chart = chartRef.current;
+    if (!chart || !data) return;
+
+    if (compareSeriesRef.current) {
+      try {
+        chart.removeSeries(compareSeriesRef.current);
+      } catch {}
+      compareSeriesRef.current = null;
+    }
+
+    if (!compare.enabled || !compare.symbol) return;
+    if (compare.symbol === data.symbol && compare.market === market) return;
+
+    let cancelled = false;
+
+    const cappedReplayIndex = replayEnabled
+      ? Math.min(Math.max(replayIndex, 0), data.candles.length - 1)
+      : data.candles.length - 1;
+    const replayMaxTime = data.candles[cappedReplayIndex]?.time ?? null;
+
+    fetchAnalysis({
+      symbol: compare.symbol,
+      interval: data.interval,
+      bbPeriod: DEFAULTS.bbPeriod,
+      bbMultiplier: DEFAULTS.bbMultiplier,
+      rsiPeriod: DEFAULTS.rsiPeriod,
+      market: compare.market,
+      smaPeriods: [],
+      emaPeriods: [],
+      macd: null,
+      stochastic: null,
+      showVolume: false,
+      showObv: false,
+      signalFilter: indicators.signalFilter,
+    })
+      .then((resp) => {
+        if (cancelled || !chartRef.current) return;
+        if (!resp.candles.length) return;
+        const scopedCandles =
+          replayMaxTime !== null
+            ? resp.candles.filter((candle) => candle.time <= replayMaxTime)
+            : resp.candles;
+        if (!scopedCandles.length) return;
+
+        const series = chartRef.current.addSeries(LineSeries, {
+          color: "#94A3B8",
+          lineWidth: 2,
+          priceLineVisible: false,
+          crosshairMarkerVisible: false,
+          title: `비교:${compare.symbol}`,
+          priceScaleId: compare.normalize ? "compare" : "right",
+        });
+
+        const base = scopedCandles[0].close;
+        const compareData = scopedCandles.map((c) => ({
+          time: c.time as Time,
+          value:
+            compare.normalize && Math.abs(base) > Number.EPSILON
+              ? ((c.close - base) / base) * 100
+              : c.close,
+        }));
+        series.setData(compareData);
+
+        if (compare.normalize) {
+          try {
+            chartRef.current.priceScale("compare").applyOptions({
+              visible: false,
+              scaleMargins: { top: 0.03, bottom: 0.03 },
+            });
+          } catch {}
+        }
+
+        compareSeriesRef.current = series;
+      })
+      .catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    compare.enabled,
+    compare.market,
+    compare.normalize,
+    compare.symbol,
+    data,
+    indicators.signalFilter,
+    market,
+    replayEnabled,
+    replayIndex,
   ]);
 
   return <div ref={containerRef} className="h-full w-full" />;

@@ -1,24 +1,28 @@
 import { getIntervalsForMarket, type Interval } from "../utils/constants";
 import { useSettingsStore } from "../stores/useSettingsStore";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 export default function IntervalSelector() {
   const { interval, market, setInterval } = useSettingsStore();
   const intervals = getIntervalsForMarket(market);
 
   return (
-    <div className="segment-control">
+    <ToggleGroup
+      type="single"
+      value={interval}
+      onValueChange={(value) => {
+        if (!value) return;
+        setInterval(value as Interval);
+      }}
+    >
       {intervals.map((iv) => (
-        <button
+        <ToggleGroupItem
           key={iv}
-          onClick={() => setInterval(iv as Interval)}
-          className={`segment-button ${interval === iv ? "active" : ""}`}
-          style={{
-            color: interval === iv ? "var(--accent-contrast)" : "var(--text-secondary)",
-          }}
+          value={iv}
         >
           {iv}
-        </button>
+        </ToggleGroupItem>
       ))}
-    </div>
+    </ToggleGroup>
   );
 }

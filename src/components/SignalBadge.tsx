@@ -1,14 +1,15 @@
 import type { SignalType } from "../types";
 import { COLORS } from "../utils/constants";
+import { Badge } from "@/components/ui/badge";
 
 const SIGNAL_CONFIG: Record<
   SignalType,
   { label: string; color: string }
 > = {
-  strongBuy: { label: "강매수", color: COLORS.strongBuy },
-  weakBuy: { label: "약매수", color: COLORS.weakBuy },
-  strongSell: { label: "강매도", color: COLORS.strongSell },
-  weakSell: { label: "약매도", color: COLORS.weakSell },
+  strongBuy: { label: "강", color: COLORS.strongBuy },
+  weakBuy: { label: "약", color: COLORS.weakBuy },
+  strongSell: { label: "강", color: COLORS.strongSell },
+  weakSell: { label: "약", color: COLORS.weakSell },
   macdBullish: { label: "MACD 상승", color: COLORS.macdBullish },
   macdBearish: { label: "MACD 하락", color: COLORS.macdBearish },
   stochOversold: { label: "스토캐스틱 과매도", color: COLORS.stochOversold },
@@ -29,8 +30,9 @@ export default function SignalBadge({ signalType, source }: SignalBadgeProps) {
     : config.label;
 
   return (
-    <span
-      className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold"
+    <Badge
+      variant="outline"
+      className="text-xs font-semibold"
       style={{
         background: `${config.color}22`,
         color: config.color,
@@ -38,6 +40,6 @@ export default function SignalBadge({ signalType, source }: SignalBadgeProps) {
       }}
     >
       {label}
-    </span>
+    </Badge>
   );
 }

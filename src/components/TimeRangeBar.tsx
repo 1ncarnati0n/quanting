@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 const TIME_RANGES = [
   { label: "1D", days: 1 },
@@ -40,21 +41,25 @@ export default function TimeRangeBar() {
   };
 
   return (
-    <div className="flex items-center gap-0.5">
+    <ToggleGroup
+      type="single"
+      value={active}
+      onValueChange={(value) => {
+        if (!value) return;
+        const range = TIME_RANGES.find((item) => item.label === value);
+        if (range) handleClick(range);
+      }}
+      className="gap-0.5 p-0.5"
+    >
       {TIME_RANGES.map((range) => (
-        <button
+        <ToggleGroupItem
           key={range.label}
-          type="button"
-          className="rounded px-1.5 py-0.5 text-[10px] font-semibold transition-colors"
-          style={{
-            background: active === range.label ? "var(--accent-soft)" : "transparent",
-            color: active === range.label ? "var(--accent-primary)" : "var(--text-secondary)",
-          }}
-          onClick={() => handleClick(range)}
+          value={range.label}
+          className="px-1.5 py-0.5 text-[10px]"
         >
           {range.label}
-        </button>
+        </ToggleGroupItem>
       ))}
-    </div>
+    </ToggleGroup>
   );
 }

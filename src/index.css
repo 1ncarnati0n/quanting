@@ -1,5 +1,30 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--bg-app);
+  --color-foreground: var(--text-primary);
+  --color-card: var(--bg-card);
+  --color-card-foreground: var(--text-primary);
+  --color-primary: var(--accent-primary);
+  --color-primary-foreground: var(--accent-contrast);
+  --color-secondary: var(--bg-input);
+  --color-secondary-foreground: var(--text-primary);
+  --color-muted: var(--bg-elevated);
+  --color-muted-foreground: var(--text-secondary);
+  --color-accent: var(--bg-card-hover);
+  --color-accent-foreground: var(--text-primary);
+  --color-destructive: var(--danger-color);
+  --color-border: var(--border-color);
+  --color-input: var(--bg-input);
+  --color-ring: var(--accent-primary);
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.625rem;
+  --radius-xl: 0.75rem;
+}
+
 :root {
   --bg-app: #0a0f1a;
   --bg-surface: #111827;
@@ -86,6 +111,25 @@ body {
   border-bottom: 1px solid var(--border-color);
 }
 
+.header-live-dot {
+  animation: headerPulse 1.6s ease-in-out infinite;
+}
+
+@keyframes headerPulse {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.45;
+    transform: scale(0.75);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 .price-display {
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
@@ -124,10 +168,6 @@ body {
   border-radius: 10px;
   background: var(--bg-secondary);
   box-shadow: var(--panel-shadow);
-}
-
-.sidebar-rail {
-  background: color-mix(in srgb, var(--bg-tertiary) 70%, transparent);
 }
 
 .chart-band-separator {

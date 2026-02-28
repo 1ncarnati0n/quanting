@@ -1,4 +1,7 @@
 import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const SHORTCUT_GROUPS = [
   {
@@ -9,6 +12,9 @@ const SHORTCUT_GROUPS = [
       { keys: ["Home"], desc: "차트 맞춤" },
       { keys: ["←"], desc: "차트 왼쪽 스크롤" },
       { keys: ["→"], desc: "차트 오른쪽 스크롤" },
+      { keys: ["R"], desc: "바 리플레이 시작/종료" },
+      { keys: ["Space"], desc: "리플레이 재생/일시정지" },
+      { keys: ["Delete"], desc: "최근 드로잉 삭제" },
     ],
   },
   {
@@ -52,29 +58,27 @@ export default function ShortcutsModal() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [open]);
 
-  if (!open) return null;
-
   return (
-    <div className="modal-overlay" onClick={() => setOpen(false)}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogContent className="w-[min(100%-2rem,500px)] p-5 sm:p-6">
+        <DialogHeader>
+          <DialogTitle>
             키보드 단축키
-          </h2>
-          <button
-            type="button"
+          </DialogTitle>
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={() => setOpen(false)}
-            className="btn-ghost rounded p-1"
-            style={{ color: "var(--text-secondary)" }}
+            className="h-8 w-8 text-[var(--text-secondary)]"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M18 6L6 18M6 6l12 12" />
             </svg>
-          </button>
-        </div>
+          </Button>
+        </DialogHeader>
 
         <div className="space-y-4">
-          {SHORTCUT_GROUPS.map((group) => (
+          {SHORTCUT_GROUPS.map((group, idx) => (
             <div key={group.title}>
               <div
                 className="mb-2 text-[10px] font-semibold uppercase tracking-wider"
@@ -107,10 +111,11 @@ export default function ShortcutsModal() {
                   </div>
                 ))}
               </div>
+              {idx < SHORTCUT_GROUPS.length - 1 && <Separator className="mt-3" />}
             </div>
           ))}
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

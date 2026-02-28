@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { AnalysisResponse, AnalysisParams } from "../types";
+import type { AnalysisResponse, AnalysisParams, Candle } from "../types";
 import { fetchAnalysis } from "../services/tauriApi";
 
 interface ChartState {
@@ -7,6 +7,7 @@ interface ChartState {
   isLoading: boolean;
   error: string | null;
   fetchData: (params: AnalysisParams) => void;
+  updateRealtimeCandle: (candle: Candle) => void;
 }
 
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;
@@ -44,4 +45,29 @@ export const useChartStore = create<ChartState>((set) => ({
       debounceTimer = setTimeout(doFetch, 300);
     }
   },
+  updateRealtimeCandle: (candle) =>
+    set((state) => {
+      if (!state.data || !state.data.candles.length) return {};
+
+      const candles = [...state.data.candles];
+      const last = candles[candles.length - 1];
+      if (!last) return {};
+
+      if (candle.time < last.time) return {};
+      if (candle.time === last.time) {
+        candles[candles.length - 1] = candle;
+      } else {
+        candles.push(candle);
+        if (candles.length > 500) {
+          candles.shift();
+        }
+      }
+
+      return {
+        data: {
+          ...state.data,
+          candles,
+        },
+      };
+    }),
 }));

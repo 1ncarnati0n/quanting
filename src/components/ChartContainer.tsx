@@ -1,14 +1,19 @@
-import { useMemo, useRef } from "react";
+import { useCallback, useMemo, useState } from "react";
 import MainChart from "./MainChart";
 import CrosshairLegend from "./CrosshairLegend";
 import ChartToolbar from "./ChartToolbar";
 import ChartContextMenu from "./ChartContextMenu";
+import DrawingCanvas from "./DrawingCanvas";
+import DrawingToolbar from "./DrawingToolbar";
+import ReplayControls from "./ReplayControls";
+import SignalZonesOverlay from "./SignalZonesOverlay";
+import VolumeProfileOverlay from "./VolumeProfileOverlay";
 import { useChartStore } from "../stores/useChartStore";
 import { useSettingsStore } from "../stores/useSettingsStore";
-import type { IChartApi } from "lightweight-charts";
+import type { IChartApi, ISeriesApi, SeriesType } from "lightweight-charts";
 
 type OverlayBand = {
-  id: "volume" | "rsi" | "macd" | "stoch" | "obv";
+  id: "volume" | "rsi" | "macd" | "stoch" | "obv" | "atr";
   label: string;
   color: string;
   weight: number;
@@ -25,8 +30,9 @@ function clamp(value: number, min: number, max: number): number {
 
 export default function ChartContainer() {
   const { data, isLoading, error } = useChartStore();
-  const { indicators } = useSettingsStore();
-  const chartApiRef = useRef<IChartApi | null>(null);
+  const { indicators, multiChartLayout } = useSettingsStore();
+  const [chartApi, setChartApi] = useState<IChartApi | null>(null);
+  const [mainSeries, setMainSeries] = useState<ISeriesApi<SeriesType> | null>(null);
   const compactFormatter = useMemo(
     () =>
       new Intl.NumberFormat("ko-KR", {
@@ -43,9 +49,11 @@ export default function ChartContainer() {
     const macdData = data?.macd?.data ?? [];
     const stochasticData = data?.stochastic?.data ?? [];
     const obvData = data?.obv?.data ?? [];
+    const atrData = data?.atr?.data ?? [];
     const lastMacd = macdData[macdData.length - 1];
     const lastStoch = stochasticData[stochasticData.length - 1];
     const lastObv = obvData[obvData.length - 1];
+    const lastAtr = atrData[atrData.length - 1];
 
     if (indicators.volume.enabled) {
       next.push({
@@ -97,6 +105,16 @@ export default function ChartContainer() {
       });
     }
 
+    if (indicators.atr.enabled) {
+      next.push({
+        id: "atr",
+        label: "ATR",
+        color: "#38BDF8",
+        weight: Math.max(0.2, indicators.layout.atrWeight),
+        value: lastAtr ? lastAtr.value.toFixed(2) : "-",
+      });
+    }
+
     return next;
   }, [compactFormatter, data, indicators]);
 
@@ -120,6 +138,23 @@ export default function ChartContainer() {
       return { ...band, top };
     });
   }, [bands, indicators.layout.priceAreaRatio]);
+
+  const chartSlots = useMemo(() => {
+    if (multiChartLayout === 4) return [0, 1, 2, 3];
+    if (multiChartLayout === 2) return [0, 1];
+    return [0];
+  }, [multiChartLayout]);
+
+  const handlePrimaryChartReady = useCallback((chart: IChartApi) => {
+    setChartApi((prev) => (prev === chart ? prev : chart));
+  }, []);
+
+  const handlePrimaryMainSeriesReady = useCallback(
+    (series: ISeriesApi<SeriesType> | null) => {
+      setMainSeries((prev) => (prev === series ? prev : series));
+    },
+    [],
+  );
 
   if (error) {
     return (
@@ -172,9 +207,14 @@ export default function ChartContainer() {
         </div>
       )}
       <CrosshairLegend />
+      {multiChartLayout === 1 && <DrawingToolbar />}
       <ChartToolbar />
       <ChartContextMenu />
-      {bandLayouts.length > 0 && (
+      <ReplayControls />
+      {multiChartLayout === 1 && <SignalZonesOverlay chart={chartApi} data={data} />}
+      {multiChartLayout === 1 && <VolumeProfileOverlay data={data} />}
+      {multiChartLayout === 1 && <DrawingCanvas chart={chartApi} mainSeries={mainSeries} />}
+      {multiChartLayout === 1 && bandLayouts.length > 0 && (
         <div className="pointer-events-none absolute inset-0 z-[8]">
           {bandLayouts.map((band) => (
             <div
@@ -200,8 +240,30 @@ export default function ChartContainer() {
           ))}
         </div>
       )}
-      <div className="flex-1 min-h-0" data-chart-area>
-        <MainChart data={data} onChartReady={(c) => { chartApiRef.current = c; }} />
+      <div
+        className={multiChartLayout === 1 ? "flex-1 min-h-0" : "flex-1 min-h-0 grid gap-1 p-1"}
+        style={
+          multiChartLayout === 1
+            ? undefined
+            : {
+                gridTemplateColumns: multiChartLayout === 4 ? "1fr 1fr" : "1fr 1fr",
+                gridTemplateRows: multiChartLayout === 4 ? "1fr 1fr" : "1fr",
+              }
+        }
+      >
+        {chartSlots.map((slotIndex) => (
+          <div
+            key={`chart-slot-${slotIndex}`}
+            className="h-full w-full min-h-0 overflow-hidden rounded"
+            data-chart-area
+          >
+            <MainChart
+              data={data}
+              onChartReady={slotIndex === 0 ? handlePrimaryChartReady : undefined}
+              onMainSeriesReady={slotIndex === 0 ? handlePrimaryMainSeriesReady : undefined}
+            />
+          </div>
+        ))}
       </div>
     </div>
   );

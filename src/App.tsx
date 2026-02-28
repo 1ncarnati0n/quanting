@@ -8,15 +8,24 @@ import CollapsibleSidebar from "./components/CollapsibleSidebar";
 import ShortcutsModal from "./components/ShortcutsModal";
 import { useChartStore } from "./stores/useChartStore";
 import { useSettingsStore } from "./stores/useSettingsStore";
+import { useReplayStore } from "./stores/useReplayStore";
 import { THEME_COLORS } from "./utils/constants";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 
 function App() {
   const [showWatchlist, setShowWatchlist] = useState(false);
   const fetchData = useChartStore((s) => s.fetchData);
+  const data = useChartStore((s) => s.data);
+  const updateRealtimeCandle = useChartStore((s) => s.updateRealtimeCandle);
+  const replayEnabled = useReplayStore((s) => s.enabled);
+  const replayPlaying = useReplayStore((s) => s.playing);
+  const replaySpeed = useReplayStore((s) => s.speed);
   const symbol = useSettingsStore((s) => s.symbol);
   const interval = useSettingsStore((s) => s.interval);
   const market = useSettingsStore((s) => s.market);
   const indicators = useSettingsStore((s) => s.indicators);
+  const priceAlerts = useSettingsStore((s) => s.priceAlerts);
+  const markAlertTriggered = useSettingsStore((s) => s.markAlertTriggered);
   const showSettings = useSettingsStore((s) => s.showSettings);
   const setShowSettings = useSettingsStore((s) => s.setShowSettings);
   const theme = useSettingsStore((s) => s.theme);
@@ -96,6 +105,20 @@ function App() {
     });
   }, [symbol, interval, market, indicators, fetchData]);
 
+  // Bar replay tick
+  useEffect(() => {
+    if (!replayEnabled || !replayPlaying) return;
+    const totalBars = data?.candles.length ?? 0;
+    if (totalBars <= 1) return;
+
+    const frameMs = Math.max(60, Math.round(720 / Math.max(0.25, replaySpeed)));
+    const timer = setInterval(() => {
+      const liveBars = useChartStore.getState().data?.candles.length ?? 0;
+      useReplayStore.getState().tick(liveBars);
+    }, frameMs);
+    return () => clearInterval(timer);
+  }, [data?.candles.length, replayEnabled, replayPlaying, replaySpeed]);
+
   // Auto-refresh timer
   useEffect(() => {
     const intervalMs = market === "crypto" ? 30000 : 60000;
@@ -132,6 +155,112 @@ function App() {
     }, intervalMs);
     return () => clearInterval(timer);
   }, [market]);
+
+  // Crypto real-time feed (Binance kline stream) with polling fallback
+  useEffect(() => {
+    if (market !== "crypto") return;
+    if (!symbol || !interval) return;
+
+    const stream = `${symbol.toLowerCase()}@kline_${interval}`;
+    const ws = new WebSocket(`wss://stream.binance.com:9443/ws/${stream}`);
+
+    ws.onmessage = (event) => {
+      try {
+        const payload = JSON.parse(event.data);
+        const kline = payload?.k;
+        if (!kline) return;
+        const nextCandle = {
+          time: Math.floor(Number(kline.t) / 1000),
+          open: Number(kline.o),
+          high: Number(kline.h),
+          low: Number(kline.l),
+          close: Number(kline.c),
+          volume: Number(kline.v),
+        };
+        if (
+          Number.isFinite(nextCandle.time) &&
+          Number.isFinite(nextCandle.open) &&
+          Number.isFinite(nextCandle.high) &&
+          Number.isFinite(nextCandle.low) &&
+          Number.isFinite(nextCandle.close) &&
+          Number.isFinite(nextCandle.volume)
+        ) {
+          updateRealtimeCandle(nextCandle);
+        }
+      } catch {}
+    };
+
+    return () => {
+      ws.close();
+    };
+  }, [interval, market, symbol, updateRealtimeCandle]);
+
+  // Price alert trigger
+  useEffect(() => {
+    if (!data || data.candles.length === 0) return;
+    if (priceAlerts.length === 0) return;
+
+    const last = data.candles[data.candles.length - 1];
+    const prev = data.candles.length > 1 ? data.candles[data.candles.length - 2] : null;
+    const currentState = useSettingsStore.getState();
+    const scopedAlerts = currentState.priceAlerts.filter(
+      (alert) => alert.active && alert.symbol === symbol && alert.market === market,
+    );
+    if (scopedAlerts.length === 0) return;
+
+    const notify = async (title: string, body: string) => {
+      try {
+        if (typeof Notification !== "undefined") {
+          if (Notification.permission === "granted") {
+            new Notification(title, { body });
+            return;
+          }
+          if (Notification.permission !== "denied") {
+            const permission = await Notification.requestPermission();
+            if (permission === "granted") {
+              new Notification(title, { body });
+              return;
+            }
+          }
+        }
+      } catch {}
+      console.info(`${title}: ${body}`);
+    };
+
+    const beep = () => {
+      try {
+        const audioCtx = new AudioContext();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.type = "triangle";
+        osc.frequency.value = 880;
+        gain.gain.value = 0.04;
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.15);
+      } catch {}
+    };
+
+    for (const alert of scopedAlerts) {
+      const crossedUp =
+        alert.condition === "above" &&
+        ((prev ? prev.close : last.close) < alert.price) &&
+        last.close >= alert.price;
+      const crossedDown =
+        alert.condition === "below" &&
+        ((prev ? prev.close : last.close) > alert.price) &&
+        last.close <= alert.price;
+
+      if (!crossedUp && !crossedDown) continue;
+      markAlertTriggered(alert.id, last.close);
+      beep();
+      notify(
+        `${alert.symbol} 가격 알림`,
+        `${alert.condition === "above" ? "상향" : "하향"} 도달: ${alert.price.toFixed(4)} (현재 ${last.close.toFixed(4)})`,
+      );
+    }
+  }, [data, market, markAlertTriggered, priceAlerts, symbol]);
 
   // Fullscreen sync with browser Fullscreen API
   useEffect(() => {
@@ -184,6 +313,21 @@ function App() {
       // Chart commands (no modifier needed)
       if (!isMod) {
         switch (key) {
+          case "r":
+          case "R": {
+            e.preventDefault();
+            const replay = useReplayStore.getState();
+            const bars = useChartStore.getState().data?.candles.length ?? 0;
+            if (replay.enabled) replay.exitReplay();
+            else replay.enterReplay(bars);
+            return;
+          }
+          case " ":
+            if (useReplayStore.getState().enabled) {
+              e.preventDefault();
+              useReplayStore.getState().togglePlaying();
+            }
+            return;
           case "f":
           case "F":
             e.preventDefault();
@@ -261,6 +405,24 @@ function App() {
     );
   }
 
+  const handleToggleWatchlistPanel = () => {
+    if (window.matchMedia("(min-width: 1536px)").matches) {
+      window.dispatchEvent(new CustomEvent("quanting:toggle-left-sidebar"));
+      return;
+    }
+    setShowSettings(false);
+    setShowWatchlist((prev) => !prev);
+  };
+
+  const handleToggleSettingsPanel = () => {
+    if (window.matchMedia("(min-width: 1536px)").matches) {
+      window.dispatchEvent(new CustomEvent("quanting:toggle-right-sidebar"));
+      return;
+    }
+    setShowWatchlist(false);
+    setShowSettings(!showSettings);
+  };
+
   return (
     <div className="relative flex h-full min-h-0 w-full gap-1.5 xl:gap-2" style={shellStyle}>
       <CollapsibleSidebar
@@ -276,14 +438,8 @@ function App() {
       <main className="flex min-h-0 min-w-0 flex-1 flex-col gap-2">
         <div className="surface-card overflow-hidden rounded-lg">
           <MarketHeader
-            onToggleWatchlist={() => {
-              setShowSettings(false);
-              setShowWatchlist(true);
-            }}
-            onToggleSettings={() => {
-              setShowWatchlist(false);
-              setShowSettings(true);
-            }}
+            onToggleWatchlist={handleToggleWatchlistPanel}
+            onToggleSettings={handleToggleSettingsPanel}
           />
         </div>
         <div className="surface-card flex flex-1 min-h-0 overflow-hidden rounded-lg">
@@ -303,55 +459,26 @@ function App() {
         <SettingsPanel onClose={() => setShowSettings(false)} embedded />
       </CollapsibleSidebar>
 
-      {/* Mobile Backdrop */}
-      <div
-        className="absolute z-20 2xl:hidden"
-        style={{
-          top: "calc(env(safe-area-inset-top, 0px) + 0.5rem)",
-          right: "calc(env(safe-area-inset-right, 0px) + 0.5rem)",
-          bottom: "calc(env(safe-area-inset-bottom, 0px) + 0.5rem)",
-          left: "calc(env(safe-area-inset-left, 0px) + 0.5rem)",
-          background: "rgba(0,0,0,0.35)",
-          opacity: showWatchlist || showSettings ? 1 : 0,
-          pointerEvents: showWatchlist || showSettings ? "auto" : "none",
-          transition: "opacity 200ms",
-        }}
-        onClick={() => {
-          setShowWatchlist(false);
-          setShowSettings(false);
-        }}
-      />
-
-      {/* Mobile Watchlist Drawer */}
-      <div
-        className="absolute z-30 2xl:hidden"
-        style={{
-          top: "calc(env(safe-area-inset-top, 0px) + 0.5rem)",
-          bottom: "calc(env(safe-area-inset-bottom, 0px) + 0.5rem)",
-          left: "calc(env(safe-area-inset-left, 0px) + 0.5rem)",
-          transform: showWatchlist ? "translateX(0)" : "translateX(-110%)",
-          transition: "transform 200ms",
-        }}
+      <Sheet
+        open={showWatchlist}
+        onOpenChange={(open) => setShowWatchlist(open)}
       >
-        <WatchlistSidebar
-          onClose={() => setShowWatchlist(false)}
-          onSelectSymbol={() => setShowWatchlist(false)}
-        />
-      </div>
+        <SheetContent side="left" className="w-[min(22rem,calc(100vw-1rem))]">
+          <WatchlistSidebar
+            onClose={() => setShowWatchlist(false)}
+            onSelectSymbol={() => setShowWatchlist(false)}
+          />
+        </SheetContent>
+      </Sheet>
 
-      {/* Mobile Settings Drawer */}
-      <div
-        className="absolute z-30 2xl:hidden"
-        style={{
-          top: "calc(env(safe-area-inset-top, 0px) + 0.5rem)",
-          right: "calc(env(safe-area-inset-right, 0px) + 0.5rem)",
-          bottom: "calc(env(safe-area-inset-bottom, 0px) + 0.5rem)",
-          transform: showSettings ? "translateX(0)" : "translateX(110%)",
-          transition: "transform 200ms",
-        }}
+      <Sheet
+        open={showSettings}
+        onOpenChange={(open) => setShowSettings(open)}
       >
-        <SettingsPanel onClose={() => setShowSettings(false)} />
-      </div>
+        <SheetContent side="right" className="w-[min(24rem,calc(100vw-1rem))]">
+          <SettingsPanel onClose={() => setShowSettings(false)} />
+        </SheetContent>
+      </Sheet>
 
       <ShortcutsModal />
     </div>

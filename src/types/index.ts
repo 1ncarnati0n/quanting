@@ -63,6 +63,61 @@ export interface ObvResult {
   data: ObvPoint[];
 }
 
+export interface VwapPoint {
+  time: number;
+  value: number;
+}
+
+export interface VwapResult {
+  data: VwapPoint[];
+}
+
+export interface AtrPoint {
+  time: number;
+  value: number;
+}
+
+export interface AtrResult {
+  period: number;
+  data: AtrPoint[];
+}
+
+export interface IchimokuPoint {
+  time: number;
+  conversion: number | null;
+  base: number | null;
+  spanA: number | null;
+  spanB: number | null;
+  lagging: number | null;
+}
+
+export interface IchimokuResult {
+  data: IchimokuPoint[];
+}
+
+export interface SupertrendPoint {
+  time: number;
+  value: number;
+  direction: number;
+}
+
+export interface SupertrendResult {
+  period: number;
+  multiplier: number;
+  data: SupertrendPoint[];
+}
+
+export interface ParabolicSarPoint {
+  time: number;
+  value: number;
+}
+
+export interface ParabolicSarResult {
+  step: number;
+  maxStep: number;
+  data: ParabolicSarPoint[];
+}
+
 // Signal types
 export type SignalType =
   | "strongBuy"
@@ -92,6 +147,11 @@ export interface AnalysisResponse {
   macd: MacdResult | null;
   stochastic: StochasticResult | null;
   obv: ObvResult | null;
+  vwap: VwapResult | null;
+  atr: AtrResult | null;
+  ichimoku: IchimokuResult | null;
+  supertrend: SupertrendResult | null;
+  parabolicSar: ParabolicSarResult | null;
   symbol: string;
   interval: string;
 }

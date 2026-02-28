@@ -1,5 +1,15 @@
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 import { useSettingsStore, type ChartType } from "../stores/useSettingsStore";
+import { useChartStore } from "../stores/useChartStore";
+import { useReplayStore } from "../stores/useReplayStore";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const CHART_TYPE_OPTIONS: { value: ChartType; label: string; icon: string }[] = [
   { value: "candlestick", label: "캔들스틱", icon: "M" },
@@ -11,26 +21,22 @@ const CHART_TYPE_OPTIONS: { value: ChartType; label: string; icon: string }[] = 
 
 export default function ChartToolbar() {
   const { chartType, setChartType, toggleFullscreen } = useSettingsStore();
-  const [showChartTypeMenu, setShowChartTypeMenu] = useState(false);
-  const [showIndicatorMenu, setShowIndicatorMenu] = useState(false);
-  const chartTypeRef = useRef<HTMLDivElement>(null);
-  const indicatorRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const onClick = (e: MouseEvent) => {
-      if (chartTypeRef.current && !chartTypeRef.current.contains(e.target as Node)) {
-        setShowChartTypeMenu(false);
-      }
-      if (indicatorRef.current && !indicatorRef.current.contains(e.target as Node)) {
-        setShowIndicatorMenu(false);
-      }
-    };
-    document.addEventListener("mousedown", onClick);
-    return () => document.removeEventListener("mousedown", onClick);
-  }, []);
+  const candleCount = useChartStore((s) => s.data?.candles.length ?? 0);
+  const replayEnabled = useReplayStore((s) => s.enabled);
+  const replayPlaying = useReplayStore((s) => s.playing);
+  const [openMenu, setOpenMenu] = useState<"type" | "indicator" | null>(null);
 
   const dispatch = (event: string) => {
     window.dispatchEvent(new CustomEvent(event));
+  };
+
+  const toggleReplay = () => {
+    const replay = useReplayStore.getState();
+    if (replay.enabled) {
+      replay.exitReplay();
+      return;
+    }
+    replay.enterReplay(candleCount);
   };
 
   const currentTypeLabel = CHART_TYPE_OPTIONS.find((o) => o.value === chartType)?.icon ?? "M";
@@ -45,52 +51,79 @@ export default function ChartToolbar() {
       }}
     >
       {/* Chart Type Dropdown */}
-      <div ref={chartTypeRef} className="relative">
-        <button
-          type="button"
-          onClick={() => { setShowChartTypeMenu(!showChartTypeMenu); setShowIndicatorMenu(false); }}
-          className="chart-toolbar-btn"
-          title="차트 타입"
-        >
-          <span className="font-bold text-[10px]">{currentTypeLabel}</span>
-        </button>
-        {showChartTypeMenu && (
-          <div className="chart-toolbar-dropdown" style={{ right: 0, minWidth: 120 }}>
+      <DropdownMenu
+        open={openMenu === "type"}
+        onOpenChange={(open) => setOpenMenu(open ? "type" : null)}
+      >
+        <div className="relative">
+          <DropdownMenuTrigger asChild>
+            <button type="button" className="chart-toolbar-btn" title="차트 타입">
+              <span className="font-bold text-[10px]">{currentTypeLabel}</span>
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="min-w-[120px]">
             {CHART_TYPE_OPTIONS.map((opt) => (
-              <button
+              <DropdownMenuItem
                 key={opt.value}
-                type="button"
-                className="chart-toolbar-dropdown-item"
+                className="gap-2.5"
                 style={{
                   background: chartType === opt.value ? "var(--accent-soft)" : undefined,
                   color: chartType === opt.value ? "var(--accent-primary)" : "var(--text-primary)",
                 }}
-                onClick={() => { setChartType(opt.value); setShowChartTypeMenu(false); }}
+                onSelect={() => setChartType(opt.value)}
               >
-                <span className="font-bold w-4 text-center">{opt.icon}</span>
+                <span className="w-4 text-center font-bold">{opt.icon}</span>
                 <span>{opt.label}</span>
-              </button>
+              </DropdownMenuItem>
             ))}
-          </div>
-        )}
-      </div>
+          </DropdownMenuContent>
+        </div>
+      </DropdownMenu>
 
       {/* Quick Indicator Toggle */}
-      <div ref={indicatorRef} className="relative">
-        <button
-          type="button"
-          onClick={() => { setShowIndicatorMenu(!showIndicatorMenu); setShowChartTypeMenu(false); }}
-          className="chart-toolbar-btn"
-          title="지표"
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <polyline points="22,12 18,12 15,21 9,3 6,12 2,12" />
-          </svg>
-        </button>
-        {showIndicatorMenu && <QuickIndicatorMenu onClose={() => setShowIndicatorMenu(false)} />}
-      </div>
+      <DropdownMenu
+        open={openMenu === "indicator"}
+        onOpenChange={(open) => setOpenMenu(open ? "indicator" : null)}
+      >
+        <div className="relative">
+          <DropdownMenuTrigger asChild>
+            <button type="button" className="chart-toolbar-btn" title="지표">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <polyline points="22,12 18,12 15,21 9,3 6,12 2,12" />
+              </svg>
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="min-w-[170px]">
+            <QuickIndicatorMenu />
+          </DropdownMenuContent>
+        </div>
+      </DropdownMenu>
 
       <div className="mx-0.5 h-4 w-px" style={{ background: "var(--border-color)" }} />
+
+      {/* Bar Replay */}
+      <button
+        type="button"
+        onClick={toggleReplay}
+        className="chart-toolbar-btn"
+        title="바 리플레이 (R)"
+        style={{
+          color: replayEnabled ? "var(--warning-color)" : undefined,
+          background: replayEnabled ? "color-mix(in srgb, var(--warning-color) 16%, transparent)" : undefined,
+        }}
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <polygon points="5 3 19 12 5 21 5 3" />
+          {replayPlaying && <line x1="20" y1="4" x2="20" y2="20" />}
+        </svg>
+      </button>
 
       {/* Screenshot */}
       <button
@@ -106,7 +139,7 @@ export default function ChartToolbar() {
         </svg>
       </button>
 
-      <div className="mx-0.5 h-4 w-px" style={{ background: "var(--border-color)" }} />
+      <DropdownMenuSeparator className="mx-0.5 h-4 w-px self-stretch bg-[var(--border-color)]" />
 
       {/* Zoom controls */}
       <button
@@ -144,7 +177,7 @@ export default function ChartToolbar() {
         </svg>
       </button>
 
-      <div className="mx-0.5 h-4 w-px" style={{ background: "var(--border-color)" }} />
+      <DropdownMenuSeparator className="mx-0.5 h-4 w-px self-stretch bg-[var(--border-color)]" />
 
       {/* Fullscreen */}
       <button
@@ -165,14 +198,21 @@ export default function ChartToolbar() {
 }
 
 // Quick Indicator Menu (inline sub-component)
-function QuickIndicatorMenu({ onClose: _onClose }: { onClose: () => void }) {
+function QuickIndicatorMenu() {
   const { indicators, toggleIndicator } = useSettingsStore();
 
   const items: { key: Parameters<typeof toggleIndicator>[0]; label: string; enabled: boolean }[] = [
     { key: "bb", label: "볼린저 밴드", enabled: indicators.bb.enabled },
     { key: "sma", label: "SMA", enabled: indicators.sma.enabled },
     { key: "ema", label: "EMA", enabled: indicators.ema.enabled },
+    { key: "signalZones", label: "매수/매도 구간", enabled: indicators.signalZones.enabled },
+    { key: "volumeProfile", label: "볼륨 프로파일", enabled: indicators.volumeProfile.enabled },
+    { key: "vwap", label: "VWAP", enabled: indicators.vwap.enabled },
+    { key: "ichimoku", label: "Ichimoku", enabled: indicators.ichimoku.enabled },
+    { key: "supertrend", label: "Supertrend", enabled: indicators.supertrend.enabled },
+    { key: "psar", label: "Parabolic SAR", enabled: indicators.psar.enabled },
     { key: "rsi", label: "RSI", enabled: indicators.rsi.enabled },
+    { key: "atr", label: "ATR", enabled: indicators.atr.enabled },
     { key: "macd", label: "MACD", enabled: indicators.macd.enabled },
     { key: "stochastic", label: "스토캐스틱", enabled: indicators.stochastic.enabled },
     { key: "volume", label: "거래량", enabled: indicators.volume.enabled },
@@ -180,24 +220,16 @@ function QuickIndicatorMenu({ onClose: _onClose }: { onClose: () => void }) {
   ];
 
   return (
-    <div className="chart-toolbar-dropdown" style={{ right: 0, minWidth: 140 }}>
+    <>
       {items.map((item) => (
-        <button
+        <DropdownMenuCheckboxItem
           key={item.key}
-          type="button"
-          className="chart-toolbar-dropdown-item justify-between"
-          onClick={() => toggleIndicator(item.key)}
+          checked={item.enabled}
+          onCheckedChange={() => toggleIndicator(item.key)}
         >
-          <span>{item.label}</span>
-          <span
-            className="h-3 w-3 rounded-sm border"
-            style={{
-              background: item.enabled ? "var(--accent-primary)" : "transparent",
-              borderColor: item.enabled ? "var(--accent-primary)" : "var(--border-color)",
-            }}
-          />
-        </button>
+          {item.label}
+        </DropdownMenuCheckboxItem>
       ))}
-    </div>
+    </>
   );
 }

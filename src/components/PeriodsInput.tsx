@@ -1,4 +1,6 @@
 import { useState, type KeyboardEvent } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 interface PeriodsInputProps {
   periods: number[];
@@ -59,7 +61,7 @@ export default function PeriodsInput({ periods, onChange, max = 7 }: PeriodsInpu
       </div>
       {periods.length < max && (
         <div className="flex gap-1">
-          <input
+          <Input
             type="number"
             min={1}
             max={500}
@@ -67,25 +69,17 @@ export default function PeriodsInput({ periods, onChange, max = 7 }: PeriodsInpu
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="기간 추가"
-            className="w-20 rounded border px-1.5 py-0.5 text-xs"
-            style={{
-              background: "var(--bg-primary)",
-              borderColor: "var(--border-color)",
-              color: "var(--text-primary)",
-            }}
+            className="h-7 w-20 px-1.5 py-0.5 text-xs"
           />
-          <button
+          <Button
             onClick={addPeriod}
             title="기간 추가"
-            className="btn-ghost rounded px-2 py-0.5 text-xs"
-            style={{
-              background: "var(--bg-tertiary)",
-              color: "var(--text-secondary)",
-              border: "1px solid var(--border-color)",
-            }}
+            variant="secondary"
+            size="sm"
+            className="h-7 px-2 py-0.5 text-xs"
           >
             +
-          </button>
+          </Button>
         </div>
       )}
     </div>

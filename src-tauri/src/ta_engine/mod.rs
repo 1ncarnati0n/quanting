@@ -1,17 +1,27 @@
+pub mod atr;
 pub mod bollinger;
 pub mod ema;
+pub mod ichimoku;
 pub mod macd;
 pub mod obv;
+pub mod parabolic_sar;
 pub mod rsi;
 pub mod signal;
 pub mod sma;
 pub mod stochastic;
+pub mod supertrend;
+pub mod vwap;
 
 use crate::models::{AnalysisParams, AnalysisResponse, Candle};
 
 pub fn analyze(candles: &[Candle], params: &AnalysisParams) -> AnalysisResponse {
     let bb = bollinger::calculate(candles, params.bb_period, params.bb_multiplier);
     let rsi_data = rsi::calculate(candles, params.rsi_period);
+    let vwap_result = Some(vwap::calculate(candles));
+    let atr_result = Some(atr::calculate(candles, 14));
+    let ichimoku_result = Some(ichimoku::calculate(candles, 9, 26, 52, 26));
+    let supertrend_result = Some(supertrend::calculate(candles, 10, 3.0));
+    let parabolic_sar_result = Some(parabolic_sar::calculate(candles, 0.02, 0.2));
 
     // BB+RSI signals with optional quant filters (regime/momentum/volatility)
     let mut signals = signal::detect_bb_rsi(&bb, &rsi_data, candles);
@@ -65,6 +75,11 @@ pub fn analyze(candles: &[Candle], params: &AnalysisParams) -> AnalysisResponse 
         macd: macd_result,
         stochastic: stoch_result,
         obv: obv_result,
+        vwap: vwap_result,
+        atr: atr_result,
+        ichimoku: ichimoku_result,
+        supertrend: supertrend_result,
+        parabolic_sar: parabolic_sar_result,
         symbol: params.symbol.clone(),
         interval: params.interval.clone(),
     }

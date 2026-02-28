@@ -6,8 +6,10 @@ mod watchlist;
 
 pub use candle::Candle;
 pub use indicator::{
-    BollingerBandsPoint, MaPoint, MacdPoint, MacdResult, MovingAverageResult, ObvPoint, ObvResult,
-    RsiPoint, StochasticPoint, StochasticResult,
+    AtrPoint, AtrResult, BollingerBandsPoint, IchimokuPoint, IchimokuResult, MaPoint, MacdPoint,
+    MacdResult, MovingAverageResult, ObvPoint, ObvResult, ParabolicSarPoint, ParabolicSarResult,
+    RsiPoint, StochasticPoint, StochasticResult, SupertrendPoint, SupertrendResult, VwapPoint,
+    VwapResult,
 };
 pub use params::{AnalysisParams, MarketType, SignalFilterParams};
 pub use signal::{SignalPoint, SignalType};
@@ -27,6 +29,11 @@ pub struct AnalysisResponse {
     pub macd: Option<MacdResult>,
     pub stochastic: Option<StochasticResult>,
     pub obv: Option<ObvResult>,
+    pub vwap: Option<VwapResult>,
+    pub atr: Option<AtrResult>,
+    pub ichimoku: Option<IchimokuResult>,
+    pub supertrend: Option<SupertrendResult>,
+    pub parabolic_sar: Option<ParabolicSarResult>,
     pub symbol: String,
     pub interval: String,
 }

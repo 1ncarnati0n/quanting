@@ -1,16 +1,20 @@
 import SymbolSearch from "./SymbolSearch";
 import IntervalSelector from "./IntervalSelector";
+import TimeRangeBar from "./TimeRangeBar";
 import { useSettingsStore } from "../stores/useSettingsStore";
 import { getSymbolLabel } from "../utils/constants";
 import { useChartStore } from "../stores/useChartStore";
 import { formatPrice, formatShortTime } from "../utils/formatters";
 
-interface ToolbarProps {
+interface MarketHeaderProps {
   onToggleWatchlist: () => void;
   onToggleSettings: () => void;
 }
 
-export default function Toolbar({ onToggleWatchlist, onToggleSettings }: ToolbarProps) {
+export default function MarketHeader({
+  onToggleWatchlist,
+  onToggleSettings,
+}: MarketHeaderProps) {
   const { theme, toggleTheme, symbol, market } = useSettingsStore();
   const { data, isLoading } = useChartStore();
   const symbolLabel = getSymbolLabel(symbol);
@@ -27,78 +31,78 @@ export default function Toolbar({ onToggleWatchlist, onToggleSettings }: Toolbar
     market === "crypto"
       ? "var(--warning-color)"
       : market === "krStock"
-      ? "#EC4899"
-      : "var(--accent-primary)";
+        ? "#EC4899"
+        : "var(--accent-primary)";
 
   const formatVolume = (volume: number | null) => {
     if (volume === null) return "-";
-    return new Intl.NumberFormat("en-US", {
+    return new Intl.NumberFormat("ko-KR", {
       notation: "compact",
       maximumFractionDigits: 2,
     }).format(volume);
   };
 
   return (
-    <div
-      className="flex flex-col gap-2 border-b px-3 py-2 shadow-sm"
-      style={{
-        background: "var(--bg-secondary)",
-        borderColor: "var(--border-color)",
-      }}
-    >
-      <div className="flex min-w-0 flex-wrap items-start gap-2 xl:flex-nowrap">
-        <button
-          type="button"
-          onClick={onToggleWatchlist}
-          className="btn-ghost rounded p-1.5 text-sm transition-colors xl:hidden"
-          style={{ color: "var(--text-secondary)" }}
-          title="관심종목 열기 (Ctrl/Cmd+B)"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <line x1="3" y1="6" x2="21" y2="6" />
-            <line x1="3" y1="12" x2="21" y2="12" />
-            <line x1="3" y1="18" x2="21" y2="18" />
-          </svg>
-        </button>
+    <div className="market-header flex flex-col gap-2.5 px-2.5 py-2.5 lg:px-3 lg:py-3">
+      <div className="flex min-w-0 flex-wrap items-end gap-2 2xl:flex-nowrap">
+        <div className="flex min-w-0 flex-1 items-center gap-2">
+          <button
+            type="button"
+            onClick={onToggleWatchlist}
+            className="btn-ghost rounded p-1.5 text-sm transition-colors 2xl:hidden"
+            style={{ color: "var(--text-secondary)" }}
+            title="관심종목 열기 (Ctrl/Cmd+B)"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <line x1="3" y1="6" x2="21" y2="6" />
+              <line x1="3" y1="12" x2="21" y2="12" />
+              <line x1="3" y1="18" x2="21" y2="18" />
+            </svg>
+          </button>
+          <span className="text-sm font-semibold tracking-wide" style={{ color: "var(--accent-primary)" }}>
+            Quanting
+          </span>
+          <span
+            className="rounded px-1.5 py-0.5 text-[9px] font-bold"
+            style={{ background: marketColor, color: "var(--accent-contrast)" }}
+          >
+            {marketBadge}
+          </span>
+          <span className="truncate text-xs font-semibold" style={{ color: "var(--text-primary)" }}>
+            {symbolLabel ? `${symbol} · ${symbolLabel}` : symbol}
+          </span>
+          {isLoading && (
+            <span className="text-[10px]" style={{ color: "var(--text-secondary)" }}>
+              업데이트 중...
+            </span>
+          )}
+        </div>
 
-        <div className="min-w-0 flex-1">
-          <div className="flex min-w-0 items-center gap-2">
-            <span className="text-sm font-bold tracking-wide" style={{ color: "var(--accent-primary)" }}>
-              Quanting
-            </span>
-            <span
-              className="rounded px-1.5 py-0.5 text-[9px] font-bold"
-              style={{ background: marketColor, color: "var(--accent-contrast)" }}
-            >
-              {marketBadge}
-            </span>
-            <span className="truncate text-xs font-semibold" style={{ color: "var(--text-primary)" }}>
-              {symbolLabel ? `${symbol} · ${symbolLabel}` : symbol}
-            </span>
-            {isLoading && (
-              <span className="text-[10px]" style={{ color: "var(--text-secondary)" }}>
-                업데이트 중...
-              </span>
-            )}
-          </div>
-          <div className="mt-0.5 flex items-center gap-2 text-[11px]">
-            <span className="font-mono font-semibold" style={{ color: "var(--text-primary)" }}>
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+            <span className="price-display font-mono text-2xl font-bold" style={{ color: "var(--text-primary)" }}>
               {lastCandle ? formatPrice(lastCandle.close, market) : "-"}
             </span>
             {lastCandle && prevCandle && (
-              <span className="font-mono" style={{ color: changeColor }}>
+              <span
+                className="rounded px-1.5 py-0.5 font-mono text-[11px] font-semibold"
+                style={{
+                  color: changeColor,
+                  background: change >= 0 ? "rgba(34,197,94,0.14)" : "rgba(239,68,68,0.14)",
+                }}
+              >
                 {change >= 0 ? "+" : ""}
                 {formatPrice(Math.abs(change), market)} ({changePct >= 0 ? "+" : ""}
                 {changePct.toFixed(2)}%)
               </span>
             )}
-            <span className="hidden sm:inline text-[10px]" style={{ color: "var(--text-secondary)" }}>
-              {lastCandle ? `갱신 ${formatShortTime(lastCandle.time)}` : "데이터 없음"}
-            </span>
+          </div>
+          <div className="text-[10px]" style={{ color: "var(--text-secondary)" }}>
+            {lastCandle ? `갱신 ${formatShortTime(lastCandle.time)}` : "데이터 없음"}
           </div>
         </div>
 
-        <div className="hidden items-center gap-2 text-[10px] xl:flex">
+        <div className="hidden items-center gap-2 text-[10px] 2xl:flex">
           <span style={{ color: "var(--text-secondary)" }}>H</span>
           <span className="font-mono" style={{ color: "var(--text-primary)" }}>
             {high !== null ? formatPrice(high, market) : "-"}
@@ -112,8 +116,18 @@ export default function Toolbar({ onToggleWatchlist, onToggleSettings }: Toolbar
             {formatVolume(lastCandle?.volume ?? null)}
           </span>
         </div>
+      </div>
 
-        <div className="hidden flex-1 xl:block" />
+      <div className="flex min-w-0 items-center gap-2">
+        <div className="min-w-0 shrink-0 overflow-x-auto">
+          <IntervalSelector />
+        </div>
+
+        <div className="hidden min-w-0 shrink-0 xl:block">
+          <TimeRangeBar />
+        </div>
+
+        <div className="min-w-0 flex-1" />
 
         <div className="hidden min-w-0 xl:block">
           <SymbolSearch />
@@ -155,10 +169,6 @@ export default function Toolbar({ onToggleWatchlist, onToggleSettings }: Toolbar
             <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
           </svg>
         </button>
-      </div>
-
-      <div className="max-w-full overflow-x-auto">
-        <IntervalSelector />
       </div>
     </div>
   );

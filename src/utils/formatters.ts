@@ -2,6 +2,10 @@ import type { MarketType } from "../types";
 
 export function formatPrice(price: number, market?: MarketType): string {
   if (market === "krStock") {
+    const man = price / 10000;
+    if (man >= 1) {
+      return man.toFixed(2) + "만원";
+    }
     return "₩" + Math.round(price).toLocaleString("ko-KR");
   }
   if (market === "usStock") {
@@ -14,7 +18,7 @@ export function formatPrice(price: number, market?: MarketType): string {
 }
 
 export function formatTime(timestamp: number): string {
-  return new Date(timestamp * 1000).toLocaleString();
+  return new Date(timestamp * 1000).toLocaleString("ko-KR");
 }
 
 export function formatShortTime(timestamp: number): string {

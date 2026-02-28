@@ -1,142 +1,173 @@
 # Quanting
 
-Bollinger Bands + RSI 기반 기술적 분석 데스크톱 앱
+멀티마켓(미국/한국/코인) 기술적 분석을 위한 Tauri 데스크톱 앱입니다.  
+현재 버전은 **단일 차트 기반 멀티 지표 시각화**, **퀀트 신호 필터**, **프로 트레이딩 UI 패턴**을 중심으로 개선되어 있습니다.
 
-## Features
+## 핵심 기능
 
-- **멀티마켓 지원** — 미국주식, 한국주식, 암호화폐
-- **BB + RSI 결합 신호** — 4단계 매수/매도 신호 (StrongBuy · WeakBuy · StrongSell · WeakSell)
-- **캔들 차트 + 볼린저밴드 시각화** — lightweight-charts 기반
-- **RSI 차트** — 70/30 과매수·과매도 참고선
-- **다크/라이트 테마 전환**
-- **프리셋 심볼 + 커스텀 입력** — 시장 자동 감지
-- **실시간 파라미터 조정** — BB period/multiplier, RSI period
-- **SQLite 인메모리 캐시** — TTL 기반 API 응답 캐싱
+- 멀티마켓 지원: US 주식, KR 주식, Crypto
+- 멀티 지표 분석: BB, RSI, SMA, EMA, MACD, Stochastic, Volume, OBV
+- 신호 생성: BB+RSI 기본 신호 + MACD/Stochastic 보조 신호
+- 퀀트 필터: Regime, Momentum, Volatility 필터 적용
+- 차트 타입 전환: Candlestick / Heikin Ashi
+- 단일 차트 내 지표 통합: 오실레이터를 분리 스케일로 같은 캔버스에서 표시
+- 워치리스트 강화: 실시간 스냅샷(가격/등락/H/L) + 스파크라인
+- UI/UX: Market Header, 접이식 사이드바, 탭형 설정 패널, 다크/라이트 테마
+- 한국어 UI 기본화
 
-## Tech Stack
+## 최근 구현 요약
+
+- 앱 브랜딩을 `BB-rsi checker`에서 **Quanting**으로 통합
+- `Toolbar` 중심 구조를 `MarketHeader + Chart + StatusBar` 구조로 리팩토링
+- 좌/우 패널을 접이식 `CollapsibleSidebar`로 전환 (대형 화면 고정, 그 외 드로어)
+- `SettingsPanel`을 `지표 / 레이아웃 / 화면` 탭으로 분리
+- 차트 오실레이터 영역에 경계선/라벨 오버레이 추가
+- 하단 상태바를 신호 중심 정보로 정리 (헤더와 중복 제거)
+- 워치리스트 카드에 가격/등락률/고저가/스파크라인 표시
+- 백엔드에 `fetch_watchlist_snapshots` IPC 추가
+
+## 오픈소스 기술 스택
 
 | 레이어 | 기술 |
 |---|---|
-| Framework | Tauri 2 |
-| Frontend | React 18, TypeScript, Vite 6 |
-| Styling | TailwindCSS 4 |
+| Desktop Shell | Tauri 2, `@tauri-apps/api`, `@tauri-apps/cli`, `tauri-plugin-shell` |
+| Frontend | React 18, TypeScript 5, Vite 6 |
+| Styling | Tailwind CSS 4 + CSS Design Tokens |
 | State | Zustand 5 |
-| Charts | lightweight-charts 5 |
-| Backend | Rust, Tokio, reqwest |
-| Cache | rusqlite (in-memory SQLite) |
-| API | Binance REST, Yahoo Finance v8 |
+| Chart | TradingView `lightweight-charts` 5 |
+| Backend | Rust (Edition 2021), Tokio, reqwest |
+| Serialization | serde, serde_json |
+| Cache | rusqlite (in-memory SQLite), chrono(TTL) |
+| Data Source | Binance REST API, Yahoo Finance v8 |
 
-## Architecture
+## 아키텍처
 
-```
-┌──────────────────────────────────────────────────┐
-│                   React UI                       │
-│  ┌────────────┐ ┌──────────┐ ┌───────────────┐  │
-│  │ MainChart  │ │ RsiChart │ │ SettingsPanel │  │
-│  └────────────┘ └──────────┘ └───────────────┘  │
-│         │ Zustand Store + useAnalysis hook        │
-└─────────┼────────────────────────────────────────┘
-          │ Tauri IPC (invoke)
-┌─────────┼────────────────────────────────────────┐
-│         ▼       Rust Backend                     │
-│  ┌─────────────┐  ┌───────────┐  ┌───────────┐  │
-│  │ api_client  │  │ ta_engine │  │   cache   │  │
-│  │ ├ binance   │  │ ├ bb      │  │ (SQLite)  │  │
-│  │ └ yahoo     │  │ ├ rsi     │  └───────────┘  │
-│  └─────────────┘  │ └ signal  │                  │
-│                    └───────────┘                  │
-└──────────────────────────────────────────────────┘
+```text
+React UI (App, MarketHeader, MainChart, WatchlistSidebar, SettingsPanel)
+  -> Zustand Stores (useSettingsStore, useChartStore)
+  -> Tauri IPC invoke
+    -> Rust Commands
+       - fetch_analysis
+       - fetch_watchlist_snapshots
+          -> API Client (Binance / Yahoo)
+          -> Cache (SQLite in-memory, interval TTL)
+          -> TA Engine
+             - Bollinger, RSI, SMA, EMA, MACD, Stochastic, OBV
+             - Signal Detection (BB+RSI, MACD, Stochastic)
+             - Quant Filter (Regime/Momentum/Volatility)
+          -> Frontend Response (analysis + watchlist snapshots)
 ```
 
-## Project Structure
+## 데이터 플로우
 
+### 1) 분석 차트 요청
+
+1. 프론트에서 심볼/인터벌/지표 파라미터 변경
+2. `fetch_analysis` 호출
+3. 백엔드 캐시 조회 후 미스 시 외부 API 조회
+4. TA 엔진에서 지표/신호/필터 처리
+5. 프론트에서 단일 차트에 오버레이 + 오실레이터 스케일 렌더링
+
+### 2) 워치리스트 스냅샷 요청
+
+1. 화면에 보이는 상위 워치리스트 심볼 묶음 생성
+2. `fetch_watchlist_snapshots` 호출
+3. 각 심볼 최근 캔들로 가격/등락률/H/L/스파크라인 계산
+4. 카드형 워치리스트에 즉시 반영
+
+## 프로젝트 구조
+
+```text
+src/
+  App.tsx
+  components/
+    MarketHeader.tsx
+    ChartContainer.tsx
+    MainChart.tsx
+    WatchlistSidebar.tsx
+    SettingsPanel.tsx
+    CollapsibleSidebar.tsx
+    StatusBar.tsx
+    SymbolSearch.tsx
+    IntervalSelector.tsx
+  stores/
+    useSettingsStore.ts
+    useChartStore.ts
+  services/
+    tauriApi.ts
+  utils/
+    constants.ts
+    formatters.ts
+  types/
+    index.ts
+
+src-tauri/src/
+  commands/
+    analysis.rs
+  ta_engine/
+    bollinger.rs
+    rsi.rs
+    sma.rs
+    ema.rs
+    macd.rs
+    stochastic.rs
+    obv.rs
+    signal.rs
+  api_client/
+    binance.rs
+    yahoo.rs
+  cache/
+    sqlite.rs
+  models/
+    candle.rs
+    indicator.rs
+    signal.rs
+    params.rs
+    watchlist.rs
+  lib.rs
+  main.rs
 ```
-src/                          # Frontend (React + TypeScript)
-├── components/
-│   ├── MainChart.tsx         # 캔들 + 볼린저밴드 차트
-│   ├── RsiChart.tsx          # RSI 차트
-│   ├── ChartContainer.tsx    # 차트 레이아웃 컨테이너
-│   ├── SettingsPanel.tsx     # BB/RSI 파라미터 설정
-│   ├── SymbolSearch.tsx      # 심볼 검색 및 프리셋
-│   ├── IntervalSelector.tsx  # 시간 간격 선택
-│   ├── Toolbar.tsx           # 상단 툴바
-│   ├── StatusBar.tsx         # 하단 상태바
-│   └── SignalBadge.tsx       # 신호 뱃지 UI
-├── hooks/
-│   └── useAnalysis.ts        # 분석 데이터 fetch 훅
-├── stores/
-│   ├── useChartStore.ts      # 차트 상태 (심볼, 인터벌)
-│   └── useSettingsStore.ts   # 설정 상태 (파라미터, 테마)
-├── services/
-│   └── tauriApi.ts           # Tauri IPC 호출 래퍼
-├── utils/
-│   ├── constants.ts          # 색상, 프리셋, 기본값
-│   └── formatters.ts         # 데이터 포맷 유틸
-├── types/
-│   └── index.ts              # 공유 타입 정의
-├── App.tsx
-└── main.tsx
 
-src-tauri/src/                # Backend (Rust)
-├── api_client/
-│   ├── binance.rs            # Binance REST API 클라이언트
-│   └── yahoo.rs              # Yahoo Finance v8 클라이언트
-├── ta_engine/
-│   ├── bollinger.rs          # 볼린저밴드 계산
-│   ├── rsi.rs                # RSI 계산
-│   └── signal.rs             # BB + RSI 결합 신호 생성
-├── cache/
-│   └── sqlite.rs             # 인메모리 SQLite 캐시
-├── models/
-│   ├── candle.rs             # OHLCV 캔들 모델
-│   ├── indicator.rs          # BB, RSI 결과 모델
-│   ├── signal.rs             # 신호 타입 및 포인트
-│   └── params.rs             # 분석 파라미터
-├── commands/
-│   └── analysis.rs           # Tauri IPC 커맨드 핸들러
-├── lib.rs
-└── main.rs
-```
+## 주요 지표/신호
 
-## Signal Logic
+- 기본 신호: `strongBuy`, `weakBuy`, `strongSell`, `weakSell`
+- 보조 신호: `macdBullish`, `macdBearish`, `stochOversold`, `stochOverbought`
+- 퀀트 필터 옵션:
+  - `applyRegimeFilter`
+  - `applyMomentumFilter`
+  - `applyVolatilityFilter`
+  - 강신호 유지 옵션(`keepStrongCounterTrend`, `keepStrongInHighVol`)
 
-BB 밴드 돌파와 RSI 임계값을 결합하여 4단계 매수/매도 신호를 생성합니다.
+## 단축키
 
-| 신호 | 조건 | 의미 |
-|---|---|---|
-| **StrongBuy** | `close ≤ lower band` **AND** `RSI < 30` | 강한 과매도 — 반등 가능성 높음 |
-| **WeakBuy** | `close ≤ lower band` **AND** `30 ≤ RSI < 50` | 약한 과매도 — 관망 후 매수 고려 |
-| **StrongSell** | `close ≥ upper band` **AND** `RSI > 70` | 강한 과매수 — 조정 가능성 높음 |
-| **WeakSell** | `close ≥ upper band` **AND** `50 < RSI ≤ 70` | 약한 과매수 — 관망 후 매도 고려 |
+- `Cmd/Ctrl + B`: 좌측 패널 토글(대형 화면) 또는 워치리스트 드로어
+- `Cmd/Ctrl + ,`: 우측 패널 토글(대형 화면) 또는 설정 드로어
+- `Cmd/Ctrl + K`: 심볼 검색 열기
+- `Esc`: 열린 패널/드로어 닫기
 
-기본 파라미터: BB Period `20`, BB Multiplier `2.0`, RSI Period `14`
-
-## Getting Started
+## 실행 방법
 
 ### Prerequisites
 
-- [Rust](https://rustup.rs/) (stable)
-- [Node.js](https://nodejs.org/) (v18+)
+- Node.js 18+
+- Rust stable (`rustup`)
 
-### 설치 및 실행
+### Development
 
 ```bash
-# 의존성 설치
 npm install
-
-# 개발 모드 실행
 npm run tauri dev
+```
 
-# 프로덕션 빌드
+### Build / Check
+
+```bash
+npm run build
+npm run check
 npm run tauri build
 ```
 
-## Supported Markets
+## 참고 문서
 
-| 카테고리 | 심볼 |
-|---|---|
-| **US Large Cap** | AAPL, MSFT, GOOGL, AMZN, NVDA, META, TSLA, BRK-B, JPM, V, UNH, JNJ |
-| **US ETFs** | SPY, QQQ, IWM, DIA, VOO, VTI, ARKK, XLF, XLK, XLE |
-| **Korean Stocks** | 삼성전자, SK하이닉스, LG에너지솔루션, 현대차, NAVER, 카카오, LG화학, 삼성SDI, 삼성물산, KB금융 |
-| **Korean ETFs** | KODEX 200, TIGER 200, KODEX 반도체, KODEX 2차전지, KODEX 200선물인버스2X, KODEX 레버리지 |
-| **Crypto** | BTC, ETH, BNB, SOL, XRP, ADA, DOGE, DOT |
+- UI 개선 계획: `docs/ui-pro-trading-plan.md`
+- UI 레퍼런스: `docs/ui.html`

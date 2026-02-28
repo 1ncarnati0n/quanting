@@ -5,14 +5,14 @@ const SIGNAL_CONFIG: Record<
   SignalType,
   { label: string; color: string }
 > = {
-  strongBuy: { label: "Strong Buy", color: COLORS.strongBuy },
-  weakBuy: { label: "Weak Buy", color: COLORS.weakBuy },
-  strongSell: { label: "Strong Sell", color: COLORS.strongSell },
-  weakSell: { label: "Weak Sell", color: COLORS.weakSell },
-  macdBullish: { label: "MACD Bullish", color: COLORS.macdBullish },
-  macdBearish: { label: "MACD Bearish", color: COLORS.macdBearish },
-  stochOversold: { label: "Stoch Oversold", color: COLORS.stochOversold },
-  stochOverbought: { label: "Stoch Overbought", color: COLORS.stochOverbought },
+  strongBuy: { label: "강매수", color: COLORS.strongBuy },
+  weakBuy: { label: "약매수", color: COLORS.weakBuy },
+  strongSell: { label: "강매도", color: COLORS.strongSell },
+  weakSell: { label: "약매도", color: COLORS.weakSell },
+  macdBullish: { label: "MACD 상승", color: COLORS.macdBullish },
+  macdBearish: { label: "MACD 하락", color: COLORS.macdBearish },
+  stochOversold: { label: "스토캐스틱 과매도", color: COLORS.stochOversold },
+  stochOverbought: { label: "스토캐스틱 과매수", color: COLORS.stochOverbought },
 };
 
 interface SignalBadgeProps {

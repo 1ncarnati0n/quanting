@@ -10,7 +10,7 @@ import {
 import type { Interval, Theme } from "../utils/constants";
 import type { MarketType } from "../types";
 
-export type ChartType = "candlestick" | "heikinAshi";
+export type ChartType = "candlestick" | "heikinAshi" | "line" | "area" | "bar";
 
 export interface IndicatorConfig {
   bb: { enabled: boolean; period: number; multiplier: number };
@@ -88,6 +88,7 @@ interface SettingsState {
   chartType: ChartType;
   indicators: IndicatorConfig;
   showSettings: boolean;
+  isFullscreen: boolean;
   setSymbol: (symbol: string, market?: MarketType) => void;
   setInterval: (interval: Interval) => void;
   setMarket: (market: MarketType) => void;
@@ -99,6 +100,7 @@ interface SettingsState {
   ) => void;
   toggleIndicator: (key: ToggleableIndicatorKey) => void;
   setShowSettings: (show: boolean) => void;
+  toggleFullscreen: () => void;
 }
 
 function getSavedTheme(): Theme {
@@ -109,10 +111,12 @@ function getSavedTheme(): Theme {
   return "dark";
 }
 
+const VALID_CHART_TYPES: ChartType[] = ["candlestick", "heikinAshi", "line", "area", "bar"];
+
 function getSavedChartType(): ChartType {
   try {
     const saved = localStorage.getItem("quanting-chart-type");
-    if (saved === "candlestick" || saved === "heikinAshi") return saved;
+    if (saved && VALID_CHART_TYPES.includes(saved as ChartType)) return saved as ChartType;
   } catch {}
   return "candlestick";
 }
@@ -157,6 +161,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   chartType: getSavedChartType(),
   indicators: getSavedIndicators(),
   showSettings: false,
+  isFullscreen: false,
   setSymbol: (symbol, market) => {
     const updates: Partial<SettingsState> = { symbol };
     if (market) {
@@ -218,4 +223,5 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       return updated;
     }),
   setShowSettings: (showSettings) => set({ showSettings }),
+  toggleFullscreen: () => set((state) => ({ isFullscreen: !state.isFullscreen })),
 }));

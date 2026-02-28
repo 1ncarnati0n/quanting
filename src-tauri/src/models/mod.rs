@@ -2,6 +2,7 @@ mod candle;
 mod indicator;
 mod params;
 mod signal;
+mod watchlist;
 
 pub use candle::Candle;
 pub use indicator::{
@@ -10,6 +11,7 @@ pub use indicator::{
 };
 pub use params::{AnalysisParams, MarketType, SignalFilterParams};
 pub use signal::{SignalPoint, SignalType};
+pub use watchlist::{WatchlistSnapshot, WatchlistSnapshotParams};
 
 use serde::Serialize;
 

@@ -2,7 +2,6 @@ import { useChartStore } from "../stores/useChartStore";
 import { useSettingsStore } from "../stores/useSettingsStore";
 import SignalBadge from "./SignalBadge";
 import { formatPrice, formatTime } from "../utils/formatters";
-import { getSymbolLabel } from "../utils/constants";
 
 type PillIndicatorKey =
   | "bb"
@@ -27,15 +26,12 @@ const INDICATOR_PILLS: { key: PillIndicatorKey; label: string; color: string }[]
 
 export default function StatusBar() {
   const { data } = useChartStore();
-  const { symbol, interval, market, indicators } = useSettingsStore();
+  const { interval, market, indicators } = useSettingsStore();
 
   const lastCandle = data?.candles[data.candles.length - 1];
   const lastSignal = data?.signals[data.signals.length - 1];
   const lastRsi = data?.rsi[data.rsi.length - 1];
 
-  const displayName = getSymbolLabel(symbol);
-  const marketBadge = market === "crypto" ? "CRYPTO" : market === "krStock" ? "KR" : "US";
-  const badgeColor = market === "crypto" ? "var(--warning-color)" : market === "krStock" ? "#EC4899" : "var(--accent-primary)";
   const enabledIndicators = INDICATOR_PILLS.filter(({ key }) => indicators[key].enabled);
 
   return (
@@ -47,36 +43,29 @@ export default function StatusBar() {
         color: "var(--text-secondary)",
       }}
     >
-      <span
-        className="flex-shrink-0 rounded px-1 py-0.5 text-[9px] font-bold"
-        style={{ background: badgeColor, color: "var(--accent-contrast)" }}
-      >
-        {marketBadge}
-      </span>
-      <span className="hidden flex-shrink-0 font-mono font-medium sm:inline" style={{ color: "var(--text-primary)" }}>
-        {displayName ? `${symbol} · ${displayName}` : symbol}
-      </span>
-      <span className="flex-shrink-0">{interval}</span>
-
       <div className="min-w-0 flex-1">
         {lastSignal ? (
           <div className="flex min-w-0 items-center gap-2">
             <SignalBadge signalType={lastSignal.signalType} source={lastSignal.source} />
-            <span className="truncate text-[10px]" style={{ color: "var(--text-secondary)" }}>
-              {formatTime(lastSignal.time)} · Price {formatPrice(lastSignal.price, market)}
+            <span className="truncate text-[11px]" style={{ color: "var(--text-secondary)" }}>
+              {formatTime(lastSignal.time)} · 진입 {formatPrice(lastSignal.price, market)}
               {lastRsi ? ` · RSI ${lastRsi.value.toFixed(1)}` : ""}
             </span>
           </div>
         ) : (
-          <span className="text-[10px]" style={{ color: "var(--text-secondary)" }}>
-            No recent signal
+          <span className="text-[11px]" style={{ color: "var(--text-secondary)" }}>
+            최근 신호 없음
           </span>
         )}
+        <div className="mt-0.5 text-[10px]" style={{ color: "var(--text-secondary)" }}>
+          {interval} 차트
+          {lastCandle ? ` · 종가 ${formatPrice(lastCandle.close, market)}` : ""}
+        </div>
       </div>
 
       <div className="hidden items-center gap-1 md:flex">
         <span className="text-[10px]" style={{ color: "var(--text-secondary)" }}>
-          {enabledIndicators.length} active
+          {enabledIndicators.length}개 활성
         </span>
         {enabledIndicators.map(({ key, label, color }) => (
           <span
@@ -93,10 +82,10 @@ export default function StatusBar() {
         ))}
       </div>
 
-      <div className="text-right">
+      <div className="hidden text-right lg:block">
         {lastCandle && (
           <div
-            className="font-mono text-[11px]"
+            className="font-mono text-[12px]"
             style={{
               color: lastCandle.close >= lastCandle.open ? "var(--success-color)" : "var(--danger-color)",
             }}

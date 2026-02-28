@@ -142,3 +142,25 @@ export interface AnalysisParams {
   showObv: boolean;
   signalFilter: SignalFilterParams;
 }
+
+export interface WatchlistItemRequest {
+  symbol: string;
+  market: MarketType;
+}
+
+export interface WatchlistSnapshotParams {
+  items: WatchlistItemRequest[];
+  interval: string;
+  limit?: number;
+}
+
+export interface WatchlistSnapshot {
+  symbol: string;
+  market: MarketType;
+  lastPrice: number;
+  change: number;
+  changePct: number;
+  high: number;
+  low: number;
+  sparkline: number[];
+}

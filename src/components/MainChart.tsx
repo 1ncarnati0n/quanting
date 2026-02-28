@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef } from "react";
 import {
+  AreaSeries,
+  BarSeries,
   CandlestickSeries,
   ColorType,
   HistogramSeries,
@@ -13,31 +15,34 @@ import {
   type SeriesType,
   type Time,
 } from "lightweight-charts";
-import type { AnalysisResponse, SignalType } from "../types";
+import type { AnalysisResponse, MarketType, SignalType } from "../types";
 import {
   CHART_PRICE_SCALE_WIDTH,
   COLORS,
   MA_COLORS,
   THEME_COLORS,
 } from "../utils/constants";
-import { useSettingsStore } from "../stores/useSettingsStore";
+import { formatPrice } from "../utils/formatters";
+import { useSettingsStore, type ChartType } from "../stores/useSettingsStore";
+import { useCrosshairStore } from "../stores/useCrosshairStore";
 
 const SIGNAL_MARKERS: Record<
   SignalType,
   { position: "belowBar" | "aboveBar"; color: string; shape: "arrowUp" | "arrowDown"; text: string }
 > = {
-  strongBuy: { position: "belowBar", color: COLORS.strongBuy, shape: "arrowUp", text: "Strong Buy" },
-  weakBuy: { position: "belowBar", color: COLORS.weakBuy, shape: "arrowUp", text: "Weak Buy" },
-  strongSell: { position: "aboveBar", color: COLORS.strongSell, shape: "arrowDown", text: "Strong Sell" },
-  weakSell: { position: "aboveBar", color: COLORS.weakSell, shape: "arrowDown", text: "Weak Sell" },
-  macdBullish: { position: "belowBar", color: COLORS.macdBullish, shape: "arrowUp", text: "MACD Bull" },
-  macdBearish: { position: "aboveBar", color: COLORS.macdBearish, shape: "arrowDown", text: "MACD Bear" },
-  stochOversold: { position: "belowBar", color: COLORS.stochOversold, shape: "arrowUp", text: "Stoch OS" },
-  stochOverbought: { position: "aboveBar", color: COLORS.stochOverbought, shape: "arrowDown", text: "Stoch OB" },
+  strongBuy: { position: "belowBar", color: COLORS.strongBuy, shape: "arrowUp", text: "강매수" },
+  weakBuy: { position: "belowBar", color: COLORS.weakBuy, shape: "arrowUp", text: "약매수" },
+  strongSell: { position: "aboveBar", color: COLORS.strongSell, shape: "arrowDown", text: "강매도" },
+  weakSell: { position: "aboveBar", color: COLORS.weakSell, shape: "arrowDown", text: "약매도" },
+  macdBullish: { position: "belowBar", color: COLORS.macdBullish, shape: "arrowUp", text: "MACD 상승" },
+  macdBearish: { position: "aboveBar", color: COLORS.macdBearish, shape: "arrowDown", text: "MACD 하락" },
+  stochOversold: { position: "belowBar", color: COLORS.stochOversold, shape: "arrowUp", text: "스토캐스틱 과매도" },
+  stochOverbought: { position: "aboveBar", color: COLORS.stochOverbought, shape: "arrowDown", text: "스토캐스틱 과매수" },
 };
 
 interface MainChartProps {
   data: AnalysisResponse | null;
+  onChartReady?: (chart: IChartApi) => void;
 }
 
 function toHeikinAshi(candles: AnalysisResponse["candles"]): AnalysisResponse["candles"] {
@@ -100,10 +105,19 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
 
-export default function MainChart({ data }: MainChartProps) {
+function makePriceFormatter(market: MarketType) {
+  return (price: number) => formatPrice(price, market);
+}
+
+/** Determine whether a chart type uses OHLC data */
+function isOhlcType(ct: ChartType): boolean {
+  return ct === "candlestick" || ct === "heikinAshi" || ct === "bar";
+}
+
+export default function MainChart({ data, onChartReady }: MainChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
-  const candleSeriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
+  const mainSeriesRef = useRef<ISeriesApi<SeriesType> | null>(null);
   const bbUpperRef = useRef<ISeriesApi<"Line"> | null>(null);
   const bbMiddleRef = useRef<ISeriesApi<"Line"> | null>(null);
   const bbLowerRef = useRef<ISeriesApi<"Line"> | null>(null);
@@ -111,9 +125,11 @@ export default function MainChart({ data }: MainChartProps) {
   const dynamicSeriesRef = useRef<Map<string, ISeriesApi<SeriesType>>>(new Map());
   const resizeRafRef = useRef<number | null>(null);
   const fittedScopeRef = useRef<string | null>(null);
+  const crosshairRafRef = useRef<number | null>(null);
 
   const theme = useSettingsStore((s) => s.theme);
   const chartType = useSettingsStore((s) => s.chartType);
+  const market = useSettingsStore((s) => s.market);
   const indicators = useSettingsStore((s) => s.indicators);
   const initialThemeRef = useRef(theme);
 
@@ -223,16 +239,47 @@ export default function MainChart({ data }: MainChartProps) {
         timeVisible: true,
         secondsVisible: false,
       },
+      localization: {
+        priceFormatter: makePriceFormatter(useSettingsStore.getState().market),
+      },
     });
 
-    const candleSeries = chart.addSeries(CandlestickSeries, {
-      upColor: COLORS.candleUp,
-      downColor: COLORS.candleDown,
-      borderUpColor: COLORS.candleUp,
-      borderDownColor: COLORS.candleDown,
-      wickUpColor: COLORS.candleUp,
-      wickDownColor: COLORS.candleDown,
-    });
+    // Create main series based on chart type
+    const currentChartType = useSettingsStore.getState().chartType;
+    let mainSeries: ISeriesApi<SeriesType>;
+
+    if (currentChartType === "line") {
+      mainSeries = chart.addSeries(LineSeries, {
+        color: COLORS.candleUp,
+        lineWidth: 2,
+        priceLineVisible: true,
+        crosshairMarkerVisible: true,
+      });
+    } else if (currentChartType === "area") {
+      mainSeries = chart.addSeries(AreaSeries, {
+        lineColor: COLORS.candleUp,
+        topColor: "rgba(34,197,94,0.4)",
+        bottomColor: "rgba(34,197,94,0.04)",
+        lineWidth: 2,
+        priceLineVisible: true,
+        crosshairMarkerVisible: true,
+      });
+    } else if (currentChartType === "bar") {
+      mainSeries = chart.addSeries(BarSeries, {
+        upColor: COLORS.candleUp,
+        downColor: COLORS.candleDown,
+      });
+    } else {
+      // candlestick or heikinAshi
+      mainSeries = chart.addSeries(CandlestickSeries, {
+        upColor: COLORS.candleUp,
+        downColor: COLORS.candleDown,
+        borderUpColor: COLORS.candleUp,
+        borderDownColor: COLORS.candleDown,
+        wickUpColor: COLORS.candleUp,
+        wickDownColor: COLORS.candleDown,
+      });
+    }
 
     const bbUpper = chart.addSeries(LineSeries, {
       color: COLORS.bbUpper,
@@ -255,15 +302,79 @@ export default function MainChart({ data }: MainChartProps) {
     });
 
     chartRef.current = chart;
-    candleSeriesRef.current = candleSeries;
+    mainSeriesRef.current = mainSeries;
     bbUpperRef.current = bbUpper;
     bbMiddleRef.current = bbMiddle;
     bbLowerRef.current = bbLower;
-    markersPluginRef.current = createSeriesMarkers(candleSeries);
+
+    // Markers only for OHLC types
+    if (isOhlcType(currentChartType)) {
+      markersPluginRef.current = createSeriesMarkers(mainSeries as ISeriesApi<"Candlestick">);
+    } else {
+      markersPluginRef.current = null;
+    }
+
+    // Watermark disabled per user request
+
+    // Crosshair subscription with RAF throttle
+    const setCrosshairData = useCrosshairStore.getState().setData;
+    chart.subscribeCrosshairMove((param) => {
+      if (crosshairRafRef.current !== null) return;
+      crosshairRafRef.current = requestAnimationFrame(() => {
+        crosshairRafRef.current = null;
+        if (!param.time || !param.seriesData) {
+          // No crosshair — show last candle data
+          const store = useCrosshairStore.getState();
+          if (store.time === null) return;
+          setCrosshairData({
+            time: null,
+            open: 0, high: 0, low: 0, close: 0, volume: 0,
+            indicators: {},
+          });
+          return;
+        }
+
+        const mainData = param.seriesData.get(mainSeries);
+        const indicatorValues: Record<string, string> = {};
+
+        // Extract indicator values from dynamic series
+        for (const [key, series] of dynamicSeriesRef.current) {
+          const seriesData = param.seriesData.get(series);
+          if (!seriesData) continue;
+          if ("value" in seriesData && seriesData.value !== undefined) {
+            indicatorValues[key] = (seriesData.value as number).toFixed(2);
+          }
+        }
+
+        if (mainData) {
+          if ("open" in mainData) {
+            setCrosshairData({
+              time: param.time as number,
+              open: mainData.open as number,
+              high: mainData.high as number,
+              low: mainData.low as number,
+              close: mainData.close as number,
+              volume: 0, // volume from dynamic series
+              indicators: indicatorValues,
+            });
+          } else if ("value" in mainData) {
+            const val = mainData.value as number;
+            setCrosshairData({
+              time: param.time as number,
+              open: val, high: val, low: val, close: val,
+              volume: 0,
+              indicators: indicatorValues,
+            });
+          }
+        }
+      });
+    });
 
     applyIndicatorScaleLayout();
-  }, [applyIndicatorScaleLayout]);
+    onChartReady?.(chart);
+  }, [applyIndicatorScaleLayout, onChartReady, chartType]);
 
+  // Chart lifecycle
   useEffect(() => {
     initChart();
 
@@ -288,19 +399,115 @@ export default function MainChart({ data }: MainChartProps) {
     observer.observe(container);
     applySize();
 
+    // Custom event listeners for chart commands
+    const onZoomIn = () => {
+      if (!chartRef.current) return;
+      const ts = chartRef.current.timeScale();
+      const range = ts.getVisibleLogicalRange();
+      if (!range) return;
+      const span = range.to - range.from;
+      const center = (range.from + range.to) / 2;
+      const newSpan = span * 0.8;
+      ts.setVisibleLogicalRange({ from: center - newSpan / 2, to: center + newSpan / 2 });
+    };
+    const onZoomOut = () => {
+      if (!chartRef.current) return;
+      const ts = chartRef.current.timeScale();
+      const range = ts.getVisibleLogicalRange();
+      if (!range) return;
+      const span = range.to - range.from;
+      const center = (range.from + range.to) / 2;
+      const newSpan = span * 1.25;
+      ts.setVisibleLogicalRange({ from: center - newSpan / 2, to: center + newSpan / 2 });
+    };
+    const onFitContent = () => {
+      chartRef.current?.timeScale().fitContent();
+    };
+    const onScrollLeft = () => {
+      if (!chartRef.current) return;
+      const ts = chartRef.current.timeScale();
+      const range = ts.getVisibleLogicalRange();
+      if (!range) return;
+      const shift = (range.to - range.from) * 0.1;
+      ts.setVisibleLogicalRange({ from: range.from - shift, to: range.to - shift });
+    };
+    const onScrollRight = () => {
+      if (!chartRef.current) return;
+      const ts = chartRef.current.timeScale();
+      const range = ts.getVisibleLogicalRange();
+      if (!range) return;
+      const shift = (range.to - range.from) * 0.1;
+      ts.setVisibleLogicalRange({ from: range.from + shift, to: range.to + shift });
+    };
+    const onScreenshot = () => {
+      if (!chartRef.current) return;
+      const canvas = chartRef.current.takeScreenshot();
+      canvas.toBlob((blob) => {
+        if (!blob) return;
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        const state = useSettingsStore.getState();
+        const date = new Date().toISOString().slice(0, 10);
+        a.href = url;
+        a.download = `${state.symbol}_${state.interval}_${date}.png`;
+        a.click();
+        URL.revokeObjectURL(url);
+      });
+    };
+    const onSetTimeRange = (e: Event) => {
+      if (!chartRef.current || !data) return;
+      const detail = (e as CustomEvent).detail as { from: number; to: number } | null;
+      if (!detail) {
+        chartRef.current.timeScale().fitContent();
+        return;
+      }
+      const ts = chartRef.current.timeScale();
+      // Find logical indices for time range
+      const candles = data.candles;
+      let fromIdx = 0;
+      let toIdx = candles.length - 1;
+      for (let i = 0; i < candles.length; i++) {
+        if (candles[i].time >= detail.from) { fromIdx = i; break; }
+      }
+      for (let i = candles.length - 1; i >= 0; i--) {
+        if (candles[i].time <= detail.to) { toIdx = i; break; }
+      }
+      ts.setVisibleLogicalRange({ from: fromIdx, to: toIdx });
+    };
+
+    window.addEventListener("quanting:chart-zoom-in", onZoomIn);
+    window.addEventListener("quanting:chart-zoom-out", onZoomOut);
+    window.addEventListener("quanting:chart-fit", onFitContent);
+    window.addEventListener("quanting:chart-scroll-left", onScrollLeft);
+    window.addEventListener("quanting:chart-scroll-right", onScrollRight);
+    window.addEventListener("quanting:chart-screenshot", onScreenshot);
+    window.addEventListener("quanting:chart-set-time-range", onSetTimeRange);
+
     return () => {
       observer.disconnect();
+      window.removeEventListener("quanting:chart-zoom-in", onZoomIn);
+      window.removeEventListener("quanting:chart-zoom-out", onZoomOut);
+      window.removeEventListener("quanting:chart-fit", onFitContent);
+      window.removeEventListener("quanting:chart-scroll-left", onScrollLeft);
+      window.removeEventListener("quanting:chart-scroll-right", onScrollRight);
+      window.removeEventListener("quanting:chart-screenshot", onScreenshot);
+      window.removeEventListener("quanting:chart-set-time-range", onSetTimeRange);
       if (resizeRafRef.current !== null) {
         window.cancelAnimationFrame(resizeRafRef.current);
         resizeRafRef.current = null;
+      }
+      if (crosshairRafRef.current !== null) {
+        window.cancelAnimationFrame(crosshairRafRef.current);
+        crosshairRafRef.current = null;
       }
       if (chartRef.current) {
         chartRef.current.remove();
         chartRef.current = null;
       }
     };
-  }, [initChart]);
+  }, [initChart, data]);
 
+  // Theme update
   useEffect(() => {
     if (!chartRef.current) return;
     const tc = THEME_COLORS[theme];
@@ -318,26 +525,45 @@ export default function MainChart({ data }: MainChartProps) {
     });
   }, [theme]);
 
+  // Update priceFormatter when market changes
+  useEffect(() => {
+    if (!chartRef.current) return;
+    chartRef.current.applyOptions({
+      localization: { priceFormatter: makePriceFormatter(market) },
+    });
+  }, [market]);
+
   useEffect(() => {
     applyIndicatorScaleLayout();
   }, [applyIndicatorScaleLayout]);
 
+  // Data effect
   useEffect(() => {
-    if (!data || !chartRef.current || !candleSeriesRef.current) return;
+    if (!data || !chartRef.current || !mainSeriesRef.current) return;
 
     const chart = chartRef.current;
     const displayCandles =
       chartType === "heikinAshi" ? toHeikinAshi(data.candles) : data.candles;
 
-    candleSeriesRef.current.setData(
-      displayCandles.map((c) => ({
-        time: c.time as Time,
-        open: c.open,
-        high: c.high,
-        low: c.low,
-        close: c.close,
-      })),
-    );
+    // Set main series data based on chart type
+    if (chartType === "line" || chartType === "area") {
+      mainSeriesRef.current.setData(
+        displayCandles.map((c) => ({
+          time: c.time as Time,
+          value: c.close,
+        })),
+      );
+    } else {
+      mainSeriesRef.current.setData(
+        displayCandles.map((c) => ({
+          time: c.time as Time,
+          open: c.open,
+          high: c.high,
+          low: c.low,
+          close: c.close,
+        })),
+      );
+    }
 
     const bollingerData =
       chartType === "heikinAshi"
@@ -556,6 +782,20 @@ export default function MainChart({ data }: MainChartProps) {
       } else {
         markersPluginRef.current.setMarkers([]);
       }
+    }
+
+    // Set last candle to crosshair store
+    const lastCandle = data.candles[data.candles.length - 1];
+    if (lastCandle) {
+      useCrosshairStore.getState().setData({
+        time: null,
+        open: lastCandle.open,
+        high: lastCandle.high,
+        low: lastCandle.low,
+        close: lastCandle.close,
+        volume: lastCandle.volume,
+        indicators: {},
+      });
     }
 
     const fitScope = `${data.symbol}:${data.interval}:${chartType}`;

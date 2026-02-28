@@ -66,7 +66,7 @@ export default function PeriodsInput({ periods, onChange, max = 7 }: PeriodsInpu
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Add period"
+            placeholder="기간 추가"
             className="w-20 rounded border px-1.5 py-0.5 text-xs"
             style={{
               background: "var(--bg-primary)",
@@ -76,6 +76,7 @@ export default function PeriodsInput({ periods, onChange, max = 7 }: PeriodsInpu
           />
           <button
             onClick={addPeriod}
+            title="기간 추가"
             className="btn-ghost rounded px-2 py-0.5 text-xs"
             style={{
               background: "var(--bg-tertiary)",

@@ -25,8 +25,13 @@ export const useChartStore = create<ChartState>((set) => ({
         const data = await fetchAnalysis(params);
         set({ data, isLoading: false });
       } catch (e) {
-        const msg = typeof e === "string" ? e : (e instanceof Error ? e.message : "Failed to fetch analysis data");
-        console.error("Fetch error:", msg);
+        const msg =
+          typeof e === "string"
+            ? e
+            : e instanceof Error
+              ? e.message
+              : "분석 데이터 조회에 실패했습니다";
+        console.error("데이터 조회 오류:", msg);
         set({ error: msg, isLoading: false });
       }
     };

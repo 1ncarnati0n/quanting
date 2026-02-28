@@ -65,7 +65,7 @@ export default function SymbolSearch() {
     if (e.key === "Escape") setIsOpen(false);
   };
 
-  const marketBadge = market === "crypto" ? "CRYPTO" : market === "krStock" ? "KR" : "US";
+  const marketBadge = market === "crypto" ? "코인" : market === "krStock" ? "KR" : "US";
   const badgeColor = market === "crypto" ? "var(--warning-color)" : market === "krStock" ? "#EC4899" : "var(--accent-primary)";
 
   return (
@@ -73,8 +73,8 @@ export default function SymbolSearch() {
       {/* Trigger Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex max-w-[20rem] min-w-0 items-center gap-2 rounded px-3 py-1.5 text-sm font-mono transition-colors"
-        title="Open symbol search (Ctrl/Cmd+K)"
+        className="flex max-w-[11.5rem] min-w-0 items-center gap-2 rounded px-2.5 py-1.5 text-sm font-mono transition-colors xl:max-w-[15rem] 2xl:max-w-[20rem]"
+        title="심볼 검색 열기 (Ctrl/Cmd+K)"
         style={{
           background: "var(--bg-tertiary)",
           border: "1px solid var(--border-color)",
@@ -122,7 +122,7 @@ export default function SymbolSearch() {
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
               onKeyDown={(e) => e.key === "Escape" && setIsOpen(false)}
-              placeholder="Search symbols..."
+              placeholder="심볼 검색..."
               spellCheck={false}
               className="w-full rounded px-3 py-1.5 text-sm outline-none"
               style={{
@@ -172,7 +172,7 @@ export default function SymbolSearch() {
 
             {filteredCategories.length === 0 && (
               <div className="px-3 py-4 text-center text-xs" style={{ color: "var(--text-secondary)" }}>
-                No matching symbols
+                검색 결과가 없습니다
               </div>
             )}
           </div>
@@ -187,7 +187,7 @@ export default function SymbolSearch() {
               value={manualInput}
               onChange={(e) => setManualInput(e.target.value.toUpperCase())}
               onKeyDown={handleManualKeyDown}
-              placeholder="Enter ticker..."
+              placeholder="티커 직접 입력..."
               spellCheck={false}
               className="flex-1 rounded px-2 py-1 text-xs font-mono outline-none"
               style={{
@@ -201,7 +201,7 @@ export default function SymbolSearch() {
               className="rounded px-2 py-1 text-xs font-medium"
               style={{ background: "var(--accent-primary)", color: "var(--accent-contrast)" }}
             >
-              Go
+              적용
             </button>
           </div>
         </div>

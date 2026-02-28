@@ -1,9 +1,9 @@
 import type { MarketType } from "../types";
 
 // --- Intervals ---
-export const CRYPTO_INTERVALS = ["1m", "5m", "15m", "1h", "4h", "1d"] as const;
-export const STOCK_INTERVALS = ["1m", "5m", "15m", "1h", "1d"] as const;
-export type Interval = "1m" | "5m" | "15m" | "1h" | "4h" | "1d";
+export const CRYPTO_INTERVALS = ["1m", "5m", "15m", "1h", "4h", "1d", "1w", "1M"] as const;
+export const STOCK_INTERVALS = ["1m", "5m", "15m", "1h", "1d", "1w", "1M"] as const;
+export type Interval = "1m" | "5m" | "15m" | "1h" | "4h" | "1d" | "1w" | "1M";
 
 export function getIntervalsForMarket(market: MarketType): readonly Interval[] {
   return market === "crypto" ? CRYPTO_INTERVALS : STOCK_INTERVALS;
@@ -90,14 +90,24 @@ export type Theme = "dark" | "light";
 
 export const THEME_COLORS = {
   dark: {
-    bgPrimary: "#0d1421",
-    bgSecondary: "#161f31",
-    bgTertiary: "#1c2940",
-    surfaceElevated: "#22314a",
+    bgApp: "#0a0f1a",
+    bgSurface: "#111827",
+    bgCard: "#1a2332",
+    bgCardHover: "#1f2b3d",
+    bgInput: "#243044",
+    bgElevated: "#2a3a52",
+    bgPrimary: "#0a0f1a",
+    bgSecondary: "#1a2332",
+    bgTertiary: "#243044",
+    surfaceElevated: "#2a3a52",
     textPrimary: "#e5edf7",
     textSecondary: "#9eb0c8",
     borderColor: "#2a3a56",
     accentPrimary: "#2f7cff",
+    accentHover: "#4a91ff",
+    accentActive: "#1a6aef",
+    accentGlow: "0 0 12px rgba(47,124,255,0.25)",
+    accentBorder: "rgba(47,124,255,0.30)",
     accentContrast: "#ffffff",
     accentSoft: "rgba(47,124,255,0.14)",
     successColor: "#22c55e",
@@ -110,14 +120,24 @@ export const THEME_COLORS = {
     chartBorder: "#2a3a56",
   },
   light: {
-    bgPrimary: "#f2f5fa",
+    bgApp: "#eef3fb",
+    bgSurface: "#ffffff",
+    bgCard: "#ffffff",
+    bgCardHover: "#f5f8ff",
+    bgInput: "#e8eef8",
+    bgElevated: "#f6f9ff",
+    bgPrimary: "#eef3fb",
     bgSecondary: "#ffffff",
-    bgTertiary: "#e9eff7",
-    surfaceElevated: "#f7faff",
+    bgTertiary: "#e8eef8",
+    surfaceElevated: "#f6f9ff",
     textPrimary: "#111b2d",
     textSecondary: "#475569",
     borderColor: "#c6d3e5",
     accentPrimary: "#1f6fff",
+    accentHover: "#3d84ff",
+    accentActive: "#1359d9",
+    accentGlow: "0 0 10px rgba(31,111,255,0.20)",
+    accentBorder: "rgba(31,111,255,0.28)",
     accentContrast: "#ffffff",
     accentSoft: "rgba(31,111,255,0.12)",
     successColor: "#16a34a",
@@ -146,7 +166,7 @@ export interface PresetCategory {
 
 export const PRESET_CATEGORIES: PresetCategory[] = [
   {
-    name: "US Large Cap",
+    name: "미국 대형주",
     market: "usStock",
     items: [
       { symbol: "AAPL", label: "Apple", market: "usStock" },
@@ -164,7 +184,7 @@ export const PRESET_CATEGORIES: PresetCategory[] = [
     ],
   },
   {
-    name: "US ETFs",
+    name: "미국 ETF",
     market: "usStock",
     items: [
       { symbol: "SPY", label: "S&P 500", market: "usStock" },
@@ -180,7 +200,7 @@ export const PRESET_CATEGORIES: PresetCategory[] = [
     ],
   },
   {
-    name: "Korean Large Cap",
+    name: "한국 대형주",
     market: "krStock",
     items: [
       { symbol: "005930.KS", label: "삼성전자", market: "krStock" },
@@ -196,7 +216,7 @@ export const PRESET_CATEGORIES: PresetCategory[] = [
     ],
   },
   {
-    name: "Korean ETFs",
+    name: "한국 ETF",
     market: "krStock",
     items: [
       { symbol: "069500.KS", label: "KODEX 200", market: "krStock" },
@@ -208,17 +228,17 @@ export const PRESET_CATEGORIES: PresetCategory[] = [
     ],
   },
   {
-    name: "Crypto",
+    name: "암호화폐",
     market: "crypto",
     items: [
-      { symbol: "BTCUSDT", label: "Bitcoin", market: "crypto" },
-      { symbol: "ETHUSDT", label: "Ethereum", market: "crypto" },
+      { symbol: "BTCUSDT", label: "비트코인", market: "crypto" },
+      { symbol: "ETHUSDT", label: "이더리움", market: "crypto" },
       { symbol: "BNBUSDT", label: "BNB", market: "crypto" },
-      { symbol: "SOLUSDT", label: "Solana", market: "crypto" },
+      { symbol: "SOLUSDT", label: "솔라나", market: "crypto" },
       { symbol: "XRPUSDT", label: "XRP", market: "crypto" },
-      { symbol: "ADAUSDT", label: "Cardano", market: "crypto" },
-      { symbol: "DOGEUSDT", label: "Dogecoin", market: "crypto" },
-      { symbol: "DOTUSDT", label: "Polkadot", market: "crypto" },
+      { symbol: "ADAUSDT", label: "카르다노", market: "crypto" },
+      { symbol: "DOGEUSDT", label: "도지코인", market: "crypto" },
+      { symbol: "DOTUSDT", label: "폴카닷", market: "crypto" },
     ],
   },
 ];

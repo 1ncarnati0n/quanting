@@ -1,10 +1,12 @@
 mod candle;
+mod fundamental;
 mod indicator;
 mod params;
 mod signal;
 mod watchlist;
 
 pub use candle::Candle;
+pub use fundamental::{FundamentalsParams, FundamentalsResponse};
 pub use indicator::{
     AtrPoint, AtrResult, BollingerBandsPoint, IchimokuPoint, IchimokuResult, MaPoint, MacdPoint,
     MacdResult, MovingAverageResult, ObvPoint, ObvResult, ParabolicSarPoint, ParabolicSarResult,

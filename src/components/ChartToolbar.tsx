@@ -207,6 +207,7 @@ function QuickIndicatorMenu() {
     { key: "ema", label: "EMA", enabled: indicators.ema.enabled },
     { key: "signalZones", label: "매수/매도 구간", enabled: indicators.signalZones.enabled },
     { key: "volumeProfile", label: "볼륨 프로파일", enabled: indicators.volumeProfile.enabled },
+    { key: "fundamentals", label: "재무 오버레이", enabled: indicators.fundamentals.enabled },
     { key: "vwap", label: "VWAP", enabled: indicators.vwap.enabled },
     { key: "ichimoku", label: "Ichimoku", enabled: indicators.ichimoku.enabled },
     { key: "supertrend", label: "Supertrend", enabled: indicators.supertrend.enabled },

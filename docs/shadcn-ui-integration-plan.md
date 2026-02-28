@@ -22,7 +22,7 @@
   - `ChartContextMenu`(`ContextMenu`) 완료
   - `ChartToolbar`(`DropdownMenu`) 완료
   - `ShortcutsModal`(`Dialog`) 완료
-- [ ] 복합 컴포넌트 치환(Phase 4 2차)
+- [x] 복합 컴포넌트 치환(Phase 4 2차)
   - `SymbolSearch`의 `Command` 패턴 전환 완료
   - `WatchlistSidebar` 스크롤 영역 `ScrollArea` 전환 완료
   - `CollapsibleSidebar` `Collapsible` 패턴 적용 완료

@@ -1,4 +1,5 @@
-use crate::models::Candle;
+use crate::models::{Candle, FundamentalsResponse, MarketType};
+use serde_json::Value;
 
 pub struct YahooClient {
     client: reqwest::Client,
@@ -47,6 +48,107 @@ impl YahooClient {
             .map_err(|e| format!("Parse error: {}", e))?;
 
         Self::parse_chart_response(&json)
+    }
+
+    pub async fn fetch_fundamentals(
+        &self,
+        symbol: &str,
+        market: MarketType,
+    ) -> Result<FundamentalsResponse, String> {
+        let url = format!(
+            "https://query1.finance.yahoo.com/v10/finance/quoteSummary/{}?modules=price,summaryDetail,defaultKeyStatistics,financialData",
+            symbol
+        );
+
+        let resp = self
+            .client
+            .get(&url)
+            .send()
+            .await
+            .map_err(|e| format!("Network error: {}", e))?;
+
+        if !resp.status().is_success() {
+            let status = resp.status();
+            let body = resp.text().await.unwrap_or_default();
+            return Err(format!("Yahoo Finance API error ({}): {}", status, body));
+        }
+
+        let json: Value = resp
+            .json()
+            .await
+            .map_err(|e| format!("Parse error: {}", e))?;
+
+        let result = json
+            .get("quoteSummary")
+            .and_then(|summary| summary.get("result"))
+            .and_then(|entries| entries.get(0))
+            .ok_or("Invalid Yahoo Fundamentals response structure")?;
+
+        Ok(FundamentalsResponse {
+            symbol: symbol.to_string(),
+            market,
+            short_name: Self::first_string(
+                result,
+                &[
+                    &["price", "shortName"],
+                    &["price", "longName"],
+                    &["price", "displayName"],
+                ],
+            ),
+            currency: Self::first_string(result, &[&["price", "currency"]]),
+            market_cap: Self::first_number(
+                result,
+                &[
+                    &["price", "marketCap"],
+                    &["defaultKeyStatistics", "marketCap"],
+                ],
+            ),
+            trailing_pe: Self::first_number(
+                result,
+                &[
+                    &["summaryDetail", "trailingPE"],
+                    &["defaultKeyStatistics", "trailingPE"],
+                ],
+            ),
+            forward_pe: Self::first_number(
+                result,
+                &[
+                    &["defaultKeyStatistics", "forwardPE"],
+                    &["financialData", "forwardPE"],
+                ],
+            ),
+            price_to_book: Self::first_number(result, &[&["defaultKeyStatistics", "priceToBook"]]),
+            trailing_eps: Self::first_number(
+                result,
+                &[
+                    &["defaultKeyStatistics", "trailingEps"],
+                    &["summaryDetail", "trailingEps"],
+                ],
+            ),
+            forward_eps: Self::first_number(result, &[&["defaultKeyStatistics", "forwardEps"]]),
+            dividend_yield: Self::first_number(result, &[&["summaryDetail", "dividendYield"]]),
+            return_on_equity: Self::first_number(result, &[&["financialData", "returnOnEquity"]]),
+            debt_to_equity: Self::first_number(result, &[&["financialData", "debtToEquity"]]),
+            revenue_growth: Self::first_number(result, &[&["financialData", "revenueGrowth"]]),
+            gross_margins: Self::first_number(result, &[&["financialData", "grossMargins"]]),
+            operating_margins: Self::first_number(result, &[&["financialData", "operatingMargins"]]),
+            profit_margins: Self::first_number(
+                result,
+                &[
+                    &["financialData", "profitMargins"],
+                    &["defaultKeyStatistics", "profitMargins"],
+                ],
+            ),
+            fifty_two_week_high: Self::first_number(result, &[&["summaryDetail", "fiftyTwoWeekHigh"]]),
+            fifty_two_week_low: Self::first_number(result, &[&["summaryDetail", "fiftyTwoWeekLow"]]),
+            average_volume: Self::first_number(
+                result,
+                &[
+                    &["summaryDetail", "averageVolume"],
+                    &["price", "averageDailyVolume10Day"],
+                ],
+            ),
+        })
     }
 
     fn parse_chart_response(json: &serde_json::Value) -> Result<Vec<Candle>, String> {
@@ -130,5 +232,52 @@ impl YahooClient {
             "1M" => "1mo",
             _ => "1d",
         }
+    }
+
+    fn first_number(root: &Value, paths: &[&[&str]]) -> Option<f64> {
+        paths.iter().find_map(|path| Self::read_number(root, path))
+    }
+
+    fn first_string(root: &Value, paths: &[&[&str]]) -> Option<String> {
+        paths.iter().find_map(|path| Self::read_string(root, path))
+    }
+
+    fn read_number(root: &Value, path: &[&str]) -> Option<f64> {
+        let value = Self::value_at(root, path)?;
+        if let Some(n) = value.as_f64() {
+            return Some(n);
+        }
+        if let Some(n) = value.as_i64() {
+            return Some(n as f64);
+        }
+        if let Some(raw) = value.get("raw").and_then(Value::as_f64) {
+            return Some(raw);
+        }
+        if let Some(raw) = value.get("raw").and_then(Value::as_i64) {
+            return Some(raw as f64);
+        }
+        None
+    }
+
+    fn read_string(root: &Value, path: &[&str]) -> Option<String> {
+        let value = Self::value_at(root, path)?;
+        if let Some(text) = value.as_str() {
+            return Some(text.to_string());
+        }
+        if let Some(text) = value.get("fmt").and_then(Value::as_str) {
+            return Some(text.to_string());
+        }
+        if let Some(text) = value.get("longFmt").and_then(Value::as_str) {
+            return Some(text.to_string());
+        }
+        None
+    }
+
+    fn value_at<'a>(root: &'a Value, path: &[&str]) -> Option<&'a Value> {
+        let mut current = root;
+        for key in path {
+            current = current.get(*key)?;
+        }
+        Some(current)
     }
 }

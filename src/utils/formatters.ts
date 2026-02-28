@@ -11,6 +11,10 @@ export function formatPrice(price: number, market?: MarketType): string {
   if (market === "usStock") {
     return "$" + price.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
+  if (market === "forex") {
+    if (price >= 100) return price.toFixed(3);
+    return price.toFixed(5);
+  }
   // crypto: existing logic
   if (price >= 1000) return price.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   if (price >= 1) return price.toFixed(4);

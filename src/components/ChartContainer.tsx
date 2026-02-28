@@ -8,6 +8,7 @@ import DrawingToolbar from "./DrawingToolbar";
 import ReplayControls from "./ReplayControls";
 import SignalZonesOverlay from "./SignalZonesOverlay";
 import VolumeProfileOverlay from "./VolumeProfileOverlay";
+import FundamentalsOverlay from "./FundamentalsOverlay";
 import { useChartStore } from "../stores/useChartStore";
 import { useSettingsStore } from "../stores/useSettingsStore";
 import type { IChartApi, ISeriesApi, SeriesType } from "lightweight-charts";
@@ -213,6 +214,7 @@ export default function ChartContainer() {
       <ReplayControls />
       {multiChartLayout === 1 && <SignalZonesOverlay chart={chartApi} data={data} />}
       {multiChartLayout === 1 && <VolumeProfileOverlay data={data} />}
+      {multiChartLayout === 1 && <FundamentalsOverlay />}
       {multiChartLayout === 1 && <DrawingCanvas chart={chartApi} mainSeries={mainSeries} />}
       {multiChartLayout === 1 && bandLayouts.length > 0 && (
         <div className="pointer-events-none absolute inset-0 z-[8]">

@@ -156,7 +156,35 @@ export interface AnalysisResponse {
   interval: string;
 }
 
-export type MarketType = "crypto" | "usStock" | "krStock";
+export type MarketType = "crypto" | "usStock" | "krStock" | "forex";
+
+export interface FundamentalsParams {
+  symbol: string;
+  market: MarketType;
+}
+
+export interface FundamentalsResponse {
+  symbol: string;
+  market: MarketType;
+  shortName: string | null;
+  currency: string | null;
+  marketCap: number | null;
+  trailingPe: number | null;
+  forwardPe: number | null;
+  priceToBook: number | null;
+  trailingEps: number | null;
+  forwardEps: number | null;
+  dividendYield: number | null;
+  returnOnEquity: number | null;
+  debtToEquity: number | null;
+  revenueGrowth: number | null;
+  grossMargins: number | null;
+  operatingMargins: number | null;
+  profitMargins: number | null;
+  fiftyTwoWeekHigh: number | null;
+  fiftyTwoWeekLow: number | null;
+  averageVolume: number | null;
+}
 
 export interface MacdParams {
   fastPeriod: number;

@@ -21,19 +21,112 @@ interface WatchlistSidebarProps {
 }
 
 type MarketFilter = "all" | MarketType;
-type ScreenerRule =
+type ScreenerCondition =
   | "strongBuy"
   | "rsiOversold"
   | "macdBullish"
   | "bbLowerTouch";
+type ScreenerMode = "any" | "all";
+type ScreenerSort = "scoreDesc" | "priceDesc" | "priceAsc" | "symbolAsc";
+
+interface ScreenerPreset {
+  id: string;
+  name: string;
+  mode: ScreenerMode;
+  sort: ScreenerSort;
+  conditions: ScreenerCondition[];
+}
 
 interface ScreenerHit {
   symbol: string;
   market: MarketType;
-  reason: string;
+  reasons: string[];
   close: number;
+  score: number;
 }
+
 const SNAPSHOT_REQUEST_SIZE = 18;
+const SCREENER_PRESET_STORAGE_KEY = "quanting-screener-presets";
+
+const SCREENER_CONDITION_ITEMS: { value: ScreenerCondition; label: string }[] = [
+  { value: "strongBuy", label: "강매수" },
+  { value: "rsiOversold", label: "RSI<30" },
+  { value: "macdBullish", label: "MACD↑" },
+  { value: "bbLowerTouch", label: "BB 하단" },
+];
+
+const DEFAULT_SCREENER_PRESETS: ScreenerPreset[] = [
+  {
+    id: "preset-momentum",
+    name: "모멘텀",
+    mode: "any",
+    sort: "scoreDesc",
+    conditions: ["strongBuy", "macdBullish"],
+  },
+  {
+    id: "preset-rebound",
+    name: "반등",
+    mode: "all",
+    sort: "scoreDesc",
+    conditions: ["rsiOversold", "bbLowerTouch"],
+  },
+];
+
+function normalizeConditions(conditions: unknown): ScreenerCondition[] {
+  if (!Array.isArray(conditions)) return [];
+  const seen = new Set<ScreenerCondition>();
+  const next: ScreenerCondition[] = [];
+  for (const condition of conditions) {
+    if (
+      condition === "strongBuy" ||
+      condition === "rsiOversold" ||
+      condition === "macdBullish" ||
+      condition === "bbLowerTouch"
+    ) {
+      if (!seen.has(condition)) {
+        seen.add(condition);
+        next.push(condition);
+      }
+    }
+  }
+  return next;
+}
+
+function loadScreenerPresets(): ScreenerPreset[] {
+  try {
+    const raw = localStorage.getItem(SCREENER_PRESET_STORAGE_KEY);
+    if (!raw) return DEFAULT_SCREENER_PRESETS;
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return DEFAULT_SCREENER_PRESETS;
+
+    const next: ScreenerPreset[] = parsed
+      .filter((item) => item && typeof item.name === "string")
+      .map((item): ScreenerPreset => ({
+        id: typeof item.id === "string" ? item.id : `preset-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        name: item.name as string,
+        mode: item.mode === "all" ? "all" : "any",
+        sort:
+          item.sort === "priceDesc" ||
+          item.sort === "priceAsc" ||
+          item.sort === "symbolAsc"
+            ? (item.sort as ScreenerSort)
+            : "scoreDesc",
+        conditions: normalizeConditions(item.conditions),
+      }))
+      .filter((item) => item.conditions.length > 0)
+      .slice(0, 12);
+
+    return next.length ? next : DEFAULT_SCREENER_PRESETS;
+  } catch {
+    return DEFAULT_SCREENER_PRESETS;
+  }
+}
+
+function saveScreenerPresets(presets: ScreenerPreset[]) {
+  try {
+    localStorage.setItem(SCREENER_PRESET_STORAGE_KEY, JSON.stringify(presets));
+  } catch {}
+}
 
 function snapshotKey(symbol: string, market: MarketType): string {
   return `${market}:${symbol}`;
@@ -42,59 +135,75 @@ function snapshotKey(symbol: string, market: MarketType): string {
 function marketBadge(market: MarketType) {
   if (market === "crypto") return { text: "코인", color: "var(--warning-color)" };
   if (market === "krStock") return { text: "KR", color: "#EC4899" };
+  if (market === "forex") return { text: "FX", color: "#14B8A6" };
   return { text: "US", color: "var(--accent-primary)" };
 }
 
+function evaluateScreenerCondition(
+  condition: ScreenerCondition,
+  response: Awaited<ReturnType<typeof fetchAnalysis>>,
+): { matched: boolean; reason?: string; score: number } {
+  const candles = response.candles;
+  if (!candles.length) return { matched: false, score: 0 };
+  const lastCandle = candles[candles.length - 1];
+  if (!lastCandle) return { matched: false, score: 0 };
+
+  if (condition === "strongBuy") {
+    const recent = response.signals.slice(-4).find((signal) => signal.signalType === "strongBuy");
+    if (!recent) return { matched: false, score: 0 };
+    return { matched: true, reason: "강매수 시그널", score: 4 };
+  }
+
+  if (condition === "macdBullish") {
+    const recent = response.signals.slice(-4).find((signal) => signal.signalType === "macdBullish");
+    if (!recent) return { matched: false, score: 0 };
+    return { matched: true, reason: "MACD 상승 크로스", score: 3 };
+  }
+
+  if (condition === "rsiOversold") {
+    const lastRsi = response.rsi[response.rsi.length - 1];
+    if (!lastRsi || lastRsi.value > 30) return { matched: false, score: 0 };
+    return { matched: true, reason: `RSI ${lastRsi.value.toFixed(1)}`, score: 2 };
+  }
+
+  const lastBand = response.bollingerBands[response.bollingerBands.length - 1];
+  if (!lastBand || lastCandle.close > lastBand.lower) return { matched: false, score: 0 };
+  return { matched: true, reason: "BB 하단 터치", score: 2 };
+}
+
 function evaluateScreenerHit(
-  rule: ScreenerRule,
+  conditions: ScreenerCondition[],
+  mode: ScreenerMode,
   market: MarketType,
   response: Awaited<ReturnType<typeof fetchAnalysis>>,
 ): ScreenerHit | null {
+  if (!conditions.length) return null;
   const candles = response.candles;
   if (!candles.length) return null;
   const lastCandle = candles[candles.length - 1];
   if (!lastCandle) return null;
 
-  if (rule === "strongBuy") {
-    const recent = response.signals.slice(-4).find((signal) => signal.signalType === "strongBuy");
-    if (!recent) return null;
-    return {
-      symbol: response.symbol,
-      market,
-      close: lastCandle.close,
-      reason: "강매수 시그널",
-    };
-  }
+  const evaluations = conditions.map((condition) =>
+    evaluateScreenerCondition(condition, response),
+  );
+  const matched = evaluations.filter((result) => result.matched);
 
-  if (rule === "macdBullish") {
-    const recent = response.signals.slice(-4).find((signal) => signal.signalType === "macdBullish");
-    if (!recent) return null;
-    return {
-      symbol: response.symbol,
-      market,
-      close: lastCandle.close,
-      reason: "MACD 상승 크로스",
-    };
-  }
+  if (mode === "all" && matched.length !== conditions.length) return null;
+  if (mode === "any" && matched.length === 0) return null;
 
-  if (rule === "rsiOversold") {
-    const lastRsi = response.rsi[response.rsi.length - 1];
-    if (!lastRsi || lastRsi.value > 30) return null;
-    return {
-      symbol: response.symbol,
-      market,
-      close: lastCandle.close,
-      reason: `RSI ${lastRsi.value.toFixed(1)}`,
-    };
-  }
+  const reasons = matched
+    .map((result) => result.reason)
+    .filter((reason): reason is string => Boolean(reason));
+  const score =
+    matched.reduce((sum, result) => sum + result.score, 0) +
+    (mode === "all" ? matched.length * 0.4 : matched.length * 0.2);
 
-  const lastBand = response.bollingerBands[response.bollingerBands.length - 1];
-  if (!lastBand || lastCandle.close > lastBand.lower) return null;
   return {
     symbol: response.symbol,
     market,
     close: lastCandle.close,
-    reason: "BB 하단 터치",
+    reasons,
+    score,
   };
 }
 
@@ -165,7 +274,14 @@ export default function WatchlistSidebar({
   const [query, setQuery] = useState("");
   const [marketFilter, setMarketFilter] = useState<MarketFilter>("all");
   const [favoriteOnly, setFavoriteOnly] = useState(false);
-  const [screenerRule, setScreenerRule] = useState<ScreenerRule>("strongBuy");
+  const [screenerConditions, setScreenerConditions] = useState<ScreenerCondition[]>([
+    "strongBuy",
+  ]);
+  const [screenerMode, setScreenerMode] = useState<ScreenerMode>("any");
+  const [screenerSort, setScreenerSort] = useState<ScreenerSort>("scoreDesc");
+  const [presetName, setPresetName] = useState("");
+  const [screenerPresets, setScreenerPresets] =
+    useState<ScreenerPreset[]>(loadScreenerPresets);
   const [screenerHits, setScreenerHits] = useState<ScreenerHit[]>([]);
   const [isScanning, setIsScanning] = useState(false);
   const [lastScannedAt, setLastScannedAt] = useState<number | null>(null);
@@ -244,12 +360,65 @@ export default function WatchlistSidebar({
     return deduped.slice(0, 16);
   }, [favorites, visibleItems]);
 
+  const toggleScreenerCondition = (condition: ScreenerCondition) => {
+    setScreenerConditions((prev) => {
+      const exists = prev.includes(condition);
+      if (exists) {
+        const next = prev.filter((item) => item !== condition);
+        return next.length ? next : prev;
+      }
+      return [...prev, condition];
+    });
+  };
+
+  const applyPreset = (preset: ScreenerPreset) => {
+    setScreenerMode(preset.mode);
+    setScreenerSort(preset.sort);
+    setScreenerConditions(preset.conditions);
+  };
+
+  const saveCurrentPreset = () => {
+    const name = presetName.trim();
+    if (!name || screenerConditions.length === 0) return;
+
+    const nextPreset: ScreenerPreset = {
+      id: `preset-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
+      name,
+      mode: screenerMode,
+      sort: screenerSort,
+      conditions: screenerConditions,
+    };
+
+    setScreenerPresets((prev) => {
+      const deduped = [
+        nextPreset,
+        ...prev.filter((preset) => preset.name !== nextPreset.name),
+      ].slice(0, 12);
+      saveScreenerPresets(deduped);
+      return deduped;
+    });
+    setPresetName("");
+  };
+
+  const removePreset = (presetId: string) => {
+    setScreenerPresets((prev) => {
+      const next = prev.filter((preset) => preset.id !== presetId);
+      saveScreenerPresets(next);
+      return next.length ? next : DEFAULT_SCREENER_PRESETS;
+    });
+  };
+
   const selectSymbolFromWatch = (item: PresetSymbol) => {
     setSymbol(item.symbol, item.market);
     onSelectSymbol?.();
   };
 
   const runScreener = async () => {
+    if (screenerConditions.length === 0) {
+      setScreenerHits([]);
+      return;
+    }
+
     if (screenerTargets.length === 0) {
       setScreenerHits([]);
       return;
@@ -278,13 +447,26 @@ export default function WatchlistSidebar({
               showObv: false,
               signalFilter: settings.indicators.signalFilter,
             });
-            return evaluateScreenerHit(screenerRule, target.market, response);
+            return evaluateScreenerHit(
+              screenerConditions,
+              screenerMode,
+              target.market,
+              response,
+            );
           } catch {
             return null;
           }
         }),
       );
-      const hits = checks.filter((item): item is ScreenerHit => item !== null);
+      const hits = checks
+        .filter((item): item is ScreenerHit => item !== null)
+        .sort((a, b) => {
+          if (screenerSort === "priceAsc") return a.close - b.close;
+          if (screenerSort === "priceDesc") return b.close - a.close;
+          if (screenerSort === "symbolAsc") return a.symbol.localeCompare(b.symbol);
+          if (Math.abs(b.score - a.score) > 1e-9) return b.score - a.score;
+          return a.symbol.localeCompare(b.symbol);
+        });
       setScreenerHits(hits);
       setLastScannedAt(Date.now());
     } finally {
@@ -390,7 +572,7 @@ export default function WatchlistSidebar({
           className="h-8 text-sm"
         />
         <div className="mt-2 flex gap-1">
-          {(["all", "usStock", "krStock", "crypto"] as const).map((mf) => (
+          {(["all", "usStock", "krStock", "crypto", "forex"] as const).map((mf) => (
             <button
               key={mf}
               type="button"
@@ -408,7 +590,9 @@ export default function WatchlistSidebar({
                 ? "US"
                 : mf === "krStock"
                 ? "KR"
-                : "코인"}
+                : mf === "crypto"
+                ? "코인"
+                : "FX"}
             </button>
           ))}
           <button
@@ -480,27 +664,133 @@ export default function WatchlistSidebar({
             </button>
           </div>
           <div className="mb-2 grid grid-cols-2 gap-1">
+            {SCREENER_CONDITION_ITEMS.map((rule) => {
+              const active = screenerConditions.includes(rule.value);
+              return (
+                <button
+                  key={rule.value}
+                  type="button"
+                  onClick={() => toggleScreenerCondition(rule.value)}
+                  className="rounded px-2 py-1 text-[10px] font-medium"
+                  style={{
+                    background: active ? "var(--accent-primary)" : "var(--bg-tertiary)",
+                    color: active ? "var(--accent-contrast)" : "var(--text-secondary)",
+                    border: `1px solid ${active ? "var(--accent-primary)" : "var(--border-color)"}`,
+                  }}
+                >
+                  {rule.label}
+                </button>
+              );
+            })}
+          </div>
+          <div className="mb-1.5 grid grid-cols-2 gap-1">
             {([
-              { value: "strongBuy" as const, label: "강매수" },
-              { value: "rsiOversold" as const, label: "RSI<30" },
-              { value: "macdBullish" as const, label: "MACD↑" },
-              { value: "bbLowerTouch" as const, label: "BB 하단" },
-            ] as const).map((rule) => (
+              { value: "any" as const, label: "ANY(OR)" },
+              { value: "all" as const, label: "ALL(AND)" },
+            ] as const).map((modeOption) => (
               <button
-                key={rule.value}
+                key={modeOption.value}
                 type="button"
-                onClick={() => setScreenerRule(rule.value)}
+                onClick={() => setScreenerMode(modeOption.value)}
                 className="rounded px-2 py-1 text-[10px] font-medium"
                 style={{
-                  background: screenerRule === rule.value ? "var(--accent-primary)" : "var(--bg-tertiary)",
-                  color: screenerRule === rule.value ? "var(--accent-contrast)" : "var(--text-secondary)",
-                  border: `1px solid ${screenerRule === rule.value ? "var(--accent-primary)" : "var(--border-color)"}`,
+                  background:
+                    screenerMode === modeOption.value
+                      ? "color-mix(in srgb, var(--warning-color) 22%, transparent)"
+                      : "var(--bg-tertiary)",
+                  color:
+                    screenerMode === modeOption.value
+                      ? "var(--warning-color)"
+                      : "var(--text-secondary)",
+                  border: `1px solid ${
+                    screenerMode === modeOption.value
+                      ? "var(--warning-color)"
+                      : "var(--border-color)"
+                  }`,
                 }}
               >
-                {rule.label}
+                {modeOption.label}
               </button>
             ))}
           </div>
+          <div className="mb-2 flex flex-wrap gap-1">
+            {([
+              { value: "scoreDesc" as const, label: "점수" },
+              { value: "priceDesc" as const, label: "가격↓" },
+              { value: "priceAsc" as const, label: "가격↑" },
+              { value: "symbolAsc" as const, label: "심볼" },
+            ] as const).map((sortOption) => (
+              <button
+                key={sortOption.value}
+                type="button"
+                onClick={() => setScreenerSort(sortOption.value)}
+                className="rounded px-2 py-0.5 text-[10px]"
+                style={{
+                  background:
+                    screenerSort === sortOption.value ? "var(--accent-soft)" : "var(--bg-tertiary)",
+                  color:
+                    screenerSort === sortOption.value ? "var(--accent-primary)" : "var(--text-secondary)",
+                  border: `1px solid ${
+                    screenerSort === sortOption.value ? "var(--accent-primary)" : "var(--border-color)"
+                  }`,
+                }}
+              >
+                {sortOption.label}
+              </button>
+            ))}
+          </div>
+          <div className="mb-1.5 flex gap-1">
+            <Input
+              value={presetName}
+              onChange={(e) => setPresetName(e.target.value)}
+              className="h-6 text-[10px]"
+              placeholder="프리셋 이름"
+            />
+            <button
+              type="button"
+              className="rounded px-2 py-1 text-[10px] font-semibold"
+              style={{
+                background: "var(--bg-tertiary)",
+                color: "var(--text-primary)",
+                border: "1px solid var(--border-color)",
+              }}
+              onClick={saveCurrentPreset}
+              disabled={!presetName.trim() || screenerConditions.length === 0}
+            >
+              저장
+            </button>
+          </div>
+          <ScrollArea className="mb-2 max-h-14" viewportClassName="space-y-1 pr-1">
+            {screenerPresets.map((preset) => (
+              <div
+                key={preset.id}
+                className="flex items-center justify-between gap-1 rounded border px-1.5 py-1"
+                style={{
+                  borderColor: "var(--border-color)",
+                  background: "var(--bg-tertiary)",
+                }}
+              >
+                <button
+                  type="button"
+                  className="min-w-0 flex-1 truncate text-left text-[10px]"
+                  style={{ color: "var(--text-primary)" }}
+                  onClick={() => applyPreset(preset)}
+                  title={`${preset.name} 적용`}
+                >
+                  {preset.name} · {preset.mode.toUpperCase()} · {preset.conditions.length}조건
+                </button>
+                <button
+                  type="button"
+                  className="rounded px-1 text-[10px]"
+                  style={{ color: "var(--text-secondary)" }}
+                  onClick={() => removePreset(preset.id)}
+                  title="프리셋 삭제"
+                >
+                  X
+                </button>
+              </div>
+            ))}
+          </ScrollArea>
           <ScrollArea className="max-h-24" viewportClassName="space-y-1 pr-1">
             {screenerHits.slice(0, 8).map((hit) => (
               <button
@@ -521,12 +811,17 @@ export default function WatchlistSidebar({
                   <span>{hit.symbol}</span>
                   <span>{formatPrice(hit.close, hit.market)}</span>
                 </div>
-                <div style={{ color: "var(--text-secondary)" }}>{hit.reason}</div>
+                <div style={{ color: "var(--text-secondary)" }}>
+                  {hit.reasons.join(" · ")}
+                </div>
+                <div className="font-mono text-[9px]" style={{ color: "var(--accent-primary)" }}>
+                  score {hit.score.toFixed(1)}
+                </div>
               </button>
             ))}
             {screenerHits.length === 0 && (
               <div className="text-[10px]" style={{ color: "var(--text-secondary)" }}>
-                {lastScannedAt ? "조건 일치 종목이 없습니다." : "규칙 선택 후 스캔 실행"}
+                {lastScannedAt ? "조건 일치 종목이 없습니다." : "조건 선택 후 스캔 실행"}
               </div>
             )}
           </ScrollArea>

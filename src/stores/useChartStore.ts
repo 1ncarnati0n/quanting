@@ -1,12 +1,23 @@
 import { create } from "zustand";
-import type { AnalysisResponse, AnalysisParams, Candle } from "../types";
-import { fetchAnalysis } from "../services/tauriApi";
+import type {
+  AnalysisResponse,
+  AnalysisParams,
+  Candle,
+  FundamentalsParams,
+  FundamentalsResponse,
+} from "../types";
+import { fetchAnalysis, fetchFundamentals } from "../services/tauriApi";
 
 interface ChartState {
   data: AnalysisResponse | null;
   isLoading: boolean;
   error: string | null;
+  fundamentals: FundamentalsResponse | null;
+  fundamentalsLoading: boolean;
+  fundamentalsError: string | null;
+  fundamentalsKey: string | null;
   fetchData: (params: AnalysisParams) => void;
+  fetchFundamentals: (params: FundamentalsParams) => Promise<void>;
   updateRealtimeCandle: (candle: Candle) => void;
 }
 
@@ -17,6 +28,10 @@ export const useChartStore = create<ChartState>((set) => ({
   data: null,
   isLoading: false,
   error: null,
+  fundamentals: null,
+  fundamentalsLoading: false,
+  fundamentalsError: null,
+  fundamentalsKey: null,
   fetchData: (params: AnalysisParams) => {
     if (debounceTimer) clearTimeout(debounceTimer);
 
@@ -43,6 +58,63 @@ export const useChartStore = create<ChartState>((set) => ({
       doFetch();
     } else {
       debounceTimer = setTimeout(doFetch, 300);
+    }
+  },
+  fetchFundamentals: async (params: FundamentalsParams) => {
+    const normalizedSymbol = params.symbol.trim().toUpperCase();
+    if (!normalizedSymbol) return;
+
+    const key = `${params.market}:${normalizedSymbol}`;
+
+    const current = useChartStore.getState();
+    if (
+      current.fundamentalsKey === key &&
+      current.fundamentals &&
+      !current.fundamentalsError &&
+      !current.fundamentalsLoading
+    ) {
+      return;
+    }
+
+    set((state) => ({
+      fundamentalsLoading: true,
+      fundamentalsError: null,
+      fundamentalsKey: key,
+      fundamentals:
+        state.fundamentalsKey === key
+          ? state.fundamentals
+          : null,
+    }));
+
+    try {
+      const response = await fetchFundamentals({
+        symbol: normalizedSymbol,
+        market: params.market,
+      });
+      set((state) => {
+        if (state.fundamentalsKey !== key) return {};
+        return {
+          fundamentals: response,
+          fundamentalsLoading: false,
+          fundamentalsError: null,
+        };
+      });
+    } catch (e) {
+      const msg =
+        typeof e === "string"
+          ? e
+          : e instanceof Error
+            ? e.message
+            : "재무 데이터 조회에 실패했습니다";
+
+      set((state) => {
+        if (state.fundamentalsKey !== key) return {};
+        return {
+          fundamentals: null,
+          fundamentalsLoading: false,
+          fundamentalsError: msg,
+        };
+      });
     }
   },
   updateRealtimeCandle: (candle) =>

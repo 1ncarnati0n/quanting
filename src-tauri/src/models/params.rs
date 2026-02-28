@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 #[serde(rename_all = "camelCase")]
 pub enum MarketType {
     Crypto,
+    Forex,
     #[default]
     UsStock,
     KrStock,

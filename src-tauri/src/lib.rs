@@ -16,7 +16,8 @@ pub fn run() {
         .manage(CacheDb::new().expect("Failed to initialize cache database"))
         .invoke_handler(tauri::generate_handler![
             commands::analysis::fetch_analysis,
-            commands::analysis::fetch_watchlist_snapshots
+            commands::analysis::fetch_watchlist_snapshots,
+            commands::analysis::fetch_fundamentals
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

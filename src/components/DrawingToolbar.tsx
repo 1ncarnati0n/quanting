@@ -10,6 +10,10 @@ const TOOLS: { key: DrawingTool; label: string; icon: string }[] = [
   { key: "rectangle", label: "직사각형", icon: "▭" },
   { key: "text", label: "텍스트", icon: "T" },
   { key: "channel", label: "채널", icon: "∥" },
+  { key: "pitchfork", label: "피치포크", icon: "P" },
+  { key: "gann", label: "갠 팬", icon: "G" },
+  { key: "elliott", label: "엘리엇", icon: "E" },
+  { key: "harmonic", label: "하모닉", icon: "H" },
 ];
 
 function drawingTypeLabel(item: DrawingItem): string {
@@ -19,13 +23,19 @@ function drawingTypeLabel(item: DrawingItem): string {
   if (item.type === "measure") return "측정";
   if (item.type === "rectangle") return "직사각형";
   if (item.type === "text") return `텍스트: ${item.text}`;
-  return "평행채널";
+  if (item.type === "channel") return "평행채널";
+  if (item.type === "pitchfork") return "피치포크";
+  if (item.type === "gann") return "갠 팬";
+  if (item.type === "elliott") return "엘리엇";
+  return "하모닉";
 }
 
 export default function DrawingToolbar() {
   const {
     activeTool,
     setActiveTool,
+    selectedDrawingId,
+    setSelectedDrawing,
     clearDrawings,
     drawings,
     removeDrawing,
@@ -94,6 +104,22 @@ export default function DrawingToolbar() {
       <button
         type="button"
         className="chart-toolbar-btn"
+        title="선택 드로잉 삭제"
+        onClick={() => selectedDrawingId && removeDrawing(selectedDrawingId)}
+        disabled={!selectedDrawingId}
+        style={{ opacity: selectedDrawingId ? 1 : 0.45 }}
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M3 6h18" />
+          <path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2" />
+          <path d="M10 11v6" />
+          <path d="M14 11v6" />
+        </svg>
+      </button>
+
+      <button
+        type="button"
+        className="chart-toolbar-btn"
         title={`드로잉 목록 (${drawings.length})`}
         onClick={() => setShowList((prev) => !prev)}
         style={{
@@ -137,6 +163,13 @@ export default function DrawingToolbar() {
             <div
               key={item.id}
               className="chart-toolbar-dropdown-item justify-between gap-2"
+              style={{
+                background:
+                  selectedDrawingId === item.id
+                    ? "color-mix(in srgb, var(--accent-primary) 16%, transparent)"
+                    : undefined,
+              }}
+              onClick={() => setSelectedDrawing(item.id)}
             >
               <span
                 className="min-w-0 truncate text-[11px]"
@@ -144,18 +177,28 @@ export default function DrawingToolbar() {
               >
                 {drawingTypeLabel(item)}
               </span>
-              <button
-                type="button"
-                className="rounded px-1 py-0.5 text-[10px]"
-                style={{
-                  border: "1px solid var(--border-color)",
-                  color: "var(--danger-color)",
-                }}
-                onClick={() => removeDrawing(item.id)}
-                title="개별 삭제"
-              >
-                삭제
-              </button>
+              <div className="flex items-center gap-1">
+                {selectedDrawingId === item.id && (
+                  <span className="text-[9px]" style={{ color: "var(--accent-primary)" }}>
+                    선택
+                  </span>
+                )}
+                <button
+                  type="button"
+                  className="rounded px-1 py-0.5 text-[10px]"
+                  style={{
+                    border: "1px solid var(--border-color)",
+                    color: "var(--danger-color)",
+                  }}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    removeDrawing(item.id);
+                  }}
+                  title="개별 삭제"
+                >
+                  삭제
+                </button>
+              </div>
             </div>
           ))}
           {recentDrawings.length === 0 && (

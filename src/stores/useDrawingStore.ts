@@ -8,7 +8,11 @@ export type DrawingTool =
   | "measure"
   | "rectangle"
   | "text"
-  | "channel";
+  | "channel"
+  | "pitchfork"
+  | "gann"
+  | "elliott"
+  | "harmonic";
 
 export interface DrawingPoint {
   time: number;
@@ -73,6 +77,43 @@ export interface ChannelDrawing {
   fillColor: string;
 }
 
+export interface PitchforkDrawing {
+  id: string;
+  type: "pitchfork";
+  a: DrawingPoint;
+  b: DrawingPoint;
+  c: DrawingPoint;
+  color: string;
+  fillColor: string;
+}
+
+export interface GannDrawing {
+  id: string;
+  type: "gann";
+  start: DrawingPoint;
+  end: DrawingPoint;
+  color: string;
+}
+
+export interface ElliottDrawing {
+  id: string;
+  type: "elliott";
+  points: [DrawingPoint, DrawingPoint, DrawingPoint, DrawingPoint, DrawingPoint];
+  color: string;
+}
+
+export interface HarmonicDrawing {
+  id: string;
+  type: "harmonic";
+  x: DrawingPoint;
+  a: DrawingPoint;
+  b: DrawingPoint;
+  c: DrawingPoint;
+  d: DrawingPoint;
+  color: string;
+  fillColor: string;
+}
+
 export type DrawingItem =
   | HorizontalDrawing
   | TrendDrawing
@@ -80,12 +121,18 @@ export type DrawingItem =
   | MeasureDrawing
   | RectangleDrawing
   | TextDrawing
-  | ChannelDrawing;
+  | ChannelDrawing
+  | PitchforkDrawing
+  | GannDrawing
+  | ElliottDrawing
+  | HarmonicDrawing;
 
 interface DrawingState {
   activeTool: DrawingTool;
   drawings: DrawingItem[];
+  selectedDrawingId: string | null;
   setActiveTool: (tool: DrawingTool) => void;
+  setSelectedDrawing: (id: string | null) => void;
   setDrawings: (drawings: DrawingItem[]) => void;
   addDrawing: (drawing: DrawingItem) => void;
   removeDrawing: (id: string) => void;
@@ -116,33 +163,50 @@ function saveDrawings(drawings: DrawingItem[]) {
 export const useDrawingStore = create<DrawingState>((set) => ({
   activeTool: "none",
   drawings: loadDrawings(),
+  selectedDrawingId: null,
   setActiveTool: (tool) => set({ activeTool: tool }),
+  setSelectedDrawing: (id) => set({ selectedDrawingId: id }),
   setDrawings: (drawings) => {
     saveDrawings(drawings);
-    set({ drawings });
+    set((state) => ({
+      drawings,
+      selectedDrawingId:
+        state.selectedDrawingId && drawings.some((item) => item.id === state.selectedDrawingId)
+          ? state.selectedDrawingId
+          : null,
+    }));
   },
   addDrawing: (drawing) =>
     set((state) => {
       const next = [...state.drawings, drawing];
       saveDrawings(next);
-      return { drawings: next };
+      return { drawings: next, selectedDrawingId: drawing.id };
     }),
   removeDrawing: (id) =>
     set((state) => {
       const next = state.drawings.filter((item) => item.id !== id);
       saveDrawings(next);
-      return { drawings: next };
+      return {
+        drawings: next,
+        selectedDrawingId: state.selectedDrawingId === id ? null : state.selectedDrawingId,
+      };
     }),
   undoLastDrawing: () =>
     set((state) => {
       if (state.drawings.length === 0) return {};
       const next = state.drawings.slice(0, -1);
       saveDrawings(next);
-      return { drawings: next };
+      return {
+        drawings: next,
+        selectedDrawingId:
+          state.selectedDrawingId && next.some((item) => item.id === state.selectedDrawingId)
+            ? state.selectedDrawingId
+            : null,
+      };
     }),
   clearDrawings: () =>
     set(() => {
       saveDrawings([]);
-      return { drawings: [] };
+      return { drawings: [], selectedDrawingId: null };
     }),
 }));

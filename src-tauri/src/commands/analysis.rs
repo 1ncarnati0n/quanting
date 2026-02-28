@@ -3,7 +3,8 @@ use tauri::State;
 use crate::api_client::{BinanceClient, YahooClient};
 use crate::cache::CacheDb;
 use crate::models::{
-    AnalysisParams, AnalysisResponse, MarketType, WatchlistSnapshot, WatchlistSnapshotParams,
+    AnalysisParams, AnalysisResponse, FundamentalsParams, FundamentalsResponse, MarketType,
+    WatchlistSnapshot, WatchlistSnapshotParams,
 };
 use crate::ta_engine;
 
@@ -16,6 +17,7 @@ pub async fn fetch_analysis(
 ) -> Result<AnalysisResponse, String> {
     let market_prefix = match params.market {
         MarketType::Crypto => "crypto",
+        MarketType::Forex => "fx",
         MarketType::UsStock => "us",
         MarketType::KrStock => "kr",
     };
@@ -34,7 +36,7 @@ pub async fn fetch_analysis(
                 .fetch_klines(&params.symbol, &params.interval, 500)
                 .await?
         }
-        MarketType::UsStock | MarketType::KrStock => {
+        MarketType::Forex | MarketType::UsStock | MarketType::KrStock => {
             yahoo_client
                 .fetch_klines(&params.symbol, &params.interval, 500)
                 .await?
@@ -71,6 +73,7 @@ pub async fn fetch_watchlist_snapshots(
     for item in params.items.iter().take(24) {
         let market_prefix = match item.market {
             MarketType::Crypto => "crypto",
+            MarketType::Forex => "fx",
             MarketType::UsStock => "us",
             MarketType::KrStock => "kr",
         };
@@ -85,7 +88,7 @@ pub async fn fetch_watchlist_snapshots(
                         .fetch_klines(&item.symbol, &interval, limit as u32)
                         .await
                 }
-                MarketType::UsStock | MarketType::KrStock => {
+                MarketType::Forex | MarketType::UsStock | MarketType::KrStock => {
                     yahoo_client
                         .fetch_klines(&item.symbol, &interval, limit as u32)
                         .await
@@ -138,4 +141,18 @@ pub async fn fetch_watchlist_snapshots(
     }
 
     Ok(snapshots)
+}
+
+#[tauri::command]
+pub async fn fetch_fundamentals(
+    params: FundamentalsParams,
+    yahoo_client: State<'_, YahooClient>,
+) -> Result<FundamentalsResponse, String> {
+    if matches!(params.market, MarketType::Crypto) {
+        return Err("재무 데이터는 주식/ETF/외환 심볼에서만 지원됩니다".to_string());
+    }
+
+    yahoo_client
+        .fetch_fundamentals(&params.symbol, params.market.clone())
+        .await
 }

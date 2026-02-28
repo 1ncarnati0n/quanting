@@ -228,6 +228,31 @@ export const PRESET_CATEGORIES: PresetCategory[] = [
     ],
   },
   {
+    name: "한국 ACE ETF",
+    market: "krStock",
+    items: [
+      { symbol: "360750.KS", label: "ACE 미국S&P500", market: "krStock" },
+      { symbol: "381170.KS", label: "ACE 미국나스닥100", market: "krStock" },
+      { symbol: "402970.KS", label: "ACE 미국배당다우존스", market: "krStock" },
+      { symbol: "411060.KS", label: "ACE KRX금현물", market: "krStock" },
+      { symbol: "411070.KS", label: "ACE KRX은현물", market: "krStock" },
+      { symbol: "457480.KS", label: "ACE 테슬라밸류체인액티브", market: "krStock" },
+    ],
+  },
+  {
+    name: "금/은 테마",
+    market: "usStock",
+    items: [
+      { symbol: "GLD", label: "SPDR Gold Shares", market: "usStock" },
+      { symbol: "IAU", label: "iShares Gold Trust", market: "usStock" },
+      { symbol: "SGOL", label: "abrdn Physical Gold Shares", market: "usStock" },
+      { symbol: "SLV", label: "iShares Silver Trust", market: "usStock" },
+      { symbol: "SIVR", label: "abrdn Physical Silver Shares", market: "usStock" },
+      { symbol: "XAUUSD=X", label: "Gold Spot", market: "forex" },
+      { symbol: "XAGUSD=X", label: "Silver Spot", market: "forex" },
+    ],
+  },
+  {
     name: "암호화폐",
     market: "crypto",
     items: [
@@ -239,6 +264,20 @@ export const PRESET_CATEGORIES: PresetCategory[] = [
       { symbol: "ADAUSDT", label: "카르다노", market: "crypto" },
       { symbol: "DOGEUSDT", label: "도지코인", market: "crypto" },
       { symbol: "DOTUSDT", label: "폴카닷", market: "crypto" },
+    ],
+  },
+  {
+    name: "외환 (Forex)",
+    market: "forex",
+    items: [
+      { symbol: "EURUSD=X", label: "유로/달러", market: "forex" },
+      { symbol: "GBPUSD=X", label: "파운드/달러", market: "forex" },
+      { symbol: "USDJPY=X", label: "달러/엔", market: "forex" },
+      { symbol: "AUDUSD=X", label: "호주달러/달러", market: "forex" },
+      { symbol: "USDCAD=X", label: "달러/캐나다달러", market: "forex" },
+      { symbol: "USDCHF=X", label: "달러/스위스프랑", market: "forex" },
+      { symbol: "NZDUSD=X", label: "뉴질랜드달러/달러", market: "forex" },
+      { symbol: "EURJPY=X", label: "유로/엔", market: "forex" },
     ],
   },
 ];
@@ -256,6 +295,9 @@ export function getSymbolLabel(symbol: string): string | undefined {
 export function detectMarket(symbol: string): MarketType {
   if (symbol.endsWith("USDT") || symbol.endsWith("BTC") || symbol.endsWith("ETH")) {
     return "crypto";
+  }
+  if (symbol.endsWith("=X")) {
+    return "forex";
   }
   if (symbol.includes(".KS") || symbol.includes(".KQ")) {
     return "krStock";

@@ -21,6 +21,7 @@ function watchKey(symbol: string, market: MarketType): string {
 function marketMeta(market: MarketType) {
   if (market === "crypto") return { text: "코인", color: "var(--warning-color)" };
   if (market === "krStock") return { text: "KR", color: "#EC4899" };
+  if (market === "forex") return { text: "FX", color: "#14B8A6" };
   return { text: "US", color: "var(--accent-primary)" };
 }
 

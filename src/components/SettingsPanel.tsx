@@ -528,6 +528,7 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
                       <SelectItem value="usStock">US</SelectItem>
                       <SelectItem value="krStock">KR</SelectItem>
                       <SelectItem value="crypto">코인</SelectItem>
+                      <SelectItem value="forex">FX</SelectItem>
                     </Select>
                   </div>
                   <ToggleRow
@@ -738,6 +739,13 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
                     onChange={(v) => setIndicator("bb", { multiplier: v })}
                   />
                 </IndicatorSection>
+
+                <IndicatorSection
+                  title="재무 오버레이"
+                  color="#60A5FA"
+                  enabled={indicators.fundamentals.enabled}
+                  onToggle={() => toggleIndicator("fundamentals")}
+                />
 
                   <IndicatorSection
                     title="SMA"

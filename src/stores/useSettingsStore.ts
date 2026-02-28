@@ -76,6 +76,7 @@ export interface IndicatorConfig {
   obv: { enabled: boolean };
   signalZones: { enabled: boolean };
   volumeProfile: { enabled: boolean; bins: number };
+  fundamentals: { enabled: boolean };
   vwap: { enabled: boolean };
   atr: { enabled: boolean };
   ichimoku: { enabled: boolean };
@@ -122,6 +123,7 @@ const DEFAULT_INDICATORS: IndicatorConfig = {
   obv: { enabled: false },
   signalZones: { enabled: false },
   volumeProfile: { enabled: false, bins: 24 },
+  fundamentals: { enabled: false },
   vwap: { enabled: false },
   atr: { enabled: false },
   ichimoku: { enabled: false },
@@ -234,6 +236,7 @@ function getSavedIndicators(): IndicatorConfig {
           ...DEFAULT_INDICATORS.volumeProfile,
           ...parsed.volumeProfile,
         },
+        fundamentals: { ...DEFAULT_INDICATORS.fundamentals, ...parsed.fundamentals },
         vwap: { ...DEFAULT_INDICATORS.vwap, ...parsed.vwap },
         atr: { ...DEFAULT_INDICATORS.atr, ...parsed.atr },
         ichimoku: { ...DEFAULT_INDICATORS.ichimoku, ...parsed.ichimoku },

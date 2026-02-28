@@ -60,13 +60,16 @@ export default function MarketHeader({
   const changeColor = change >= 0 ? "var(--success-color)" : "var(--danger-color)";
   const high = candles.length > 0 ? Math.max(...candles.map((c) => c.high)) : null;
   const low = candles.length > 0 ? Math.min(...candles.map((c) => c.low)) : null;
-  const marketBadge = market === "crypto" ? "코인" : market === "krStock" ? "KR" : "US";
+  const marketBadge =
+    market === "crypto" ? "코인" : market === "krStock" ? "KR" : market === "forex" ? "FX" : "US";
   const marketColor =
     market === "crypto"
       ? "var(--warning-color)"
       : market === "krStock"
         ? "#EC4899"
-        : "var(--accent-primary)";
+        : market === "forex"
+          ? "#14B8A6"
+          : "var(--accent-primary)";
 
   const formatVolume = (volume: number | null) => {
     if (volume === null) return "-";

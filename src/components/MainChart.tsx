@@ -40,6 +40,7 @@ export default function MainChart({ data, onChartReady }: MainChartProps) {
   const markersPluginRef = useRef<ISeriesMarkersPluginApi<Time> | null>(null);
 
   const theme = useSettingsStore((s) => s.theme);
+  const initialThemeRef = useRef(theme);
 
   const initChart = useCallback(() => {
     if (!containerRef.current) return;
@@ -48,7 +49,7 @@ export default function MainChart({ data, onChartReady }: MainChartProps) {
       chartRef.current.remove();
     }
 
-    const tc = THEME_COLORS[theme];
+    const tc = THEME_COLORS[initialThemeRef.current];
 
     const chart = createChart(containerRef.current, {
       layout: {
@@ -113,7 +114,7 @@ export default function MainChart({ data, onChartReady }: MainChartProps) {
     markersPluginRef.current = markersPlugin;
 
     onChartReady?.(chart, candleSeries);
-  }, [onChartReady, theme]);
+  }, [onChartReady]);
 
   // Initialize chart
   useEffect(() => {

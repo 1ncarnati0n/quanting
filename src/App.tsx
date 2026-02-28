@@ -21,7 +21,7 @@ function App() {
 
   // Apply theme CSS variables
   useEffect(() => {
-    const colors = THEME_COLORS[theme];
+    const colors = THEME_COLORS[theme] ?? THEME_COLORS.dark;
     const root = document.documentElement;
     root.style.setProperty("--bg-primary", colors.bgPrimary);
     root.style.setProperty("--bg-secondary", colors.bgSecondary);
@@ -29,6 +29,10 @@ function App() {
     root.style.setProperty("--text-primary", colors.textPrimary);
     root.style.setProperty("--text-secondary", colors.textSecondary);
     root.style.setProperty("--border-color", colors.borderColor);
+    root.style.setProperty("color-scheme", theme);
+
+    document.body.style.backgroundColor = colors.bgPrimary;
+    document.body.style.color = colors.textPrimary;
   }, [theme]);
 
   useEffect(() => {

@@ -1,5 +1,10 @@
-import { useRef, useCallback } from "react";
-import type { IChartApi, ISeriesApi, LogicalRange, SeriesType } from "lightweight-charts";
+import { useRef, useCallback, useEffect } from "react";
+import type {
+  IChartApi,
+  ISeriesApi,
+  LogicalRange,
+  SeriesType,
+} from "lightweight-charts";
 import MainChart from "./MainChart";
 import RsiChart from "./RsiChart";
 import { useChartStore } from "../stores/useChartStore";
@@ -14,26 +19,45 @@ export default function ChartContainer() {
   const mainInfoRef = useRef<ChartInfo | null>(null);
   const rsiInfoRef = useRef<ChartInfo | null>(null);
   const isSyncing = useRef(false);
+  const syncCleanupRef = useRef<Array<() => void>>([]);
+
+  const clearSyncSubscriptions = useCallback(() => {
+    for (const cleanup of syncCleanupRef.current) {
+      try {
+        cleanup();
+      } catch {
+        // Ignore cleanup failures from already-disposed charts.
+      }
+    }
+    syncCleanupRef.current = [];
+    isSyncing.current = false;
+  }, []);
 
   const syncCharts = useCallback(
     (source: ChartInfo, target: ChartInfo) => {
+      const onVisibleRangeChange = (range: LogicalRange | null) => {
+        if (isSyncing.current || !range) return;
+        isSyncing.current = true;
+        try {
+          target.chart.timeScale().setVisibleLogicalRange(range);
+        } catch {
+          // Chart might be disposed during theme switch; ignore.
+        } finally {
+          isSyncing.current = false;
+        }
+      };
+
       source.chart
         .timeScale()
-        .subscribeVisibleLogicalRangeChange((range: LogicalRange | null) => {
-          if (isSyncing.current || !range) return;
-          isSyncing.current = true;
-          target.chart.timeScale().setVisibleLogicalRange(range);
-          isSyncing.current = false;
-        });
+        .subscribeVisibleLogicalRangeChange(onVisibleRangeChange);
 
-      source.chart.subscribeCrosshairMove((param) => {
-        if (isSyncing.current) return;
-        isSyncing.current = true;
-        if (param.time) {
-          target.chart.setCrosshairPosition(NaN, param.time, target.series);
+      return () => {
+        try {
+          source.chart.timeScale().unsubscribeVisibleLogicalRangeChange(onVisibleRangeChange);
+        } catch {
+          // Chart may have been removed before unsubscribe.
         }
-        isSyncing.current = false;
-      });
+      };
     },
     [],
   );
@@ -42,23 +66,31 @@ export default function ChartContainer() {
     (chart: IChartApi, series: ISeriesApi<"Candlestick">) => {
       mainInfoRef.current = { chart, series };
       if (rsiInfoRef.current) {
-        syncCharts(mainInfoRef.current, rsiInfoRef.current);
-        syncCharts(rsiInfoRef.current, mainInfoRef.current);
+        clearSyncSubscriptions();
+        syncCleanupRef.current = [
+          syncCharts(mainInfoRef.current, rsiInfoRef.current),
+          syncCharts(rsiInfoRef.current, mainInfoRef.current),
+        ];
       }
     },
-    [syncCharts],
+    [clearSyncSubscriptions, syncCharts],
   );
 
   const handleRsiChartReady = useCallback(
     (chart: IChartApi, series: ISeriesApi<"Line">) => {
       rsiInfoRef.current = { chart, series };
       if (mainInfoRef.current) {
-        syncCharts(mainInfoRef.current, rsiInfoRef.current);
-        syncCharts(rsiInfoRef.current, mainInfoRef.current);
+        clearSyncSubscriptions();
+        syncCleanupRef.current = [
+          syncCharts(mainInfoRef.current, rsiInfoRef.current),
+          syncCharts(rsiInfoRef.current, mainInfoRef.current),
+        ];
       }
     },
-    [syncCharts],
+    [clearSyncSubscriptions, syncCharts],
   );
+
+  useEffect(() => () => clearSyncSubscriptions(), [clearSyncSubscriptions]);
 
   if (error) {
     return (

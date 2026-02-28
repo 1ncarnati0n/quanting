@@ -24,6 +24,7 @@ export default function RsiChart({ data, onChartReady }: RsiChartProps) {
   const oversoldRef = useRef<ISeriesApi<"Line"> | null>(null);
 
   const theme = useSettingsStore((s) => s.theme);
+  const initialThemeRef = useRef(theme);
 
   const initChart = useCallback(() => {
     if (!containerRef.current) return;
@@ -32,7 +33,7 @@ export default function RsiChart({ data, onChartReady }: RsiChartProps) {
       chartRef.current.remove();
     }
 
-    const tc = THEME_COLORS[theme];
+    const tc = THEME_COLORS[initialThemeRef.current];
 
     const chart = createChart(containerRef.current, {
       layout: {
@@ -85,7 +86,7 @@ export default function RsiChart({ data, onChartReady }: RsiChartProps) {
     oversoldRef.current = oversold;
 
     onChartReady?.(chart, rsiSeries);
-  }, [onChartReady, theme]);
+  }, [onChartReady]);
 
   useEffect(() => {
     initChart();

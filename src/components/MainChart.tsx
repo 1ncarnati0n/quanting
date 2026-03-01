@@ -25,6 +25,12 @@ import {
 import { formatPrice } from "../utils/formatters";
 import { DEFAULTS } from "../utils/constants";
 import {
+  buildTimeRangeDetail,
+  readSavedTimeRangeId,
+  type ChartTimeRange,
+  type TimeRangeId,
+} from "../utils/timeRange";
+import {
   useSettingsStore,
   type ChartType,
   type PriceScaleMode,
@@ -173,6 +179,7 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
   const resizeRafRef = useRef<number | null>(null);
   const prevDataScopeRef = useRef<string | null>(null);
   const lastVisibleTimeRangeRef = useRef<{ from: number; to: number } | null>(null);
+  const activeTimeRangeIdRef = useRef<TimeRangeId>(readSavedTimeRangeId());
   const crosshairRafRef = useRef<number | null>(null);
 
   const theme = useSettingsStore((s) => s.theme);
@@ -194,6 +201,50 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
     }
     dynamicSeriesRef.current.clear();
   }, []);
+
+  const applyRequestedTimeRange = useCallback(
+    (chart: IChartApi, candles: AnalysisResponse["candles"], detail: ChartTimeRange | null) => {
+      const ts = chart.timeScale();
+      if (!detail) {
+        ts.fitContent();
+        return;
+      }
+      if (candles.length === 0) return;
+
+      let toIdx = -1;
+      for (let i = 0; i < candles.length; i += 1) {
+        if (candles[candles.length - 1 - i].time <= detail.to) {
+          toIdx = candles.length - 1 - i;
+          break;
+        }
+      }
+      if (toIdx < 0) {
+        toIdx = 0;
+      }
+
+      let fromIdx = -1;
+      for (let i = 0; i < candles.length; i += 1) {
+        if (candles[i].time >= detail.from) {
+          fromIdx = i;
+          break;
+        }
+      }
+      if (fromIdx < 0 || fromIdx > toIdx) {
+        fromIdx = toIdx;
+      }
+
+      const minBars = 2;
+      if (toIdx - fromIdx + 1 < minBars) {
+        fromIdx = Math.max(0, toIdx - (minBars - 1));
+      }
+
+      ts.setVisibleLogicalRange({
+        from: fromIdx - 0.25,
+        to: toIdx + 0.25,
+      });
+    },
+    [],
+  );
 
   const applyIndicatorScaleLayout = useCallback(() => {
     if (!chartRef.current) return;
@@ -563,49 +614,34 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
     };
     const onSetTimeRange = (e: Event) => {
       if (!chartRef.current || !dataRef.current) return;
-      const detail = (e as CustomEvent).detail as { from: number; to: number } | null;
-      if (!detail) {
-        chartRef.current.timeScale().fitContent();
-        return;
-      }
-      const ts = chartRef.current.timeScale();
-      const candles = dataRef.current.candles;
-      if (candles.length === 0) return;
 
-      // requested range보다 이전에만 데이터가 있으면 최근 데이터로 앵커링
-      let toIdx = -1;
-      for (let i = 0; i < candles.length; i++) {
-        if (candles[candles.length - 1 - i].time <= detail.to) {
-          toIdx = candles.length - 1 - i;
-          break;
-        }
-      }
-      if (toIdx < 0) {
-        // 요청 범위가 데이터 시작 이전이면 가장 앞 구간으로 이동
-        toIdx = 0;
-      }
+      type LegacyDetail = { from: number; to: number } | null;
+      type NextDetail = { id?: TimeRangeId; range?: ChartTimeRange | null } | null;
 
-      let fromIdx = -1;
-      for (let i = 0; i < candles.length; i++) {
-        if (candles[i].time >= detail.from) {
-          fromIdx = i;
-          break;
-        }
-      }
-      if (fromIdx < 0 || fromIdx > toIdx) {
-        fromIdx = toIdx;
+      const payload = (e as CustomEvent).detail as LegacyDetail | NextDetail;
+      let resolvedId: TimeRangeId | null = null;
+      let resolvedRange: ChartTimeRange | null = null;
+
+      if (
+        payload &&
+        typeof payload === "object" &&
+        "range" in payload
+      ) {
+        resolvedId = (payload.id ?? null) as TimeRangeId | null;
+        resolvedRange = payload.range ?? null;
+      } else {
+        const legacyRange = payload as LegacyDetail;
+        resolvedId = legacyRange ? null : "all";
+        resolvedRange = legacyRange;
       }
 
-      // 단일 봉만 잡히는 경우에도 최소 2봉은 보이게 보정
-      const minBars = 2;
-      if (toIdx - fromIdx + 1 < minBars) {
-        fromIdx = Math.max(0, toIdx - (minBars - 1));
+      if (resolvedId) {
+        activeTimeRangeIdRef.current = resolvedId;
+      } else if (resolvedRange === null) {
+        activeTimeRangeIdRef.current = "all";
       }
 
-      ts.setVisibleLogicalRange({
-        from: fromIdx - 0.25,
-        to: toIdx + 0.25,
-      });
+      applyRequestedTimeRange(chartRef.current, dataRef.current.candles, resolvedRange);
     };
 
     window.addEventListener("quanting:chart-zoom-in", onZoomIn);
@@ -639,7 +675,7 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
       }
       onMainSeriesReady?.(null);
     };
-  }, [initChart, onMainSeriesReady]);
+  }, [applyRequestedTimeRange, initChart, onMainSeriesReady]);
 
   // Theme update
   useEffect(() => {
@@ -1528,19 +1564,25 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
     prevDataScopeRef.current = currentScope;
 
     if (scopeChanged) {
-      const symbolChanged = prevSymbol != null && prevSymbol !== data.symbol;
-      if (symbolChanged || !lastVisibleTimeRangeRef.current) {
-        // 심볼 변경 또는 최초 마운트 → 전체 기간 표시
-        chart.timeScale().fitContent();
+      const persistedRange = buildTimeRangeDetail(activeTimeRangeIdRef.current);
+      if (persistedRange) {
+        // 저장된 기간 버튼(예: 1일/5일/1개월)이 있으면 심볼/인터벌 변경 후에도 재적용
+        applyRequestedTimeRange(chart, displayCandles, persistedRange);
       } else {
-        // 인터벌/차트타입/리플레이 변경 → 시간 구간 복원
-        try {
-          chart.timeScale().setVisibleRange({
-            from: lastVisibleTimeRangeRef.current.from as Time,
-            to: lastVisibleTimeRangeRef.current.to as Time,
-          });
-        } catch {
+        const symbolChanged = prevSymbol != null && prevSymbol !== data.symbol;
+        if (symbolChanged || !lastVisibleTimeRangeRef.current) {
+          // 심볼 변경 또는 최초 마운트 → 전체 기간 표시
           chart.timeScale().fitContent();
+        } else {
+          // 인터벌/차트타입/리플레이 변경 → 시간 구간 복원
+          try {
+            chart.timeScale().setVisibleRange({
+              from: lastVisibleTimeRangeRef.current.from as Time,
+              to: lastVisibleTimeRangeRef.current.to as Time,
+            });
+          } catch {
+            chart.timeScale().fitContent();
+          }
         }
       }
     } else if (savedRange) {
@@ -1562,6 +1604,7 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
     }
   }, [
     applyIndicatorScaleLayout,
+    applyRequestedTimeRange,
     chartType,
     clearDynamicSeries,
     data,

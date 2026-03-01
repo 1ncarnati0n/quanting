@@ -37,7 +37,11 @@ const MARKET_FILTER_OPTIONS: Array<{ value: MarketFilter; label: string }> = [
   { value: "forex", label: "FX" },
 ];
 
-export default function SymbolSearch() {
+interface SymbolSearchProps {
+  hideTrigger?: boolean;
+}
+
+export default function SymbolSearch({ hideTrigger = false }: SymbolSearchProps) {
   const {
     symbol,
     market,
@@ -256,29 +260,33 @@ export default function SymbolSearch() {
 
   return (
     <div className="relative">
-      <div className="flex items-center gap-1">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="ds-type-label gap-1.5 px-2 text-[var(--muted-foreground)]"
-          onClick={() => setIsOpen(true)}
-          title="종목 검색 열기 (Ctrl/Cmd+K)"
-        >
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="11" cy="11" r="7" />
-            <line x1="16.65" y1="16.65" x2="21" y2="21" />
-          </svg>
-          <span className="hidden sm:inline">종목</span>
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => toggleFavorite(symbol, market)}
-          title={isCurrentFavorite ? "현재 종목 즐겨찾기 해제" : "현재 종목 즐겨찾기 추가"}
-        >
-          {isCurrentFavorite ? "★" : "☆"}
-        </Button>
-      </div>
+      {!hideTrigger && (
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="ds-type-label gap-1.5 px-2 text-[var(--muted-foreground)]"
+            onClick={() => setIsOpen(true)}
+            title="종목 검색 열기 (Ctrl/Cmd+K)"
+            aria-label="종목 검색 열기"
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="11" cy="11" r="7" />
+              <line x1="16.65" y1="16.65" x2="21" y2="21" />
+            </svg>
+            <span className="hidden sm:inline">종목</span>
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => toggleFavorite(symbol, market)}
+            title={isCurrentFavorite ? "현재 종목 즐겨찾기 해제" : "현재 종목 즐겨찾기 추가"}
+            aria-label={isCurrentFavorite ? "현재 종목 즐겨찾기 해제" : "현재 종목 즐겨찾기 추가"}
+          >
+            {isCurrentFavorite ? "★" : "☆"}
+          </Button>
+        </div>
+      )}
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent className="w-[min(100%-2rem,620px)] overflow-hidden p-0">

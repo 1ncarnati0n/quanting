@@ -4,8 +4,10 @@ import { cn } from "@/lib/utils";
 interface DropdownMenuContextValue {
   open: boolean;
   setOpen: (open: boolean) => void;
+  setFocusOnOpen: (target: "first" | "last" | "active") => void;
   triggerRef: React.RefObject<HTMLElement | null>;
   contentRef: React.RefObject<HTMLDivElement | null>;
+  contentId: string;
 }
 
 const DropdownMenuContext = React.createContext<DropdownMenuContextValue | null>(null);
@@ -48,6 +50,9 @@ function DropdownMenu({
 }: DropdownMenuProps) {
   const triggerRef = React.useRef<HTMLElement | null>(null);
   const contentRef = React.useRef<HTMLDivElement | null>(null);
+  const focusOnOpenRef = React.useRef<"first" | "last" | "active">("active");
+  const wasOpenRef = React.useRef(defaultOpen);
+  const contentId = React.useId();
   const [uncontrolledOpen, setUncontrolledOpen] = React.useState(defaultOpen);
   const open = openProp ?? uncontrolledOpen;
 
@@ -60,6 +65,9 @@ function DropdownMenu({
     },
     [onOpenChange, openProp],
   );
+  const setFocusOnOpen = React.useCallback((target: "first" | "last" | "active") => {
+    focusOnOpenRef.current = target;
+  }, []);
 
   React.useEffect(() => {
     if (!open) return;
@@ -84,8 +92,50 @@ function DropdownMenu({
     };
   }, [open, setOpen]);
 
+  React.useEffect(() => {
+    if (!open) return;
+    const timer = window.setTimeout(() => {
+      const items = Array.from(
+        contentRef.current?.querySelectorAll<HTMLButtonElement>(
+          '[role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"]',
+        ) ?? [],
+      ).filter((item) => !item.disabled);
+      if (!items.length) return;
+
+      const activeItem = contentRef.current?.querySelector<HTMLButtonElement>(
+        '[data-dropdown-active="true"]',
+      );
+      const strategy = focusOnOpenRef.current;
+      if (strategy === "last") {
+        items[items.length - 1]?.focus();
+      } else if (strategy === "first") {
+        items[0]?.focus();
+      } else {
+        activeItem?.focus() ?? items[0]?.focus();
+      }
+      focusOnOpenRef.current = "active";
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [open]);
+
+  React.useEffect(() => {
+    if (wasOpenRef.current && !open) {
+      triggerRef.current?.focus();
+    }
+    wasOpenRef.current = open;
+  }, [open]);
+
   return (
-    <DropdownMenuContext.Provider value={{ open, setOpen, triggerRef, contentRef }}>
+    <DropdownMenuContext.Provider
+      value={{
+        open,
+        setOpen,
+        setFocusOnOpen,
+        triggerRef,
+        contentRef,
+        contentId,
+      }}
+    >
       {children}
     </DropdownMenuContext.Provider>
   );
@@ -96,12 +146,26 @@ interface DropdownMenuTriggerProps extends React.ButtonHTMLAttributes<HTMLButton
 }
 
 const DropdownMenuTrigger = React.forwardRef<HTMLButtonElement, DropdownMenuTriggerProps>(
-  ({ asChild = false, children, onClick, ...props }, forwardedRef) => {
-    const { open, setOpen, triggerRef } = useDropdownMenuContext();
+  ({ asChild = false, children, onClick, onKeyDown, ...props }, forwardedRef) => {
+    const { open, setOpen, setFocusOnOpen, triggerRef, contentId } = useDropdownMenuContext();
+
+    const handleTriggerKeyDown = (event: React.KeyboardEvent<HTMLElement>) => {
+      if (event.defaultPrevented) return;
+      if (event.key === "ArrowDown") {
+        event.preventDefault();
+        setFocusOnOpen("active");
+        if (!open) setOpen(true);
+      } else if (event.key === "ArrowUp") {
+        event.preventDefault();
+        setFocusOnOpen("last");
+        if (!open) setOpen(true);
+      }
+    };
 
     if (asChild && React.isValidElement(children)) {
       const child = children as React.ReactElement<{
         onClick?: React.MouseEventHandler<HTMLElement>;
+        onKeyDown?: React.KeyboardEventHandler<HTMLElement>;
       }>;
       const childRef = (child as unknown as { ref?: React.Ref<HTMLElement> }).ref;
       return React.cloneElement(child as React.ReactElement, {
@@ -113,8 +177,14 @@ const DropdownMenuTrigger = React.forwardRef<HTMLButtonElement, DropdownMenuTrig
             setOpen(!open);
           }
         },
+        onKeyDown: (event: React.KeyboardEvent) => {
+          child.props.onKeyDown?.(event as React.KeyboardEvent<HTMLElement>);
+          onKeyDown?.(event as React.KeyboardEvent<HTMLButtonElement>);
+          handleTriggerKeyDown(event as React.KeyboardEvent<HTMLElement>);
+        },
         "aria-haspopup": "menu",
         "aria-expanded": open,
+        "aria-controls": open ? contentId : undefined,
       } as Record<string, unknown>);
     }
 
@@ -124,11 +194,16 @@ const DropdownMenuTrigger = React.forwardRef<HTMLButtonElement, DropdownMenuTrig
         type="button"
         aria-haspopup="menu"
         aria-expanded={open}
+        aria-controls={open ? contentId : undefined}
         onClick={(event) => {
           onClick?.(event);
           if (!event.defaultPrevented) {
             setOpen(!open);
           }
+        }}
+        onKeyDown={(event) => {
+          onKeyDown?.(event);
+          handleTriggerKeyDown(event as unknown as React.KeyboardEvent<HTMLElement>);
         }}
         {...props}
       >
@@ -146,8 +221,8 @@ interface DropdownMenuContentProps extends React.HTMLAttributes<HTMLDivElement> 
 }
 
 const DropdownMenuContent = React.forwardRef<HTMLDivElement, DropdownMenuContentProps>(
-  ({ className, align = "start", sideOffset = 4, style, ...props }, forwardedRef) => {
-    const { open, contentRef } = useDropdownMenuContext();
+  ({ className, align = "start", sideOffset = 4, style, onKeyDown, ...props }, forwardedRef) => {
+    const { open, setOpen, contentRef, contentId } = useDropdownMenuContext();
     if (!open) return null;
 
     const alignClass =
@@ -160,7 +235,46 @@ const DropdownMenuContent = React.forwardRef<HTMLDivElement, DropdownMenuContent
     return (
       <div
         ref={mergeRefs(contentRef, forwardedRef)}
+        id={contentId}
         role="menu"
+        onKeyDown={(event) => {
+          onKeyDown?.(event);
+          if (event.defaultPrevented) return;
+          if (event.key === "Escape") {
+            event.preventDefault();
+            setOpen(false);
+            return;
+          }
+          if (event.key === "Tab") {
+            setOpen(false);
+            return;
+          }
+          const items = Array.from(
+            (event.currentTarget as HTMLDivElement).querySelectorAll<HTMLButtonElement>(
+              '[role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"]',
+            ),
+          ).filter((item) => !item.disabled);
+          if (!items.length) return;
+
+          const currentIndex = items.indexOf(document.activeElement as HTMLButtonElement);
+          const focusAt = (index: number) => {
+            items[(index + items.length) % items.length]?.focus();
+          };
+
+          if (event.key === "ArrowDown") {
+            event.preventDefault();
+            focusAt(currentIndex + 1);
+          } else if (event.key === "ArrowUp") {
+            event.preventDefault();
+            focusAt(currentIndex <= 0 ? items.length - 1 : currentIndex - 1);
+          } else if (event.key === "Home") {
+            event.preventDefault();
+            focusAt(0);
+          } else if (event.key === "End") {
+            event.preventDefault();
+            focusAt(items.length - 1);
+          }
+        }}
         className={cn(
           "absolute top-full z-50 min-w-[8rem] overflow-hidden rounded border border-border bg-card p-1 shadow-[var(--shadow-elevated)]",
           alignClass,

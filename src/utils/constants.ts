@@ -207,6 +207,9 @@ export const PRESET_CATEGORIES: PresetCategory[] = [
       { symbol: "V", label: "Visa", market: "usStock" },
       { symbol: "UNH", label: "UnitedHealth", market: "usStock" },
       { symbol: "JNJ", label: "J&J", market: "usStock" },
+      { symbol: "LLY", label: "Eli Lilly", market: "usStock" },
+      { symbol: "RGTI", label: "Rigetti Computing", market: "usStock" },
+      { symbol: "RGTU", label: "RGTU", market: "usStock" },
     ],
   },
   {
@@ -223,6 +226,11 @@ export const PRESET_CATEGORIES: PresetCategory[] = [
       { symbol: "XLF", label: "Financial", market: "usStock" },
       { symbol: "XLK", label: "Technology", market: "usStock" },
       { symbol: "XLE", label: "Energy", market: "usStock" },
+      { symbol: "SCHD", label: "Schwab US Dividend", market: "usStock" },
+      { symbol: "JEPI", label: "JPMorgan Equity Premium", market: "usStock" },
+      { symbol: "JEPQ", label: "JPMorgan Nasdaq Premium", market: "usStock" },
+      { symbol: "BITX", label: "2x Bitcoin Strategy", market: "usStock" },
+      { symbol: "ETHU", label: "2x Ether Strategy", market: "usStock" },
     ],
   },
   {
@@ -251,6 +259,7 @@ export const PRESET_CATEGORIES: PresetCategory[] = [
       { symbol: "305720.KS", label: "KODEX 2차전지", market: "krStock" },
       { symbol: "252670.KS", label: "KODEX 200선물인버스2X", market: "krStock" },
       { symbol: "122630.KS", label: "KODEX 레버리지", market: "krStock" },
+      { symbol: "144600.KS", label: "KODEX 은선물(H)", market: "krStock" },
     ],
   },
   {
@@ -274,6 +283,7 @@ export const PRESET_CATEGORIES: PresetCategory[] = [
       { symbol: "SGOL", label: "abrdn Physical Gold Shares", market: "usStock" },
       { symbol: "SLV", label: "iShares Silver Trust", market: "usStock" },
       { symbol: "SIVR", label: "abrdn Physical Silver Shares", market: "usStock" },
+      { symbol: "AGQ", label: "ProShares Ultra Silver", market: "usStock" },
     ],
   },
   {

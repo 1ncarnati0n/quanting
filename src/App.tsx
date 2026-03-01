@@ -6,6 +6,7 @@ import SettingsPanel from "./components/SettingsPanel";
 import WatchlistSidebar from "./components/WatchlistSidebar";
 import CollapsibleSidebar from "./components/CollapsibleSidebar";
 import ShortcutsModal from "./components/ShortcutsModal";
+import SymbolSearch from "./components/SymbolSearch";
 import { useChartStore } from "./stores/useChartStore";
 import { useSettingsStore } from "./stores/useSettingsStore";
 import { useReplayStore } from "./stores/useReplayStore";
@@ -48,9 +49,6 @@ function App() {
   const theme = useSettingsStore((s) => s.theme);
   const isFullscreen = useSettingsStore((s) => s.isFullscreen);
   const toggleFullscreen = useSettingsStore((s) => s.toggleFullscreen);
-  const isTauriEnvironment =
-    typeof window !== "undefined" &&
-    Boolean((window as unknown as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__);
 
   const shellStyle: CSSProperties = {
     background: "var(--background)",
@@ -386,6 +384,7 @@ function App() {
     const onKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement | null;
       const tag = target?.tagName;
+      const isInDialog = !!target?.closest('[role="dialog"]');
       const isTyping =
         !!target &&
         (tag === "INPUT" ||
@@ -394,6 +393,10 @@ function App() {
           target.isContentEditable);
 
       if (e.key === "Escape") {
+        if (isInDialog) {
+          // Dialog/Sheet에서의 Escape는 각 컴포넌트 핸들러에 위임
+          return;
+        }
         if (useSettingsStore.getState().isFullscreen) {
           // Fullscreen exit handled by browser API
           return;
@@ -474,9 +477,15 @@ function App() {
       }
       if (isMod && keyLower === "k") {
         e.preventDefault();
-        if (window.matchMedia("(min-width: 1280px)").matches) return;
         setShowSettings(false);
-        setShowWatchlist(true);
+        setShowWatchlist(false);
+        window.dispatchEvent(new CustomEvent("quanting:open-symbol-search"));
+      }
+      if (isMod && keyLower === "/") {
+        e.preventDefault();
+        setShowSettings(false);
+        setShowWatchlist(false);
+        window.dispatchEvent(new CustomEvent("quanting:open-symbol-search"));
       }
     };
 
@@ -495,6 +504,7 @@ function App() {
           <ChartContainer />
         </div>
         <ShortcutsModal />
+        <SymbolSearch hideTrigger />
       </div>
     );
   }
@@ -513,22 +523,6 @@ function App() {
 
   return (
     <div className="flex h-full min-h-0 w-full flex-col" style={shellStyle}>
-      {isTauriEnvironment && (
-        <header
-          data-tauri-drag-region
-          className="mb-2 flex h-8 items-center justify-between rounded-md border border-[var(--border)] bg-[var(--card)] px-2.5 text-[var(--muted-foreground)] select-none"
-        >
-          <div data-tauri-drag-region className="ds-type-caption font-semibold tracking-wide">
-            Quanting Desktop
-          </div>
-          <div className="ds-type-caption hidden items-center gap-2 md:flex">
-            <span>Ctrl/⌘+K 종목검색</span>
-            <span>•</span>
-            <span>R 리플레이</span>
-          </div>
-        </header>
-      )}
-
       <div className="relative flex min-h-0 flex-1 w-full gap-2 xl:gap-3">
         <CollapsibleSidebar
           side="left"
@@ -588,6 +582,7 @@ function App() {
         </Sheet>
 
         <ShortcutsModal />
+        <SymbolSearch hideTrigger />
       </div>
     </div>
   );

@@ -30,6 +30,7 @@ const SHORTCUT_GROUPS = [
       { keys: ["Ctrl/⌘", "B"], desc: "관심종목 패널 (좁은 화면)" },
       { keys: ["Ctrl/⌘", ","], desc: "설정 패널 (좁은 화면)" },
       { keys: ["Ctrl/⌘", "K"], desc: "심볼 검색" },
+      { keys: ["Ctrl/⌘", "/"], desc: "심볼 검색 (보조)" },
     ],
   },
   {

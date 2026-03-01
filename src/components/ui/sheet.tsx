@@ -1,6 +1,7 @@
 import * as React from "react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
+import { trapFocusOnTab } from "./focus-utils";
 
 interface SheetContextValue {
   open: boolean;
@@ -8,6 +9,15 @@ interface SheetContextValue {
 }
 
 const SheetContext = React.createContext<SheetContextValue | null>(null);
+
+function assignRef<T>(ref: React.Ref<T> | undefined, value: T) {
+  if (!ref) return;
+  if (typeof ref === "function") {
+    ref(value);
+    return;
+  }
+  (ref as React.MutableRefObject<T>).current = value;
+}
 
 function useSheetContext() {
   const context = React.useContext(SheetContext);
@@ -38,14 +48,26 @@ interface SheetContentProps extends React.HTMLAttributes<HTMLDivElement> {
 const SheetContent = React.forwardRef<HTMLDivElement, SheetContentProps>(
   ({ side = "right", className, style, children, ...props }, ref) => {
     const { open, onOpenChange } = useSheetContext();
+    const contentRef = React.useRef<HTMLDivElement | null>(null);
+    const restoreFocusRef = React.useRef<HTMLElement | null>(null);
 
     React.useEffect(() => {
       if (!open) return;
+      restoreFocusRef.current = document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
       const onKeyDown = (event: KeyboardEvent) => {
         if (event.key === "Escape") onOpenChange?.(false);
       };
       window.addEventListener("keydown", onKeyDown);
-      return () => window.removeEventListener("keydown", onKeyDown);
+      const timer = window.setTimeout(() => {
+        contentRef.current?.focus();
+      }, 0);
+      return () => {
+        window.removeEventListener("keydown", onKeyDown);
+        window.clearTimeout(timer);
+        restoreFocusRef.current?.focus?.();
+      };
     }, [onOpenChange, open]);
 
     if (typeof document === "undefined") return null;
@@ -62,6 +84,7 @@ const SheetContent = React.forwardRef<HTMLDivElement, SheetContentProps>(
         <button
           type="button"
           aria-label="닫기"
+          tabIndex={-1}
           className="fixed inset-0 z-20 bg-black/40 transition-opacity 2xl:hidden"
           style={{
             opacity: open ? 1 : 0,
@@ -70,11 +93,22 @@ const SheetContent = React.forwardRef<HTMLDivElement, SheetContentProps>(
           onClick={() => onOpenChange?.(false)}
         />
         <div
-          ref={ref}
+          ref={(node) => {
+            contentRef.current = node;
+            assignRef(ref, node);
+          }}
           className={cn(
             "fixed z-30 flex flex-col overflow-hidden rounded border border-border bg-card shadow-[var(--shadow-elevated)] transition-transform duration-200 2xl:hidden",
             className,
           )}
+          role="dialog"
+          aria-modal="true"
+          tabIndex={-1}
+          onKeyDown={(event) => {
+            const node = contentRef.current;
+            if (!node) return;
+            trapFocusOnTab(event, node);
+          }}
           style={{
             top: "calc(env(safe-area-inset-top, 0px) + 0.5rem)",
             bottom: "calc(env(safe-area-inset-bottom, 0px) + 0.5rem)",

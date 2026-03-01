@@ -345,9 +345,20 @@ body {
 input:focus-visible,
 button:focus-visible,
 select:focus-visible {
-  outline: 2px solid var(--primary);
-  outline: 2px solid color-mix(in srgb, var(--primary) 65%, transparent);
+  outline: 2px solid color-mix(in srgb, var(--primary) 72%, transparent);
   outline-offset: 1px;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--background) 88%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* Chart toolbar */
@@ -367,6 +378,12 @@ select:focus-visible {
 .chart-toolbar-btn:hover {
   background: var(--secondary);
   color: var(--foreground);
+}
+.chart-toolbar-btn:focus-visible {
+  background: var(--secondary);
+  color: var(--foreground);
+  outline: 2px solid color-mix(in srgb, var(--primary) 72%, transparent);
+  outline-offset: 1px;
 }
 
 .chart-toolbar-dropdown {

@@ -32,49 +32,54 @@ export default function IntervalSelector() {
     <div className="flex items-center gap-1">
       {intradayIntervals.length > 0 && (
         <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button
-              type="button"
-              className={`${CONTROL_CHIP_BUTTON_CLASS} inline-flex min-w-[84px] items-center justify-center gap-1.5 border border-[var(--border)] bg-[var(--secondary)] text-[var(--foreground)]`}
-              aria-label="분/시간 인터벌 선택"
-              title="분/시간 인터벌 선택"
-            >
-              <span>{intradayLabel}</span>
-              <svg
-                width="10"
-                height="10"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
+          <div className="relative">
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className={`${CONTROL_CHIP_BUTTON_CLASS} inline-flex h-[var(--control-height-sm)] min-w-[74px] items-center justify-center gap-1.5 border border-[var(--border)] bg-[var(--secondary)] text-[var(--foreground)]`}
+                aria-label="분/시간 인터벌 선택"
+                title="분/시간 인터벌 선택"
               >
-                <polyline points="6 9 12 15 18 9" />
-              </svg>
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="min-w-[7.5rem]">
-            {intradayIntervals.map((iv) => {
-              const active = interval === iv;
-              return (
-                <DropdownMenuItem
-                  key={iv}
-                  onSelect={() => setInterval(iv)}
-                  className="justify-between"
-                  style={{
-                    background: active
-                      ? "color-mix(in srgb, var(--primary) 14%, transparent)"
-                      : undefined,
-                    color: active ? "var(--primary)" : undefined,
-                  }}
+                <span>{intradayLabel}</span>
+                <svg
+                  width="10"
+                  height="10"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
                 >
-                  <span>{getIntervalLabel(iv)}</span>
-                  {active && <span>✓</span>}
-                </DropdownMenuItem>
-              );
-            })}
-          </DropdownMenuContent>
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="z-[90] max-h-64 min-w-[7.25rem] overflow-y-auto">
+              {intradayIntervals.map((iv) => {
+                const active = interval === iv;
+                return (
+                  <DropdownMenuItem
+                    key={iv}
+                    role="menuitemradio"
+                    aria-checked={active}
+                    data-dropdown-active={active ? "true" : undefined}
+                    onSelect={() => setInterval(iv)}
+                    className="justify-between"
+                    style={{
+                      background: active
+                        ? "color-mix(in srgb, var(--primary) 14%, transparent)"
+                        : undefined,
+                      color: active ? "var(--primary)" : undefined,
+                    }}
+                  >
+                    <span>{getIntervalLabel(iv)}</span>
+                    {active && <span>✓</span>}
+                  </DropdownMenuItem>
+                );
+              })}
+            </DropdownMenuContent>
+          </div>
         </DropdownMenu>
       )}
 
@@ -92,7 +97,7 @@ export default function IntervalSelector() {
           <ToggleGroupItem
             key={iv}
             value={iv}
-            className={`${CONTROL_CHIP_BUTTON_CLASS} min-w-[40px]`}
+            className={`${CONTROL_CHIP_BUTTON_CLASS} min-w-[36px]`}
           >
             {getIntervalLabel(iv)}
           </ToggleGroupItem>

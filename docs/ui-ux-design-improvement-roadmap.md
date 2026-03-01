@@ -40,16 +40,19 @@
 - [x] 상태바 신호/메타 정보 우선순위 재배치
 
 ### Phase 3. Desktop Polish (후속)
-- [ ] Tauri 윈도우 컨트롤(최소화/최대화/닫기) 커스텀 헤더 적용
-- [ ] 단축키 힌트의 노출 정책 정비 (초보/숙련 모드)
-- [ ] 접근성 점검 (focus-visible, 키보드 내비게이션, 명도 대비)
-- [ ] 성능 폴리싱 (큰 번들 분할, 초기 렌더 비용 감축)
+- [x] Tauri 윈도우 컨트롤(최소화/최대화/닫기) 커스텀 헤더 적용
+- [x] 단축키 힌트의 노출 정책 정비 (헤더 토글)
+- [x] 접근성 점검 1차 (focus-visible 강화, Tabs/Dropdown 키보드 내비게이션, Dialog/Sheet 포커스 복귀)
+- [x] 성능 폴리싱 1차 (Vite manualChunks로 React/Chart/Tauri 분할)
+- [x] 접근성 점검 2차 (Dialog/Sheet 포커스 트랩, 아이콘 버튼 aria-label 보강)
+- [x] 성능 폴리싱 2차 (Tauri Window API 동적 로딩)
 
 ## 6. 파일별 작업 맵
 - 인터벌 라벨/규칙: `src/utils/constants.ts`
 - 종목명 표기 규칙: `src/utils/marketView.ts`
 - 인터벌 UI: `src/components/IntervalSelector.tsx`
 - 기간 UI: `src/components/TimeRangeBar.tsx`
+- 기간 로직 유틸: `src/utils/timeRange.ts`
 - 헤더 레이아웃: `src/components/MarketHeader.tsx`
 - 상태바 인터벌 노출: `src/components/StatusBar.tsx`
 - 관심종목/설정/검색 표기 통일:
@@ -67,4 +70,12 @@
 ## 8. 이번 적용 범위
 - Phase 1 항목을 모두 반영했다.
 - Phase 2의 핵심 항목(Watchlist/SymbolSearch 밀도, 설정 패널 시각 구획, 툴바 스케일, 상태바 우선순위)을 반영했다.
-- 다음 작업에서는 Phase 3의 데스크탑 폴리싱(윈도우 컨트롤/접근성/성능)을 1순위로 진행한다.
+- Phase 3 중 데스크탑 폴리싱(윈도우 컨트롤, 힌트 토글)을 반영했다.
+- 접근성/성능 폴리싱 1차, 2차를 반영했다.
+- 키보드 플로우 보강(Ctrl/⌘+K 글로벌 심볼 검색)과 설정 알림 영역 대비 개선을 반영했다.
+- 인터벌/기간 버튼의 패딩 토큰을 단일 규칙으로 정리해 버튼 밀도를 다시 보정했다.
+- 타임레인지 로직을 공통 유틸로 분리하고, 저장값(레거시 포함) 파싱을 일원화했다.
+- 타임레인지 선택값(예: 1일)이 심볼/인터벌 변경 후에도 차트에 안정적으로 재적용되도록 MainChart 로직을 보강했다.
+- 분/시간 드롭다운의 키보드 내비게이션(↑/↓ 열기, 활성 항목 포커스, Tab/Escape 닫기)과 트리거 포커스 복귀를 보강했다.
+- 헤더 인터벌/기간 컨트롤 및 아이콘 버튼 밀도를 소폭 낮춰 정보 밀집 구간 가독성을 개선했다.
+- 상단 유틸 헤더(앱 타이틀/윈도우 컨트롤/힌트 바)를 제거해 메인 차트 영역 집중도를 높였다.

@@ -26,6 +26,11 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { cn } from "@/lib/utils";
+import { INDICATOR_GUIDE } from "../utils/indicatorGuide";
+
+function paramDesc(title: string, label: string): string | undefined {
+  return INDICATOR_GUIDE[title]?.params?.[label];
+}
 
 interface SettingsPanelProps {
   onClose: () => void;
@@ -156,6 +161,7 @@ function SliderRow({
   step,
   formatValue,
   onChange,
+  description,
 }: {
   label: string;
   value: number;
@@ -164,11 +170,13 @@ function SliderRow({
   step: number;
   formatValue?: (v: number) => string;
   onChange: (v: number) => void;
+  description?: string;
 }) {
   return (
     <SettingRow
       className="mb-3"
       label={label}
+      description={description}
       right={(
         <span className="font-mono text-sm text-[var(--foreground)]">
           {formatValue ? formatValue(value) : step < 1 ? value.toFixed(1) : value}
@@ -799,6 +807,7 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
                     max={100}
                     step={1}
                     onChange={(v) => setIndicator("bb", { period: v })}
+                    description={paramDesc("볼린저 밴드", "기간")}
                   />
                   <SliderRow
                     label="승수"
@@ -807,6 +816,7 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
                     max={4.0}
                     step={0.1}
                     onChange={(v) => setIndicator("bb", { multiplier: v })}
+                    description={paramDesc("볼린저 밴드", "승수")}
                   />
                 </IndicatorSection>
 
@@ -894,6 +904,7 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
                     max={100}
                     step={1}
                     onChange={(v) => setIndicator("donchian", { period: v })}
+                    description={paramDesc("Donchian Channels", "기간")}
                   />
                 </IndicatorSection>
 
@@ -910,6 +921,7 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
                     max={50}
                     step={1}
                     onChange={(v) => setIndicator("keltner", { emaPeriod: v })}
+                    description={paramDesc("Keltner Channels", "EMA 기간")}
                   />
                   <SliderRow
                     label="ATR 기간"
@@ -918,6 +930,7 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
                     max={50}
                     step={1}
                     onChange={(v) => setIndicator("keltner", { atrPeriod: v })}
+                    description={paramDesc("Keltner Channels", "ATR 기간")}
                   />
                   <SliderRow
                     label="ATR 배수"
@@ -926,6 +939,7 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
                     max={4.0}
                     step={0.1}
                     onChange={(v) => setIndicator("keltner", { atrMultiplier: v })}
+                    description={paramDesc("Keltner Channels", "ATR 배수")}
                   />
                 </IndicatorSection>
 
@@ -942,6 +956,7 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
                     max={20}
                     step={1}
                     onChange={(v) => setIndicator("smc", { swingLength: v })}
+                    description={paramDesc("SMC (스마트머니)", "스윙 길이")}
                   />
                 </IndicatorSection>
 
@@ -965,6 +980,7 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
                     max={500}
                     step={10}
                     onChange={(v) => setIndicator("autoFib", { lookback: v })}
+                    description={paramDesc("Auto Fibonacci", "조회 기간")}
                   />
                   <SliderRow
                     label="스윙 길이"
@@ -973,6 +989,7 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
                     max={20}
                     step={1}
                     onChange={(v) => setIndicator("autoFib", { swingLength: v })}
+                    description={paramDesc("Auto Fibonacci", "스윙 길이")}
                   />
                 </IndicatorSection>
               </AccordionSection>
@@ -998,6 +1015,7 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
                     max={50}
                     step={1}
                     onChange={(v) => setIndicator("rsi", { period: v })}
+                    description={paramDesc("RSI", "기간")}
                   />
                 </IndicatorSection>
 
@@ -1014,6 +1032,7 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
                       max={50}
                       step={1}
                       onChange={(v) => setIndicator("macd", { fastPeriod: v })}
+                      description={paramDesc("MACD", "단기 기간")}
                     />
                     <SliderRow
                       label="장기 기간"
@@ -1022,6 +1041,7 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
                       max={100}
                       step={1}
                       onChange={(v) => setIndicator("macd", { slowPeriod: v })}
+                      description={paramDesc("MACD", "장기 기간")}
                     />
                     <SliderRow
                       label="시그널 기간"
@@ -1030,6 +1050,7 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
                       max={50}
                       step={1}
                       onChange={(v) => setIndicator("macd", { signalPeriod: v })}
+                      description={paramDesc("MACD", "시그널 기간")}
                     />
                   </IndicatorSection>
 
@@ -1046,6 +1067,7 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
                       max={50}
                       step={1}
                       onChange={(v) => setIndicator("stochastic", { kPeriod: v })}
+                      description={paramDesc("스토캐스틱", "%K 기간")}
                     />
                     <SliderRow
                       label="%D 기간"
@@ -1054,6 +1076,7 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
                       max={20}
                       step={1}
                       onChange={(v) => setIndicator("stochastic", { dPeriod: v })}
+                      description={paramDesc("스토캐스틱", "%D 기간")}
                     />
                     <SliderRow
                       label="스무딩"
@@ -1062,6 +1085,7 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
                       max={10}
                       step={1}
                       onChange={(v) => setIndicator("stochastic", { smooth: v })}
+                      description={paramDesc("스토캐스틱", "스무딩")}
                     />
                   </IndicatorSection>
 
@@ -1085,6 +1109,7 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
                     max={50}
                     step={1}
                     onChange={(v) => setIndicator("mfi", { period: v })}
+                    description={paramDesc("MFI", "기간")}
                   />
                 </IndicatorSection>
 
@@ -1101,6 +1126,7 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
                     max={50}
                     step={1}
                     onChange={(v) => setIndicator("cmf", { period: v })}
+                    description={paramDesc("CMF", "기간")}
                   />
                 </IndicatorSection>
 
@@ -1117,6 +1143,7 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
                     max={50}
                     step={1}
                     onChange={(v) => setIndicator("choppiness", { period: v })}
+                    description={paramDesc("Choppiness Index", "기간")}
                   />
                 </IndicatorSection>
 
@@ -1133,6 +1160,7 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
                     max={50}
                     step={1}
                     onChange={(v) => setIndicator("williamsR", { period: v })}
+                    description={paramDesc("Williams %R", "기간")}
                   />
                 </IndicatorSection>
 
@@ -1149,6 +1177,7 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
                     max={50}
                     step={1}
                     onChange={(v) => setIndicator("adx", { period: v })}
+                    description={paramDesc("ADX", "기간")}
                   />
                 </IndicatorSection>
 
@@ -1165,6 +1194,7 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
                     max={30}
                     step={1}
                     onChange={(v) => setIndicator("stc", { tcLen: v })}
+                    description={paramDesc("STC", "TC 기간")}
                   />
                   <SliderRow
                     label="단기 MA"
@@ -1173,6 +1203,7 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
                     max={50}
                     step={1}
                     onChange={(v) => setIndicator("stc", { fastMa: v })}
+                    description={paramDesc("STC", "단기 MA")}
                   />
                   <SliderRow
                     label="장기 MA"
@@ -1181,6 +1212,7 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
                     max={100}
                     step={1}
                     onChange={(v) => setIndicator("stc", { slowMa: v })}
+                    description={paramDesc("STC", "장기 MA")}
                   />
                 </IndicatorSection>
               </AccordionSection>
@@ -1218,6 +1250,7 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
                     max={300}
                     step={1}
                     onChange={(v) => setIndicator("signalFilter", { regimePeriod: v })}
+                    description={paramDesc("Quanting 신호 필터", "레짐 기간")}
                   />
                   <SliderRow
                     label="레짐 버퍼"
@@ -1227,6 +1260,7 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
                     step={0.001}
                     formatValue={(v) => v.toFixed(3)}
                     onChange={(v) => setIndicator("signalFilter", { regimeBuffer: v })}
+                    description={paramDesc("Quanting 신호 필터", "레짐 버퍼")}
                   />
                   <ToggleRow
                     label="모멘텀 필터 적용"
@@ -1240,6 +1274,7 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
                     max={252}
                     step={1}
                     onChange={(v) => setIndicator("signalFilter", { momentumPeriod: v })}
+                    description={paramDesc("Quanting 신호 필터", "모멘텀 기간")}
                   />
                   <SliderRow
                     label="매수 최소 모멘텀"
@@ -1249,6 +1284,7 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
                     step={0.01}
                     formatValue={(v) => `${(v * 100).toFixed(1)}%`}
                     onChange={(v) => setIndicator("signalFilter", { minMomentumForBuy: v })}
+                    description={paramDesc("Quanting 신호 필터", "매수 최소 모멘텀")}
                   />
                   <SliderRow
                     label="매도 최대 모멘텀"
@@ -1258,6 +1294,7 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
                     step={0.01}
                     formatValue={(v) => `${(v * 100).toFixed(1)}%`}
                     onChange={(v) => setIndicator("signalFilter", { maxMomentumForSell: v })}
+                    description={paramDesc("Quanting 신호 필터", "매도 최대 모멘텀")}
                   />
                   <ToggleRow
                     label="변동성 필터 적용"
@@ -1271,6 +1308,7 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
                     max={100}
                     step={1}
                     onChange={(v) => setIndicator("signalFilter", { volatilityPeriod: v })}
+                    description={paramDesc("Quanting 신호 필터", "변동성 기간")}
                   />
                   <SliderRow
                     label="변동성 랭크 기간"
@@ -1279,6 +1317,7 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
                     max={252}
                     step={1}
                     onChange={(v) => setIndicator("signalFilter", { volatilityRankPeriod: v })}
+                    description={paramDesc("Quanting 신호 필터", "변동성 랭크 기간")}
                   />
                   <SliderRow
                     label="고변동성 분위수"
@@ -1287,6 +1326,7 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
                     max={0.99}
                     step={0.01}
                     formatValue={(v) => `${(v * 100).toFixed(0)}%`}
+                    description={paramDesc("Quanting 신호 필터", "고변동성 분위수")}
                     onChange={(v) => setIndicator("signalFilter", { highVolPercentile: v })}
                   />
                   <ToggleRow
@@ -1341,6 +1381,7 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
                     max={60}
                     step={1}
                     onChange={(v) => setIndicator("volumeProfile", { bins: v })}
+                    description={paramDesc("볼륨 프로파일", "가격 구간(Bins)")}
                   />
                 </IndicatorSection>
               </AccordionSection>
@@ -1366,7 +1407,12 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
                   <Button
                     type="button"
                     size="sm"
-                    className="ds-type-caption bg-[#22C55E] px-2 font-semibold text-[#052e16] hover:bg-[#16a34a]"
+                    className="ds-type-caption border px-2 font-semibold"
+                    style={{
+                      background: "color-mix(in srgb, var(--success) 18%, var(--card))",
+                      color: "var(--success)",
+                      borderColor: "color-mix(in srgb, var(--success) 45%, var(--border))",
+                    }}
                     onClick={() => submitAlert("above")}
                   >
                     ↑ 위로
@@ -1374,7 +1420,12 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
                   <Button
                     type="button"
                     size="sm"
-                    className="ds-type-caption bg-[#F97316] px-2 font-semibold text-[#431407] hover:bg-[#ea580c]"
+                    className="ds-type-caption border px-2 font-semibold"
+                    style={{
+                      background: "color-mix(in srgb, var(--warning) 20%, var(--card))",
+                      color: "var(--warning)",
+                      borderColor: "color-mix(in srgb, var(--warning) 45%, var(--border))",
+                    }}
                     onClick={() => submitAlert("below")}
                   >
                     ↓ 아래로
@@ -1398,18 +1449,30 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
                           <button
                             type="button"
                             className={cn(
-                              "ds-type-caption rounded px-1.5 py-0.5 font-semibold",
+                              "ds-type-caption rounded border px-1.5 py-0.5 font-semibold",
                               alert.active
-                                ? "bg-[rgba(34,197,94,0.15)] text-[#22C55E]"
-                                : "bg-[rgba(148,163,184,0.15)] text-[var(--muted-foreground)]",
+                                ? "text-[var(--success)]"
+                                : "text-[var(--muted-foreground)]",
                             )}
+                            style={{
+                              background: alert.active
+                                ? "color-mix(in srgb, var(--success) 16%, var(--card))"
+                                : "color-mix(in srgb, var(--muted-foreground) 10%, var(--card))",
+                              borderColor: alert.active
+                                ? "color-mix(in srgb, var(--success) 35%, var(--border))"
+                                : "var(--border)",
+                            }}
                             onClick={() => togglePriceAlert(alert.id)}
                           >
                             {alert.active ? "활성" : "중지"}
                           </button>
                           <button
                             type="button"
-                            className="ds-type-caption rounded bg-[rgba(239,68,68,0.15)] px-1.5 py-0.5 font-semibold text-[#EF4444]"
+                            className="ds-type-caption rounded border px-1.5 py-0.5 font-semibold text-[var(--destructive)]"
+                            style={{
+                              background: "color-mix(in srgb, var(--destructive) 14%, var(--card))",
+                              borderColor: "color-mix(in srgb, var(--destructive) 35%, var(--border))",
+                            }}
                             onClick={() => removePriceAlert(alert.id)}
                           >
                             삭제

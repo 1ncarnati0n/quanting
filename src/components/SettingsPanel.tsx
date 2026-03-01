@@ -7,6 +7,7 @@ import {
 import { useSettingsStore } from "../stores/useSettingsStore";
 import { useDrawingStore } from "../stores/useDrawingStore";
 import { COLORS, getSymbolLabel } from "../utils/constants";
+import { formatInstrumentDisplayLine, getMarketBadgeMeta } from "../utils/marketView";
 import IndicatorSection from "./IndicatorSection";
 import PeriodsInput from "./PeriodsInput";
 import PanelHeader from "./patterns/PanelHeader";
@@ -307,14 +308,9 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
   const [activeTab, setActiveTab] = useState<SettingsTab>("indicators");
   const [alertInput, setAlertInput] = useState("");
   const symbolLabel = getSymbolLabel(symbol);
-  const marketBadge =
-    market === "crypto"
-      ? { text: "코인", color: "var(--warning)" }
-      : market === "krStock"
-        ? { text: "KR", color: "#EC4899" }
-        : market === "forex"
-          ? { text: "FX", color: "#14B8A6" }
-          : { text: "US", color: "var(--primary)" };
+  const marketBadgeMeta = getMarketBadgeMeta(market);
+  const marketBadge = { text: marketBadgeMeta.label, color: marketBadgeMeta.color };
+  const instrumentLine = formatInstrumentDisplayLine(symbol, symbolLabel, market);
   const enabledIndicatorCount = useMemo(
     () =>
       [
@@ -469,7 +465,7 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
     >
       <PanelHeader
         title="지표 설정"
-        subtitle={symbolLabel ? `${symbol} · ${symbolLabel}` : symbol}
+        subtitle={instrumentLine}
         badgeText={marketBadge.text}
         badgeColor={marketBadge.color}
         className="px-4 py-3"

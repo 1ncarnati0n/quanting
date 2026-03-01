@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useMemo, type KeyboardEvent } from "react"
 import { useSettingsStore } from "../stores/useSettingsStore";
 import { PRESET_CATEGORIES, getSymbolLabel, detectMarket } from "../utils/constants";
 import type { MarketType } from "../types";
+import { getInstrumentDisplay } from "../utils/marketView";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -53,6 +54,8 @@ export default function SymbolSearch() {
   const [marketFilter, setMarketFilter] = useState<MarketFilter>("all");
   const [activeIndex, setActiveIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
+  const currentLabel = getSymbolLabel(symbol);
+  const currentInstrument = getInstrumentDisplay(symbol, currentLabel, market);
 
   // Focus search input when opened
   useEffect(() => {
@@ -289,12 +292,18 @@ export default function SymbolSearch() {
                 >
                   {marketMeta(market).text}
                 </span>
-                <span className="ds-type-body font-mono text-[var(--foreground)]">
-                  {symbol}
+                <span className={`ds-type-body text-[var(--foreground)] ${market === "krStock" ? "" : "font-mono"}`}>
+                  {currentInstrument.primary}
                 </span>
-                <span className="ds-type-caption truncate text-[var(--muted-foreground)]">
-                  {getSymbolLabel(symbol) ?? "직접 입력 심볼"}
-                </span>
+                {currentInstrument.secondary ? (
+                  <span className={`ds-type-caption truncate text-[var(--muted-foreground)] ${market === "krStock" ? "font-mono" : ""}`}>
+                    {currentInstrument.secondary}
+                  </span>
+                ) : (
+                  <span className="ds-type-caption truncate text-[var(--muted-foreground)]">
+                    {currentLabel ?? "직접 입력 심볼"}
+                  </span>
+                )}
               </div>
               <div className="mt-2 flex flex-wrap items-center gap-1">
                 {MARKET_FILTER_OPTIONS.map((option) => (

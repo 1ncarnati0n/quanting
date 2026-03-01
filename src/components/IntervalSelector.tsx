@@ -1,28 +1,16 @@
-import { getIntervalsForMarket, type Interval } from "../utils/constants";
+import {
+  getIntervalLabel,
+  getIntervalsForMarket,
+  type Interval,
+} from "../utils/constants";
 import { useSettingsStore } from "../stores/useSettingsStore";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Select, SelectItem } from "@/components/ui/select";
 
 const CORE_INTERVALS: readonly Interval[] = ["1d", "1w", "1M"];
 const DROPDOWN_PLACEHOLDER = "__intraday__";
-const INTERVAL_LABELS: Record<Interval, string> = {
-  "1m": "1분",
-  "3m": "3분",
-  "5m": "5분",
-  "10m": "10분",
-  "15m": "15분",
-  "30m": "30분",
-  "1h": "1시간",
-  "2h": "2시간",
-  "4h": "4시간",
-  "1d": "일봉",
-  "1w": "주봉",
-  "1M": "월봉",
-};
-
-function intervalLabel(interval: Interval): string {
-  return INTERVAL_LABELS[interval] ?? interval;
-}
+const INTERVAL_BUTTON_CLASS =
+  "ds-type-caption h-auto whitespace-nowrap rounded-sm p-1 leading-none font-medium";
 
 export default function IntervalSelector() {
   const { interval, market, setInterval } = useSettingsStore();
@@ -34,22 +22,22 @@ export default function IntervalSelector() {
     : DROPDOWN_PLACEHOLDER;
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-1">
       {intradayIntervals.length > 0 && (
         <Select
           value={dropdownValue}
-          size="md"
+          size="sm"
           onValueChange={(value) => {
             if (!value || value === DROPDOWN_PLACEHOLDER) return;
             setInterval(value as Interval);
           }}
-          className="min-w-[124px] font-semibold"
-          aria-label="분봉 및 시간봉 선택"
+          className={`${INTERVAL_BUTTON_CLASS} min-w-[96px]`}
+          aria-label="분 인터벌 선택"
         >
-          <SelectItem value={DROPDOWN_PLACEHOLDER}>분/시간봉 선택</SelectItem>
+          <SelectItem value={DROPDOWN_PLACEHOLDER}>분 선택</SelectItem>
           {intradayIntervals.map((iv) => (
             <SelectItem key={iv} value={iv}>
-              {intervalLabel(iv)}
+              {getIntervalLabel(iv)}
             </SelectItem>
           ))}
         </Select>
@@ -57,7 +45,7 @@ export default function IntervalSelector() {
 
       <ToggleGroup
         type="single"
-        size="md"
+        size="sm"
         value={coreIntervals.includes(interval) ? interval : ""}
         onValueChange={(value) => {
           if (!value) return;
@@ -68,9 +56,9 @@ export default function IntervalSelector() {
           <ToggleGroupItem
             key={iv}
             value={iv}
-            className="min-w-[58px] font-semibold"
+            className={`${INTERVAL_BUTTON_CLASS} min-w-[48px]`}
           >
-            {intervalLabel(iv)}
+            {getIntervalLabel(iv)}
           </ToggleGroupItem>
         ))}
       </ToggleGroup>

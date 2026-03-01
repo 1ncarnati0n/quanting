@@ -22,10 +22,10 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --radius-sm: 0.375rem;
+  --radius-sm: 0.4rem;
   --radius-md: 0.5rem;
-  --radius-lg: 0.625rem;
-  --radius-xl: 0.75rem;
+  --radius-lg: 0.6rem;
+  --radius-xl: 0.7rem;
 }
 
 :root {

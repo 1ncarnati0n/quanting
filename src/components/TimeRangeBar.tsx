@@ -16,6 +16,8 @@ const TIME_RANGES = [
 const TIME_RANGE_STORAGE_KEY = "quanting-time-range";
 const DEFAULT_TIME_RANGE_ID = "all";
 type TimeRangeOption = (typeof TIME_RANGES)[number];
+const TIME_RANGE_BUTTON_CLASS =
+  "ds-type-caption h-auto whitespace-nowrap rounded-sm p-1 leading-none font-medium";
 
 function getSavedTimeRangeId(): string {
   try {
@@ -77,7 +79,7 @@ export default function TimeRangeBar() {
   return (
     <ToggleGroup
       type="single"
-      size="md"
+      size="sm"
       value={activeId}
       onValueChange={(value) => {
         if (!value) return;
@@ -89,7 +91,7 @@ export default function TimeRangeBar() {
         <ToggleGroupItem
           key={range.id}
           value={range.id}
-          className="font-semibold whitespace-nowrap"
+          className={TIME_RANGE_BUTTON_CLASS}
         >
           {range.label}
         </ToggleGroupItem>

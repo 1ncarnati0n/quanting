@@ -3,13 +3,16 @@ import { fetchAnalysis, fetchWatchlistSnapshots } from "../services/tauriApi";
 import { useSettingsStore } from "../stores/useSettingsStore";
 import type { WatchlistSnapshot } from "../types";
 import {
+  getIntervalLabel,
   getIntervalsForMarket,
   PRESET_CATEGORIES,
   getSymbolLabel,
+  type Interval,
   type PresetSymbol,
 } from "../utils/constants";
 import type { MarketType } from "../types";
 import { formatPrice } from "../utils/formatters";
+import { formatInstrumentDisplayLine } from "../utils/marketView";
 import PanelHeader from "./patterns/PanelHeader";
 import SegmentButton from "./patterns/SegmentButton";
 import SettingRow from "./patterns/SettingRow";
@@ -289,6 +292,7 @@ export default function WatchlistSidebar({
   const [isLoadingSnapshots, setIsLoadingSnapshots] = useState(false);
 
   const activeLabel = getSymbolLabel(symbol);
+  const instrumentLine = formatInstrumentDisplayLine(symbol, activeLabel, market);
   const favoriteSet = useMemo(
     () => new Set(favorites.map((item) => snapshotKey(item.symbol, item.market))),
     [favorites],
@@ -518,8 +522,8 @@ export default function WatchlistSidebar({
     >
       <PanelHeader
         title="관심종목"
-        subtitle={`${activeLabel ? `${symbol} · ${activeLabel}` : symbol} · ${
-          isLoadingSnapshots ? "스냅샷 갱신중" : `${interval} 기준 스냅샷`
+        subtitle={`${instrumentLine} · ${
+          isLoadingSnapshots ? "스냅샷 갱신중" : `${getIntervalLabel(interval as Interval)} 기준 스냅샷`
         }`}
         className="px-3 py-2.5"
         density="compact"

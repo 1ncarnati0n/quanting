@@ -35,6 +35,25 @@ export function getIntervalsForMarket(market: MarketType): readonly Interval[] {
   return market === "crypto" ? CRYPTO_INTERVALS : STOCK_INTERVALS;
 }
 
+const INTERVAL_LABELS: Record<Interval, string> = {
+  "1m": "1분",
+  "3m": "3분",
+  "5m": "5분",
+  "10m": "10분",
+  "15m": "15분",
+  "30m": "30분",
+  "1h": "60분",
+  "2h": "120분",
+  "4h": "240분",
+  "1d": "일",
+  "1w": "주",
+  "1M": "월",
+};
+
+export function getIntervalLabel(interval: Interval): string {
+  return INTERVAL_LABELS[interval] ?? interval;
+}
+
 // --- Chart layout ---
 export const CHART_PRICE_SCALE_WIDTH = 80;
 

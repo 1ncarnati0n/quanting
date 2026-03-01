@@ -1,9 +1,16 @@
+import { useMemo } from "react";
 import IntervalSelector from "./IntervalSelector";
 import TimeRangeBar from "./TimeRangeBar";
 import { useSettingsStore } from "../stores/useSettingsStore";
 import { getSymbolLabel } from "../utils/constants";
 import { useChartStore } from "../stores/useChartStore";
 import { formatPrice } from "../utils/formatters";
+import {
+  formatCompactNumber,
+  getMarketBadgeMeta,
+  getInstrumentDisplay,
+  summarizeCandles,
+} from "../utils/marketView";
 import { Button } from "@/components/ui/button";
 
 interface MarketHeaderProps {
@@ -19,57 +26,47 @@ export default function MarketHeader({
   const { data, isLoading } = useChartStore();
   const symbolLabel = getSymbolLabel(symbol);
   const candles = data?.candles ?? [];
-  const lastCandle = candles.length > 0 ? candles[candles.length - 1] : null;
-  const prevCandle = candles.length > 1 ? candles[candles.length - 2] : null;
-  const change = lastCandle && prevCandle ? lastCandle.close - prevCandle.close : 0;
-  const changePct = prevCandle && prevCandle.close !== 0 ? (change / prevCandle.close) * 100 : 0;
+  const { lastCandle, prevCandle, high, low, change, changePct } = useMemo(
+    () => summarizeCandles(candles),
+    [candles],
+  );
   const changeColor = change >= 0 ? "var(--success)" : "var(--destructive)";
-  const high = candles.length > 0 ? Math.max(...candles.map((c) => c.high)) : null;
-  const low = candles.length > 0 ? Math.min(...candles.map((c) => c.low)) : null;
-  const marketBadge =
-    market === "crypto" ? "코인" : market === "krStock" ? "KR" : market === "forex" ? "FX" : "US";
-  const marketColor =
-    market === "crypto"
-      ? "var(--warning)"
-      : market === "krStock"
-        ? "#EC4899"
-        : market === "forex"
-          ? "#14B8A6"
-          : "var(--primary)";
-
-  const formatVolume = (volume: number | null) => {
-    if (volume === null) return "-";
-    return new Intl.NumberFormat("ko-KR", {
-      notation: "compact",
-      maximumFractionDigits: 2,
-    }).format(volume);
-  };
+  const { label: marketBadge, color: marketColor } = getMarketBadgeMeta(market);
+  const instrument = getInstrumentDisplay(symbol, symbolLabel, market);
 
   const rangePct = high !== null && low !== null && low > 0 ? ((high - low) / low) * 100 : null;
 
   return (
     <div className="market-header flex flex-col">
       {/* Row 1: Symbol / Price / OHLV / Range */}
-      <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1.5 px-3 py-2.5 sm:gap-x-3 sm:px-4">
-        {/* Symbol + Badge + LIVE */}
-        <div className="flex items-center gap-1.5 sm:gap-2">
-          <span className="ds-type-title font-semibold tracking-wide text-[var(--primary)]">
-            Quanting
-          </span>
-          <span
-            className="ds-type-caption rounded px-1.5 py-1 font-bold leading-none"
-            style={{ background: marketColor, color: "var(--primary-foreground)" }}
-          >
-            {marketBadge}
-          </span>
-          <span className="ds-type-caption hidden items-center gap-1 rounded bg-[var(--secondary)] px-2 py-1 text-[var(--muted-foreground)] sm:inline-flex">
-            <span className={`h-1.5 w-1.5 rounded-full ${isLoading ? "" : "header-live-dot"}`} style={{ background: isLoading ? "var(--warning)" : "var(--success)" }} />
-            {isLoading ? "갱신중" : "LIVE"}
-          </span>
+      <div className="flex min-w-0 flex-wrap items-end gap-x-3 gap-y-2 px-4 py-3 sm:gap-x-4 sm:px-5 sm:py-3.5">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <span className="ds-type-caption font-semibold tracking-wide text-[var(--primary)]">
+              Quanting
+            </span>
+            <span
+              className="ds-type-caption rounded px-1.5 py-1 font-bold leading-none"
+              style={{ background: marketColor, color: "var(--primary-foreground)" }}
+            >
+              {marketBadge}
+            </span>
+            <span className="ds-type-caption hidden items-center gap-1 rounded bg-[var(--secondary)] px-2 py-1 text-[var(--muted-foreground)] sm:inline-flex">
+              <span className={`h-1.5 w-1.5 rounded-full ${isLoading ? "" : "header-live-dot"}`} style={{ background: isLoading ? "var(--warning)" : "var(--success)" }} />
+              {isLoading ? "갱신중" : "LIVE"}
+            </span>
+          </div>
+          <div className="mt-1 min-w-0">
+            <h1 className="truncate text-[18px] font-bold leading-tight text-[var(--foreground)] sm:text-[22px]">
+              {instrument.primary}
+            </h1>
+            {instrument.secondary && (
+              <p className="ds-type-label mt-0.5 truncate font-mono text-[var(--muted-foreground)]">
+                {instrument.secondary}
+              </p>
+            )}
+          </div>
         </div>
-
-        {/* Divider */}
-        <div className="hidden h-4 w-px bg-[var(--border)] sm:block" />
 
         {/* Price + Change */}
         <div className="flex items-baseline gap-1.5 sm:gap-2">
@@ -95,7 +92,7 @@ export default function MarketHeader({
             L <span style={{ color: "var(--foreground)" }}>{low !== null ? formatPrice(low, market) : "-"}</span>
           </span>
           <span style={{ color: "var(--muted-foreground)" }}>
-            V <span style={{ color: changeColor }}>{formatVolume(lastCandle?.volume ?? null)}</span>
+            V <span style={{ color: changeColor }}>{formatCompactNumber(lastCandle?.volume ?? null)}</span>
           </span>
         </div>
 
@@ -108,25 +105,15 @@ export default function MarketHeader({
             Range <span style={{ color: "var(--primary)" }}>{rangePct.toFixed(2)}%</span>
           </span>
         )}
-
-        {/* Symbol name (far right, muted) */}
-        {symbolLabel && (
-          <>
-            <div className="flex-1" />
-            <span className="ds-type-label hidden truncate text-[var(--muted-foreground)] xl:inline">
-              {symbol} · {symbolLabel}
-            </span>
-          </>
-        )}
       </div>
 
       {/* Row 2: Controls */}
-      <div className="flex min-w-0 flex-wrap items-center gap-2.5 border-t border-[var(--border)] px-3 py-2 sm:gap-3 sm:px-4">
+      <div className="flex min-w-0 flex-wrap items-center gap-2.5 border-t border-[var(--border)] px-4 py-2 sm:px-5">
         <Button
           variant="ghost"
           size="icon"
           onClick={onToggleWatchlist}
-          className="h-8 w-8 shrink-0 text-[var(--muted-foreground)] xl:hidden"
+          className="h-9 w-9 shrink-0 text-[var(--muted-foreground)] xl:hidden"
           title="관심종목 패널 열기/닫기 (Ctrl/Cmd+B)"
         >
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -135,8 +122,8 @@ export default function MarketHeader({
           </svg>
         </Button>
 
-        <div className="flex min-w-0 shrink-0 items-center gap-1 rounded border border-[var(--border)] bg-[var(--muted)] px-1.5 py-1">
-          <span className="ds-type-caption hidden font-semibold text-[var(--muted-foreground)] sm:inline">
+        <div className="flex min-w-0 shrink-0 items-center gap-1 rounded-md border border-[var(--border)] bg-[var(--muted)] px-1.5 py-1">
+          <span className="ds-type-caption hidden font-medium text-[var(--muted-foreground)] sm:inline">
             인터벌
           </span>
           <div className="min-w-0 overflow-x-auto">
@@ -144,8 +131,8 @@ export default function MarketHeader({
           </div>
         </div>
 
-        <div className="hidden min-w-0 shrink-0 items-center gap-1 rounded border border-[var(--border)] bg-[var(--muted)] px-1.5 py-1 lg:flex">
-          <span className="ds-type-caption font-semibold text-[var(--muted-foreground)]">기간</span>
+        <div className="hidden min-w-0 shrink-0 items-center gap-1 rounded-md border border-[var(--border)] bg-[var(--muted)] px-1.5 py-1 lg:flex">
+          <span className="ds-type-caption font-medium text-[var(--muted-foreground)]">기간</span>
           <div className="min-w-0 overflow-x-auto">
             <TimeRangeBar />
           </div>
@@ -158,7 +145,7 @@ export default function MarketHeader({
             variant="ghost"
             size="icon"
             onClick={toggleTheme}
-            className="h-8 w-8 text-[var(--muted-foreground)]"
+            className="h-9 w-9 text-[var(--muted-foreground)]"
             title={theme === "dark" ? "라이트 모드로 전환" : "다크 모드로 전환"}
           >
             {theme === "dark" ? (
@@ -184,7 +171,7 @@ export default function MarketHeader({
             variant="ghost"
             size="icon"
             onClick={onToggleSettings}
-            className="h-8 w-8 text-[var(--muted-foreground)] xl:hidden"
+            className="h-9 w-9 text-[var(--muted-foreground)] xl:hidden"
             title="설정 패널 열기/닫기 (Ctrl/Cmd+,)"
           >
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

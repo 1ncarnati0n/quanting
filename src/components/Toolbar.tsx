@@ -1,9 +1,16 @@
+import { useMemo } from "react";
 import SymbolSearch from "./SymbolSearch";
 import IntervalSelector from "./IntervalSelector";
 import { useSettingsStore } from "../stores/useSettingsStore";
 import { getSymbolLabel } from "../utils/constants";
 import { useChartStore } from "../stores/useChartStore";
 import { formatPrice, formatShortTime } from "../utils/formatters";
+import {
+  formatCompactNumber,
+  getMarketBadgeMeta,
+  getInstrumentDisplay,
+  summarizeCandles,
+} from "../utils/marketView";
 
 interface ToolbarProps {
   onToggleWatchlist: () => void;
@@ -15,31 +22,13 @@ export default function Toolbar({ onToggleWatchlist, onToggleSettings }: Toolbar
   const { data, isLoading } = useChartStore();
   const symbolLabel = getSymbolLabel(symbol);
   const candles = data?.candles ?? [];
-  const lastCandle = candles.length > 0 ? candles[candles.length - 1] : null;
-  const prevCandle = candles.length > 1 ? candles[candles.length - 2] : null;
-  const change = lastCandle && prevCandle ? lastCandle.close - prevCandle.close : 0;
-  const changePct = prevCandle && prevCandle.close !== 0 ? (change / prevCandle.close) * 100 : 0;
+  const { lastCandle, prevCandle, high, low, change, changePct } = useMemo(
+    () => summarizeCandles(candles),
+    [candles],
+  );
   const changeColor = change >= 0 ? "var(--success)" : "var(--destructive)";
-  const high = candles.length > 0 ? Math.max(...candles.map((c) => c.high)) : null;
-  const low = candles.length > 0 ? Math.min(...candles.map((c) => c.low)) : null;
-  const marketBadge =
-    market === "crypto" ? "코인" : market === "krStock" ? "KR" : market === "forex" ? "FX" : "US";
-  const marketColor =
-    market === "crypto"
-      ? "var(--warning)"
-      : market === "krStock"
-        ? "#EC4899"
-        : market === "forex"
-          ? "#14B8A6"
-          : "var(--primary)";
-
-  const formatVolume = (volume: number | null) => {
-    if (volume === null) return "-";
-    return new Intl.NumberFormat("en-US", {
-      notation: "compact",
-      maximumFractionDigits: 2,
-    }).format(volume);
-  };
+  const { label: marketBadge, color: marketColor } = getMarketBadgeMeta(market);
+  const instrument = getInstrumentDisplay(symbol, symbolLabel, market);
 
   return (
     <div
@@ -76,8 +65,13 @@ export default function Toolbar({ onToggleWatchlist, onToggleSettings }: Toolbar
               {marketBadge}
             </span>
             <span className="ds-type-label truncate font-semibold" style={{ color: "var(--foreground)" }}>
-              {symbolLabel ? `${symbol} · ${symbolLabel}` : symbol}
+              {instrument.primary}
             </span>
+            {instrument.secondary && (
+              <span className="ds-type-caption truncate font-mono" style={{ color: "var(--muted-foreground)" }}>
+                {instrument.secondary}
+              </span>
+            )}
             {isLoading && (
               <span className="ds-type-caption" style={{ color: "var(--muted-foreground)" }}>
                 업데이트 중...
@@ -112,7 +106,7 @@ export default function Toolbar({ onToggleWatchlist, onToggleSettings }: Toolbar
           </span>
           <span style={{ color: "var(--muted-foreground)" }}>VOL</span>
           <span className="font-mono" style={{ color: "var(--foreground)" }}>
-            {formatVolume(lastCandle?.volume ?? null)}
+            {formatCompactNumber(lastCandle?.volume ?? null, "en-US")}
           </span>
         </div>
 

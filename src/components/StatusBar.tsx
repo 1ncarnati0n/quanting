@@ -3,6 +3,7 @@ import { useSettingsStore } from "../stores/useSettingsStore";
 import SignalBadge from "./SignalBadge";
 import { formatPrice, formatTime } from "../utils/formatters";
 import { useMemo } from "react";
+import { getIntervalLabel, type Interval } from "../utils/constants";
 
 type PillIndicatorKey =
   | "bb"
@@ -108,7 +109,7 @@ export default function StatusBar() {
           </span>
         )}
         <div className="ds-type-caption mt-0.5" style={{ color: "var(--muted-foreground)" }}>
-          {interval} 차트
+          {getIntervalLabel(interval as Interval)} 차트
           {lastCandle ? ` · 종가 ${formatPrice(lastCandle.close, market)}` : ""}
         </div>
       </div>

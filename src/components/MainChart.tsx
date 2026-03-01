@@ -172,6 +172,7 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
   const alertLinesRef = useRef<IPriceLine[]>([]);
   const resizeRafRef = useRef<number | null>(null);
   const prevDataScopeRef = useRef<string | null>(null);
+  const lastVisibleTimeRangeRef = useRef<{ from: number; to: number } | null>(null);
   const crosshairRafRef = useRef<number | null>(null);
 
   const theme = useSettingsStore((s) => s.theme);
@@ -690,6 +691,13 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
 
     // 뷰 상태 캡처 (setData/clearDynamicSeries 전)
     const savedRange = chart.timeScale().getVisibleLogicalRange();
+    const savedTimeRange = chart.timeScale().getVisibleRange();
+    if (savedTimeRange) {
+      lastVisibleTimeRangeRef.current = {
+        from: savedTimeRange.from as number,
+        to: savedTimeRange.to as number,
+      };
+    }
     const currentScope = `${data.symbol}:${data.interval}:${chartType}:${replayEnabled ? "replay" : "live"}`;
 
     const cappedReplayIndex = replayEnabled
@@ -814,7 +822,7 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
       filteredSma.forEach((ma, idx) => {
         const series = chart.addSeries(LineSeries, {
           color: MA_COLORS[idx % MA_COLORS.length],
-          lineWidth: 1,
+          lineWidth: 2,
           priceLineVisible: false,
           crosshairMarkerVisible: false,
           title: `SMA${ma.period}`,
@@ -1516,11 +1524,25 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
     }
 
     const scopeChanged = prevDataScopeRef.current !== currentScope;
+    const prevSymbol = prevDataScopeRef.current?.split(":")[0];
     prevDataScopeRef.current = currentScope;
 
     if (scopeChanged) {
-      // symbol/interval 변경, replay 토글 → 전체 데이터 맞춤
-      chart.timeScale().fitContent();
+      const symbolChanged = prevSymbol != null && prevSymbol !== data.symbol;
+      if (symbolChanged || !lastVisibleTimeRangeRef.current) {
+        // 심볼 변경 또는 최초 마운트 → 전체 기간 표시
+        chart.timeScale().fitContent();
+      } else {
+        // 인터벌/차트타입/리플레이 변경 → 시간 구간 복원
+        try {
+          chart.timeScale().setVisibleRange({
+            from: lastVisibleTimeRangeRef.current.from as Time,
+            to: lastVisibleTimeRangeRef.current.to as Time,
+          });
+        } catch {
+          chart.timeScale().fitContent();
+        }
+      }
     } else if (savedRange) {
       // auto-refresh, WebSocket, indicator 변경 → 뷰 위치 복원
       const newBarCount = displayCandles.length;

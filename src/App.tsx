@@ -51,10 +51,10 @@ function App() {
 
   const shellStyle: CSSProperties = {
     background: "var(--background)",
-    paddingTop: "calc(env(safe-area-inset-top, 0px) + 0.5rem)",
-    paddingRight: "calc(env(safe-area-inset-right, 0px) + 0.5rem)",
-    paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 0.5rem)",
-    paddingLeft: "calc(env(safe-area-inset-left, 0px) + 0.5rem)",
+    paddingTop: "calc(env(safe-area-inset-top, 0px) + 0.75rem)",
+    paddingRight: "calc(env(safe-area-inset-right, 0px) + 0.75rem)",
+    paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 0.75rem)",
+    paddingLeft: "calc(env(safe-area-inset-left, 0px) + 0.75rem)",
   };
 
   // Apply theme class (.dark) using shadcn token pattern
@@ -509,7 +509,7 @@ function App() {
   };
 
   return (
-    <div className="relative flex h-full min-h-0 w-full gap-1.5 xl:gap-2" style={shellStyle}>
+    <div className="relative flex h-full min-h-0 w-full gap-2 xl:gap-3" style={shellStyle}>
       <CollapsibleSidebar
         side="left"
         label="WATCH"
@@ -521,16 +521,18 @@ function App() {
       </CollapsibleSidebar>
 
       <main className="flex min-h-0 min-w-0 flex-1 flex-col">
-        <div className="surface-card flex min-h-0 flex-1 flex-col overflow-hidden rounded">
+        <div className="surface-card flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl">
           <MarketHeader
             onToggleWatchlist={handleToggleWatchlistPanel}
             onToggleSettings={handleToggleSettingsPanel}
           />
-          <div className="flex flex-1 min-h-0 overflow-hidden">
-            <ChartContainer />
-          </div>
-          <div style={{ borderTop: "1px solid var(--border)" }}>
-            <StatusBar />
+          <div className="flex min-h-0 flex-1 flex-col gap-2 px-2 pb-2 pt-1.5 sm:gap-2.5 sm:px-2.5 sm:pb-2.5">
+            <div className="flex flex-1 min-h-0 overflow-hidden">
+              <ChartContainer />
+            </div>
+            <div className="overflow-hidden rounded-md">
+              <StatusBar />
+            </div>
           </div>
         </div>
       </main>

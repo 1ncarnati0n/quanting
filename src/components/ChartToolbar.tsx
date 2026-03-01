@@ -43,7 +43,7 @@ export default function ChartToolbar() {
 
   return (
     <div
-      className="pointer-events-auto absolute right-20 top-2 z-10 flex items-center gap-0.5 rounded px-1 py-0.5"
+      className="pointer-events-auto absolute right-20 top-2.5 z-10 flex items-center gap-0.5 rounded-md px-1 py-1"
       style={{
         background: "color-mix(in srgb, var(--background) 85%, transparent)",
         backdropFilter: "blur(6px)",
@@ -106,7 +106,7 @@ export default function ChartToolbar() {
         </div>
       </DropdownMenu>
 
-      <div className="mx-0.5 h-4 w-px" style={{ background: "var(--border)" }} />
+      <div className="mx-0.5 h-5 w-px" style={{ background: "var(--border)" }} />
 
       {/* Bar Replay */}
       <button
@@ -139,7 +139,7 @@ export default function ChartToolbar() {
         </svg>
       </button>
 
-      <DropdownMenuSeparator className="mx-0.5 h-4 w-px self-stretch bg-[var(--border)]" />
+      <DropdownMenuSeparator className="mx-0.5 h-5 w-px self-stretch bg-[var(--border)]" />
 
       {/* Zoom controls */}
       <button
@@ -177,7 +177,7 @@ export default function ChartToolbar() {
         </svg>
       </button>
 
-      <DropdownMenuSeparator className="mx-0.5 h-4 w-px self-stretch bg-[var(--border)]" />
+      <DropdownMenuSeparator className="mx-0.5 h-5 w-px self-stretch bg-[var(--border)]" />
 
       {/* Fullscreen */}
       <button

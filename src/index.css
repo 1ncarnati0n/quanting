@@ -76,6 +76,7 @@
   --control-height-sm: 2rem;
   --control-height-md: 2.25rem;
   --control-height-lg: 2.5rem;
+  --toolbar-control-size: 1.75rem;
 }
 
 .dark {
@@ -354,10 +355,10 @@ select:focus-visible {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
+  width: var(--toolbar-control-size);
+  height: var(--toolbar-control-size);
   border: 0;
-  border-radius: 3px;
+  border-radius: 4px;
   background: transparent;
   color: var(--muted-foreground);
   cursor: pointer;
@@ -387,9 +388,9 @@ select:focus-visible {
   align-items: center;
   gap: 8px;
   border: 0;
-  border-radius: 3px;
+  border-radius: 4px;
   background: transparent;
-  padding: 5px 8px;
+  padding: 6px 8px;
   font-size: var(--font-size-body-sm);
   line-height: 1.35;
   color: var(--foreground);

@@ -1,5 +1,9 @@
 import { useEffect, useState } from "react";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import {
+  CONTROL_CHIP_BUTTON_CLASS,
+  CONTROL_CHIP_GROUP_CLASS,
+} from "./patterns/controlTokens";
 
 const TIME_RANGES = [
   { id: "1d", label: "1일", days: 1, legacyValues: ["1D"] },
@@ -16,8 +20,6 @@ const TIME_RANGES = [
 const TIME_RANGE_STORAGE_KEY = "quanting-time-range";
 const DEFAULT_TIME_RANGE_ID = "all";
 type TimeRangeOption = (typeof TIME_RANGES)[number];
-const TIME_RANGE_BUTTON_CLASS =
-  "ds-type-caption h-auto whitespace-nowrap rounded-sm p-1 leading-none font-medium";
 
 function getSavedTimeRangeId(): string {
   try {
@@ -79,6 +81,7 @@ export default function TimeRangeBar() {
   return (
     <ToggleGroup
       type="single"
+      className={CONTROL_CHIP_GROUP_CLASS}
       size="sm"
       value={activeId}
       onValueChange={(value) => {
@@ -91,7 +94,7 @@ export default function TimeRangeBar() {
         <ToggleGroupItem
           key={range.id}
           value={range.id}
-          className={TIME_RANGE_BUTTON_CLASS}
+          className={`${CONTROL_CHIP_BUTTON_CLASS} min-w-[34px]`}
         >
           {range.label}
         </ToggleGroupItem>

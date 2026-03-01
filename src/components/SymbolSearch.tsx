@@ -238,6 +238,21 @@ export default function SymbolSearch() {
 
   const currentKey = watchKey(symbol, market);
   const isCurrentFavorite = favoriteSet.has(currentKey);
+  const renderInstrumentLabel = (item: { symbol: string; label: string; market: MarketType }) => {
+    const display = getInstrumentDisplay(item.symbol, item.label, item.market);
+    return (
+      <>
+        <span className={`ds-type-label min-w-[72px] truncate ${item.market === "krStock" ? "" : "font-mono"}`}>
+          {display.primary}
+        </span>
+        {display.secondary && (
+          <span className={`ds-type-caption truncate text-[var(--muted-foreground)] ${item.market === "krStock" ? "font-mono" : ""}`}>
+            {display.secondary}
+          </span>
+        )}
+      </>
+    );
+  };
 
   return (
     <div className="relative">
@@ -369,7 +384,7 @@ export default function SymbolSearch() {
                             if (typeof idx === "number") setActiveIndex(idx);
                           }}
                           active={isHighlighted}
-                          className="min-w-0 flex-1 gap-2 py-1.5"
+                          className="min-w-0 flex-1 gap-2"
                           style={{
                             background: isHighlighted
                               ? "color-mix(in srgb, var(--primary) 16%, transparent)"
@@ -387,10 +402,7 @@ export default function SymbolSearch() {
                           >
                             {badge.text}
                           </span>
-                          <span className="ds-type-label min-w-[72px] font-mono">{item.symbol}</span>
-                          <span className="ds-type-caption truncate text-[var(--muted-foreground)]">
-                            {item.label}
-                          </span>
+                          {renderInstrumentLabel(item)}
                         </CommandItem>
                         <Button
                           variant="ghost"
@@ -429,7 +441,7 @@ export default function SymbolSearch() {
                             if (typeof idx === "number") setActiveIndex(idx);
                           }}
                           active={isHighlighted}
-                          className="min-w-0 flex-1 gap-2 py-1.5"
+                          className="min-w-0 flex-1 gap-2"
                           style={{
                             background: isHighlighted
                               ? "color-mix(in srgb, var(--primary) 16%, transparent)"
@@ -447,10 +459,7 @@ export default function SymbolSearch() {
                           >
                             {badge.text}
                           </span>
-                          <span className="ds-type-label min-w-[72px] font-mono">{item.symbol}</span>
-                          <span className="ds-type-caption truncate text-[var(--muted-foreground)]">
-                            {item.label}
-                          </span>
+                          {renderInstrumentLabel(item)}
                         </CommandItem>
                         <Button
                           variant="ghost"
@@ -488,7 +497,7 @@ export default function SymbolSearch() {
                               if (typeof idx === "number") setActiveIndex(idx);
                             }}
                             active={isHighlighted}
-                            className="min-w-0 flex-1 gap-2 py-1.5"
+                            className="min-w-0 flex-1 gap-2"
                             style={{
                               background: isHighlighted
                                 ? "color-mix(in srgb, var(--primary) 16%, transparent)"
@@ -506,10 +515,7 @@ export default function SymbolSearch() {
                             >
                               {badge.text}
                             </span>
-                            <span className="ds-type-label min-w-[72px] font-mono">{item.symbol}</span>
-                            <span className="ds-type-caption truncate text-[var(--muted-foreground)]">
-                              {item.label}
-                            </span>
+                            {renderInstrumentLabel(item)}
                           </CommandItem>
                           <Button
                             variant="ghost"

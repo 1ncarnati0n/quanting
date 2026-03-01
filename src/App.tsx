@@ -48,6 +48,9 @@ function App() {
   const theme = useSettingsStore((s) => s.theme);
   const isFullscreen = useSettingsStore((s) => s.isFullscreen);
   const toggleFullscreen = useSettingsStore((s) => s.toggleFullscreen);
+  const isTauriEnvironment =
+    typeof window !== "undefined" &&
+    Boolean((window as unknown as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__);
 
   const shellStyle: CSSProperties = {
     background: "var(--background)",
@@ -509,65 +512,83 @@ function App() {
   };
 
   return (
-    <div className="relative flex h-full min-h-0 w-full gap-2 xl:gap-3" style={shellStyle}>
-      <CollapsibleSidebar
-        side="left"
-        label="WATCH"
-        storageKey="quanting-sidebar-left"
-        expandedWidth={240}
-        defaultOpen
-      >
-        <WatchlistSidebar embedded />
-      </CollapsibleSidebar>
+    <div className="flex h-full min-h-0 w-full flex-col" style={shellStyle}>
+      {isTauriEnvironment && (
+        <header
+          data-tauri-drag-region
+          className="mb-2 flex h-8 items-center justify-between rounded-md border border-[var(--border)] bg-[var(--card)] px-2.5 text-[var(--muted-foreground)] select-none"
+        >
+          <div data-tauri-drag-region className="ds-type-caption font-semibold tracking-wide">
+            Quanting Desktop
+          </div>
+          <div className="ds-type-caption hidden items-center gap-2 md:flex">
+            <span>Ctrl/⌘+K 종목검색</span>
+            <span>•</span>
+            <span>R 리플레이</span>
+          </div>
+        </header>
+      )}
 
-      <main className="flex min-h-0 min-w-0 flex-1 flex-col">
-        <div className="surface-card flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl">
-          <MarketHeader
-            onToggleWatchlist={handleToggleWatchlistPanel}
-            onToggleSettings={handleToggleSettingsPanel}
-          />
-          <div className="flex min-h-0 flex-1 flex-col gap-2 px-2 pb-2 pt-1.5 sm:gap-2.5 sm:px-2.5 sm:pb-2.5">
-            <div className="flex flex-1 min-h-0 overflow-hidden">
-              <ChartContainer />
-            </div>
-            <div className="overflow-hidden rounded-md">
-              <StatusBar />
+      <div className="relative flex min-h-0 flex-1 w-full gap-2 xl:gap-3">
+        <CollapsibleSidebar
+          side="left"
+          label="WATCH"
+          storageKey="quanting-sidebar-left"
+          expandedWidth={240}
+          defaultOpen
+        >
+          <WatchlistSidebar embedded />
+        </CollapsibleSidebar>
+
+        <main className="flex min-h-0 min-w-0 flex-1 flex-col">
+          <div className="surface-card flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl">
+            <MarketHeader
+              onToggleWatchlist={handleToggleWatchlistPanel}
+              onToggleSettings={handleToggleSettingsPanel}
+            />
+            <div className="flex min-h-0 flex-1 flex-col gap-2 px-2 pb-2 pt-1.5 sm:gap-2.5 sm:px-2.5 sm:pb-2.5">
+              <div className="flex flex-1 min-h-0 overflow-hidden">
+                <ChartContainer />
+              </div>
+              <div className="overflow-hidden rounded-md">
+                <StatusBar />
+              </div>
             </div>
           </div>
-        </div>
-      </main>
+        </main>
 
-      <CollapsibleSidebar
-        side="right"
-        label="SET"
-        storageKey="quanting-sidebar-right"
-        expandedWidth={300}
-      >
-        <SettingsPanel onClose={() => setShowSettings(false)} embedded />
-      </CollapsibleSidebar>
+        <CollapsibleSidebar
+          side="right"
+          label="SET"
+          storageKey="quanting-sidebar-right"
+          expandedWidth={300}
+        >
+          <SettingsPanel onClose={() => setShowSettings(false)} embedded />
+        </CollapsibleSidebar>
 
-      <Sheet
-        open={showWatchlist}
-        onOpenChange={(open) => setShowWatchlist(open)}
-      >
-        <SheetContent side="left" className="w-[min(22rem,calc(100vw-1rem))]">
-          <WatchlistSidebar
-            onClose={() => setShowWatchlist(false)}
-            onSelectSymbol={() => setShowWatchlist(false)}
-          />
-        </SheetContent>
-      </Sheet>
+        <Sheet
+          open={showWatchlist}
+          onOpenChange={(open) => setShowWatchlist(open)}
+        >
+          <SheetContent side="left" className="w-[min(22rem,calc(100vw-1rem))]">
+            <WatchlistSidebar
+              onClose={() => setShowWatchlist(false)}
+              onSelectSymbol={() => setShowWatchlist(false)}
+            />
+          </SheetContent>
+        </Sheet>
 
-      <Sheet
-        open={showSettings}
-        onOpenChange={(open) => setShowSettings(open)}
-      >
-        <SheetContent side="right" className="w-[min(24rem,calc(100vw-1rem))]">
-          <SettingsPanel onClose={() => setShowSettings(false)} />
-        </SheetContent>
-      </Sheet>
+        <Sheet
+          open={showSettings}
+          onOpenChange={(open) => setShowSettings(open)}
+        >
+          <SheetContent side="right" className="w-[min(24rem,calc(100vw-1rem))]">
+            <SettingsPanel onClose={() => setShowSettings(false)} />
+          </SheetContent>
+        </Sheet>
 
-      <ShortcutsModal />
+        <ShortcutsModal />
+      </div>
     </div>
   );
 }

@@ -113,7 +113,7 @@ export default function MarketHeader({
           variant="ghost"
           size="icon"
           onClick={onToggleWatchlist}
-          className="h-9 w-9 shrink-0 text-[var(--muted-foreground)] xl:hidden"
+          className="h-8 w-8 shrink-0 text-[var(--muted-foreground)] xl:hidden"
           title="관심종목 패널 열기/닫기 (Ctrl/Cmd+B)"
         >
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -122,7 +122,7 @@ export default function MarketHeader({
           </svg>
         </Button>
 
-        <div className="flex min-w-0 shrink-0 items-center gap-1 rounded-md border border-[var(--border)] bg-[var(--muted)] px-1.5 py-1">
+        <div className="flex min-w-0 shrink-0 items-center gap-1 rounded-md border border-[var(--border)] bg-[var(--muted)] px-1 py-0.5">
           <span className="ds-type-caption hidden font-medium text-[var(--muted-foreground)] sm:inline">
             인터벌
           </span>
@@ -131,7 +131,7 @@ export default function MarketHeader({
           </div>
         </div>
 
-        <div className="hidden min-w-0 shrink-0 items-center gap-1 rounded-md border border-[var(--border)] bg-[var(--muted)] px-1.5 py-1 lg:flex">
+        <div className="hidden min-w-0 shrink-0 items-center gap-1 rounded-md border border-[var(--border)] bg-[var(--muted)] px-1 py-0.5 lg:flex">
           <span className="ds-type-caption font-medium text-[var(--muted-foreground)]">기간</span>
           <div className="min-w-0 overflow-x-auto">
             <TimeRangeBar />
@@ -145,7 +145,7 @@ export default function MarketHeader({
             variant="ghost"
             size="icon"
             onClick={toggleTheme}
-            className="h-9 w-9 text-[var(--muted-foreground)]"
+            className="h-8 w-8 text-[var(--muted-foreground)]"
             title={theme === "dark" ? "라이트 모드로 전환" : "다크 모드로 전환"}
           >
             {theme === "dark" ? (
@@ -171,7 +171,7 @@ export default function MarketHeader({
             variant="ghost"
             size="icon"
             onClick={onToggleSettings}
-            className="h-9 w-9 text-[var(--muted-foreground)] xl:hidden"
+            className="h-8 w-8 text-[var(--muted-foreground)] xl:hidden"
             title="설정 패널 열기/닫기 (Ctrl/Cmd+,)"
           >
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

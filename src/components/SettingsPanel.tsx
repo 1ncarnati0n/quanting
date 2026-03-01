@@ -241,11 +241,11 @@ function AccordionSection({
             : [];
         onOpenChange(values.includes(value));
       }}
-      className="space-y-1.5"
+      className="space-y-2"
     >
       <AccordionItem value={value} className="space-y-1.5">
         <AccordionTrigger
-          className="border border-[var(--border)] shadow-sm"
+          className="border border-[var(--border)] px-2.5 py-2 shadow-sm"
           id={`${sectionId}-header`}
           style={{
             background: open
@@ -268,7 +268,7 @@ function AccordionSection({
           id={`${sectionId}-content`}
           role="region"
           aria-labelledby={`${sectionId}-header`}
-          className="rounded border border-[var(--border)] bg-[var(--muted)] p-2.5 shadow-sm"
+          className="rounded border border-[var(--border)] bg-[var(--muted)] p-3 shadow-sm"
         >
           {children}
         </AccordionContent>
@@ -517,7 +517,10 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
         onValueChange={(value) => setActiveTab(value as SettingsTab)}
         className="flex min-h-0 flex-1 flex-col"
       >
-        <div className="border-b border-[var(--border)] px-3 pb-2 pt-2">
+        <div
+          className="sticky top-0 z-10 border-b border-[var(--border)] px-3 pb-2 pt-2 backdrop-blur"
+          style={{ background: "color-mix(in srgb, var(--card) 92%, transparent)" }}
+        >
           <TabsList className="grid w-full grid-cols-3 rounded-md border border-[var(--border)] bg-[var(--muted)] p-1">
             <TabsTrigger value="indicators" aria-label="지표 탭" className="text-sm">
               지표
@@ -531,7 +534,7 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
           </TabsList>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-3 pt-2">
+        <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-3 pt-3">
           <div className="space-y-2.5">
           {activeTab === "appearance" && (
             <AccordionSection

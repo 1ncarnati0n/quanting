@@ -49,6 +49,8 @@ export default function StatusBar() {
   const lastRsi = data?.rsi[data.rsi.length - 1];
 
   const enabledIndicators = INDICATOR_PILLS.filter(({ key }) => indicators[key].enabled);
+  const visibleIndicators = enabledIndicators.slice(0, 9);
+  const hiddenIndicatorCount = Math.max(enabledIndicators.length - visibleIndicators.length, 0);
 
   const performance = useMemo(() => {
     if (!data || data.signals.length < 2) {
@@ -118,7 +120,7 @@ export default function StatusBar() {
         <span className="ds-type-caption" style={{ color: "var(--muted-foreground)" }}>
           {enabledIndicators.length}개 활성
         </span>
-        {enabledIndicators.map(({ key, label, color }) => (
+        {visibleIndicators.map(({ key, label, color }) => (
           <span
             key={key}
             className="ds-type-caption rounded px-1 py-0.5 font-medium"
@@ -131,6 +133,11 @@ export default function StatusBar() {
             {label}
           </span>
         ))}
+        {hiddenIndicatorCount > 0 && (
+          <span className="ds-type-caption rounded border border-[var(--border)] px-1 py-0.5 text-[var(--muted-foreground)]">
+            +{hiddenIndicatorCount}
+          </span>
+        )}
       </div>
 
       <div className="hidden text-right lg:block">

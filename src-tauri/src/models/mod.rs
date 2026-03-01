@@ -8,10 +8,12 @@ mod watchlist;
 pub use candle::Candle;
 pub use fundamental::{FundamentalsParams, FundamentalsResponse};
 pub use indicator::{
-    AtrPoint, AtrResult, BollingerBandsPoint, IchimokuPoint, IchimokuResult, MaPoint, MacdPoint,
-    MacdResult, MovingAverageResult, ObvPoint, ObvResult, ParabolicSarPoint, ParabolicSarResult,
-    RsiPoint, StochasticPoint, StochasticResult, SupertrendPoint, SupertrendResult, VwapPoint,
-    VwapResult,
+    AdxPoint, AdxResult, AtrPoint, AtrResult, BollingerBandsPoint, ChoppinessPoint,
+    ChoppinessResult, CmfPoint, CmfResult, CvdPoint, CvdResult, DonchianPoint, DonchianResult,
+    IchimokuPoint, IchimokuResult, KeltnerPoint, KeltnerResult, MaPoint, MacdPoint, MacdResult,
+    MfiPoint, MfiResult, MovingAverageResult, ObvPoint, ObvResult, ParabolicSarPoint,
+    ParabolicSarResult, RsiPoint, StcPoint, StcResult, StochasticPoint, StochasticResult,
+    SupertrendPoint, SupertrendResult, VwapPoint, VwapResult, WillrPoint, WillrResult,
 };
 pub use params::{AnalysisParams, MarketType, SignalFilterParams};
 pub use signal::{SignalPoint, SignalType};
@@ -36,6 +38,16 @@ pub struct AnalysisResponse {
     pub ichimoku: Option<IchimokuResult>,
     pub supertrend: Option<SupertrendResult>,
     pub parabolic_sar: Option<ParabolicSarResult>,
+    pub donchian: Option<DonchianResult>,
+    pub keltner: Option<KeltnerResult>,
+    pub hma: Vec<MovingAverageResult>,
+    pub mfi: Option<MfiResult>,
+    pub cmf: Option<CmfResult>,
+    pub choppiness: Option<ChoppinessResult>,
+    pub williams_r: Option<WillrResult>,
+    pub adx: Option<AdxResult>,
+    pub cvd: Option<CvdResult>,
+    pub stc: Option<StcResult>,
     pub symbol: String,
     pub interval: String,
 }

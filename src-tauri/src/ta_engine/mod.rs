@@ -1,8 +1,15 @@
 pub mod atr;
 pub mod bollinger;
+pub mod choppiness;
+pub mod cmf;
+pub mod donchian;
 pub mod ema;
+pub mod helpers;
+pub mod hma;
 pub mod ichimoku;
+pub mod keltner;
 pub mod macd;
+pub mod mfi;
 pub mod obv;
 pub mod parabolic_sar;
 pub mod rsi;
@@ -11,6 +18,11 @@ pub mod sma;
 pub mod stochastic;
 pub mod supertrend;
 pub mod vwap;
+pub mod williams_r;
+pub mod adx;
+pub mod cvd;
+pub mod stc;
+pub mod wma;
 
 use crate::models::{AnalysisParams, AnalysisResponse, Candle};
 
@@ -41,6 +53,13 @@ pub fn analyze(candles: &[Candle], params: &AnalysisParams) -> AnalysisResponse 
         .map(|&p| ema::calculate(candles, p))
         .collect();
 
+    // HMA — only for requested periods
+    let hma_results: Vec<_> = params
+        .hma_periods
+        .iter()
+        .map(|&p| hma::calculate(candles, p))
+        .collect();
+
     // MACD
     let macd_result = params.macd.as_ref().map(|mp| {
         let result = macd::calculate(candles, mp.fast_period, mp.slow_period, mp.signal_period);
@@ -62,6 +81,61 @@ pub fn analyze(candles: &[Candle], params: &AnalysisParams) -> AnalysisResponse 
         None
     };
 
+    // Donchian Channels
+    let donchian_result = params
+        .donchian
+        .as_ref()
+        .map(|dp| donchian::calculate(candles, dp.period));
+
+    // Keltner Channels
+    let keltner_result = params
+        .keltner
+        .as_ref()
+        .map(|kp| keltner::calculate(candles, kp.ema_period, kp.atr_period, kp.atr_multiplier));
+
+    // MFI
+    let mfi_result = params
+        .mfi
+        .as_ref()
+        .map(|mp| mfi::calculate(candles, mp.period));
+
+    // CMF
+    let cmf_result = params
+        .cmf
+        .as_ref()
+        .map(|cp| cmf::calculate(candles, cp.period));
+
+    // Choppiness Index
+    let choppiness_result = params
+        .choppiness
+        .as_ref()
+        .map(|cp| choppiness::calculate(candles, cp.period));
+
+    // Williams %R
+    let willr_result = params
+        .williams_r
+        .as_ref()
+        .map(|wp| williams_r::calculate(candles, wp.period));
+
+    // ADX
+    let adx_result = params
+        .adx
+        .as_ref()
+        .map(|ap| adx::calculate(candles, ap.period));
+
+    // CVD
+    let cvd_result = if params.show_cvd {
+        Some(cvd::calculate(candles))
+    } else {
+        None
+    };
+
+    // STC
+    let stc_result = params
+        .stc
+        .as_ref()
+        .map(|sp| stc::calculate(candles, sp.tc_len, sp.fast_ma, sp.slow_ma));
+
     // Sort all signals by time
     signals.sort_by_key(|s| s.time);
 
@@ -72,6 +146,7 @@ pub fn analyze(candles: &[Candle], params: &AnalysisParams) -> AnalysisResponse 
         signals,
         sma: sma_results,
         ema: ema_results,
+        hma: hma_results,
         macd: macd_result,
         stochastic: stoch_result,
         obv: obv_result,
@@ -80,6 +155,15 @@ pub fn analyze(candles: &[Candle], params: &AnalysisParams) -> AnalysisResponse 
         ichimoku: ichimoku_result,
         supertrend: supertrend_result,
         parabolic_sar: parabolic_sar_result,
+        donchian: donchian_result,
+        keltner: keltner_result,
+        mfi: mfi_result,
+        cmf: cmf_result,
+        choppiness: choppiness_result,
+        williams_r: willr_result,
+        adx: adx_result,
+        cvd: cvd_result,
+        stc: stc_result,
         symbol: params.symbol.clone(),
         interval: params.interval.clone(),
     }

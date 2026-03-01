@@ -217,6 +217,27 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
     if (indicators.atr.enabled) {
       bandConfigs.push({ id: "atr", weight: Math.max(0.2, indicators.layout.atrWeight) });
     }
+    if (indicators.mfi.enabled) {
+      bandConfigs.push({ id: "mfi", weight: Math.max(0.2, indicators.layout.mfiWeight) });
+    }
+    if (indicators.cmf.enabled) {
+      bandConfigs.push({ id: "cmf", weight: Math.max(0.2, indicators.layout.cmfWeight) });
+    }
+    if (indicators.choppiness.enabled) {
+      bandConfigs.push({ id: "chop", weight: Math.max(0.2, indicators.layout.chopWeight) });
+    }
+    if (indicators.williamsR.enabled) {
+      bandConfigs.push({ id: "willr", weight: Math.max(0.2, indicators.layout.willrWeight) });
+    }
+    if (indicators.adx.enabled) {
+      bandConfigs.push({ id: "adx", weight: Math.max(0.2, indicators.layout.adxWeight) });
+    }
+    if (indicators.cvd.enabled) {
+      bandConfigs.push({ id: "cvd", weight: Math.max(0.2, indicators.layout.cvdWeight) });
+    }
+    if (indicators.stc.enabled) {
+      bandConfigs.push({ id: "stc", weight: Math.max(0.2, indicators.layout.stcWeight) });
+    }
 
     if (bandConfigs.length === 0) {
       chart.priceScale("right").applyOptions({
@@ -257,12 +278,26 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
     indicators.layout.stochasticWeight,
     indicators.layout.volumeWeight,
     indicators.layout.atrWeight,
+    indicators.layout.mfiWeight,
+    indicators.layout.cmfWeight,
+    indicators.layout.chopWeight,
+    indicators.layout.willrWeight,
+    indicators.layout.adxWeight,
+    indicators.layout.cvdWeight,
+    indicators.layout.stcWeight,
     indicators.atr.enabled,
     indicators.macd.enabled,
     indicators.obv.enabled,
     indicators.rsi.enabled,
     indicators.stochastic.enabled,
     indicators.volume.enabled,
+    indicators.mfi.enabled,
+    indicators.cmf.enabled,
+    indicators.choppiness.enabled,
+    indicators.williamsR.enabled,
+    indicators.adx.enabled,
+    indicators.cvd.enabled,
+    indicators.stc.enabled,
   ]);
 
   const initChart = useCallback(() => {
@@ -526,17 +561,43 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
         return;
       }
       const ts = chartRef.current.timeScale();
-      // Find logical indices for time range
       const candles = data.candles;
-      let fromIdx = 0;
-      let toIdx = candles.length - 1;
+      if (candles.length === 0) return;
+
+      // requested range보다 이전에만 데이터가 있으면 최근 데이터로 앵커링
+      let toIdx = -1;
       for (let i = 0; i < candles.length; i++) {
-        if (candles[i].time >= detail.from) { fromIdx = i; break; }
+        if (candles[candles.length - 1 - i].time <= detail.to) {
+          toIdx = candles.length - 1 - i;
+          break;
+        }
       }
-      for (let i = candles.length - 1; i >= 0; i--) {
-        if (candles[i].time <= detail.to) { toIdx = i; break; }
+      if (toIdx < 0) {
+        // 요청 범위가 데이터 시작 이전이면 가장 앞 구간으로 이동
+        toIdx = 0;
       }
-      ts.setVisibleLogicalRange({ from: fromIdx, to: toIdx });
+
+      let fromIdx = -1;
+      for (let i = 0; i < candles.length; i++) {
+        if (candles[i].time >= detail.from) {
+          fromIdx = i;
+          break;
+        }
+      }
+      if (fromIdx < 0 || fromIdx > toIdx) {
+        fromIdx = toIdx;
+      }
+
+      // 단일 봉만 잡히는 경우에도 최소 2봉은 보이게 보정
+      const minBars = 2;
+      if (toIdx - fromIdx + 1 < minBars) {
+        fromIdx = Math.max(0, toIdx - (minBars - 1));
+      }
+
+      ts.setVisibleLogicalRange({
+        from: fromIdx - 0.25,
+        to: toIdx + 0.25,
+      });
     };
 
     window.addEventListener("quanting:chart-zoom-in", onZoomIn);
@@ -659,6 +720,34 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
       : null;
     const filteredPsar = data.parabolicSar
       ? { ...data.parabolicSar, data: clipByTime(data.parabolicSar.data, replayTime) }
+      : null;
+    const filteredDonchian = data.donchian
+      ? { ...data.donchian, data: clipByTime(data.donchian.data, replayTime) }
+      : null;
+    const filteredKeltner = data.keltner
+      ? { ...data.keltner, data: clipByTime(data.keltner.data, replayTime) }
+      : null;
+    const filteredHma = data.hma.map((ma) => ({ ...ma, data: clipByTime(ma.data, replayTime) }));
+    const filteredMfi = data.mfi
+      ? { ...data.mfi, data: clipByTime(data.mfi.data, replayTime) }
+      : null;
+    const filteredCmf = data.cmf
+      ? { ...data.cmf, data: clipByTime(data.cmf.data, replayTime) }
+      : null;
+    const filteredChoppiness = data.choppiness
+      ? { ...data.choppiness, data: clipByTime(data.choppiness.data, replayTime) }
+      : null;
+    const filteredWillr = data.williamsR
+      ? { ...data.williamsR, data: clipByTime(data.williamsR.data, replayTime) }
+      : null;
+    const filteredAdx = data.adx
+      ? { ...data.adx, data: clipByTime(data.adx.data, replayTime) }
+      : null;
+    const filteredCvd = data.cvd
+      ? { ...data.cvd, data: clipByTime(data.cvd.data, replayTime) }
+      : null;
+    const filteredStc = data.stc
+      ? { ...data.stc, data: clipByTime(data.stc.data, replayTime) }
       : null;
 
     // Set main series data based on chart type
@@ -1004,6 +1093,308 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
       dynamicSeriesRef.current.set("psar", psarLine as ISeriesApi<SeriesType>);
     }
 
+    // --- Donchian Channels (Overlay, 3 lines) ---
+    if (indicators.donchian.enabled && filteredDonchian?.data.length) {
+      const donUpper = chart.addSeries(LineSeries, {
+        color: COLORS.donchianUpper,
+        lineWidth: 1,
+        priceLineVisible: false,
+        crosshairMarkerVisible: false,
+        title: "DC Upper",
+      });
+      const donMiddle = chart.addSeries(LineSeries, {
+        color: COLORS.donchianMiddle,
+        lineWidth: 1,
+        lineStyle: 2,
+        priceLineVisible: false,
+        crosshairMarkerVisible: false,
+        title: "DC Mid",
+      });
+      const donLower = chart.addSeries(LineSeries, {
+        color: COLORS.donchianLower,
+        lineWidth: 1,
+        priceLineVisible: false,
+        crosshairMarkerVisible: false,
+        title: "DC Lower",
+      });
+      donUpper.setData(filteredDonchian.data.map((p) => ({ time: p.time as Time, value: p.upper })));
+      donMiddle.setData(filteredDonchian.data.map((p) => ({ time: p.time as Time, value: p.middle })));
+      donLower.setData(filteredDonchian.data.map((p) => ({ time: p.time as Time, value: p.lower })));
+      dynamicSeriesRef.current.set("don-upper", donUpper as ISeriesApi<SeriesType>);
+      dynamicSeriesRef.current.set("don-middle", donMiddle as ISeriesApi<SeriesType>);
+      dynamicSeriesRef.current.set("don-lower", donLower as ISeriesApi<SeriesType>);
+    }
+
+    // --- Keltner Channels (Overlay, 3 lines) ---
+    if (indicators.keltner.enabled && filteredKeltner?.data.length) {
+      const kelUpper = chart.addSeries(LineSeries, {
+        color: COLORS.keltnerUpper,
+        lineWidth: 1,
+        priceLineVisible: false,
+        crosshairMarkerVisible: false,
+        title: "KC Upper",
+      });
+      const kelMiddle = chart.addSeries(LineSeries, {
+        color: COLORS.keltnerMiddle,
+        lineWidth: 1,
+        lineStyle: 2,
+        priceLineVisible: false,
+        crosshairMarkerVisible: false,
+        title: "KC Mid",
+      });
+      const kelLower = chart.addSeries(LineSeries, {
+        color: COLORS.keltnerLower,
+        lineWidth: 1,
+        priceLineVisible: false,
+        crosshairMarkerVisible: false,
+        title: "KC Lower",
+      });
+      kelUpper.setData(filteredKeltner.data.map((p) => ({ time: p.time as Time, value: p.upper })));
+      kelMiddle.setData(filteredKeltner.data.map((p) => ({ time: p.time as Time, value: p.middle })));
+      kelLower.setData(filteredKeltner.data.map((p) => ({ time: p.time as Time, value: p.lower })));
+      dynamicSeriesRef.current.set("kel-upper", kelUpper as ISeriesApi<SeriesType>);
+      dynamicSeriesRef.current.set("kel-middle", kelMiddle as ISeriesApi<SeriesType>);
+      dynamicSeriesRef.current.set("kel-lower", kelLower as ISeriesApi<SeriesType>);
+    }
+
+    // --- HMA (Overlay, same pattern as SMA/EMA) ---
+    if (indicators.hma.enabled && filteredHma.length > 0) {
+      filteredHma.forEach((ma, idx) => {
+        const series = chart.addSeries(LineSeries, {
+          color: MA_COLORS[(idx + filteredSma.length + filteredEma.length) % MA_COLORS.length],
+          lineWidth: 2,
+          priceLineVisible: false,
+          crosshairMarkerVisible: false,
+          title: `HMA${ma.period}`,
+        });
+        series.setData(ma.data.map((p) => ({ time: p.time as Time, value: p.value })));
+        dynamicSeriesRef.current.set(`hma-${ma.period}`, series as ISeriesApi<SeriesType>);
+      });
+    }
+
+    // --- MFI (Oscillator, 0-100) ---
+    if (indicators.mfi.enabled && filteredMfi?.data.length) {
+      const mfiLine = chart.addSeries(LineSeries, {
+        priceScaleId: "mfi",
+        color: COLORS.mfiLine,
+        lineWidth: 2,
+        priceLineVisible: false,
+        lastValueVisible: false,
+      });
+      const mfiOb = chart.addSeries(LineSeries, {
+        priceScaleId: "mfi",
+        color: COLORS.rsiOverbought,
+        lineWidth: 1,
+        lineStyle: 2,
+        priceLineVisible: false,
+        lastValueVisible: false,
+        crosshairMarkerVisible: false,
+      });
+      const mfiOs = chart.addSeries(LineSeries, {
+        priceScaleId: "mfi",
+        color: COLORS.rsiOversold,
+        lineWidth: 1,
+        lineStyle: 2,
+        priceLineVisible: false,
+        lastValueVisible: false,
+        crosshairMarkerVisible: false,
+      });
+      mfiLine.setData(filteredMfi.data.map((p) => ({ time: p.time as Time, value: p.value })));
+      mfiOb.setData(filteredMfi.data.map((p) => ({ time: p.time as Time, value: 80 })));
+      mfiOs.setData(filteredMfi.data.map((p) => ({ time: p.time as Time, value: 20 })));
+      dynamicSeriesRef.current.set("mfi", mfiLine as ISeriesApi<SeriesType>);
+      dynamicSeriesRef.current.set("mfi-ob", mfiOb as ISeriesApi<SeriesType>);
+      dynamicSeriesRef.current.set("mfi-os", mfiOs as ISeriesApi<SeriesType>);
+    }
+
+    // --- CMF (Oscillator, -1~+1) ---
+    if (indicators.cmf.enabled && filteredCmf?.data.length) {
+      const cmfLine = chart.addSeries(LineSeries, {
+        priceScaleId: "cmf",
+        color: COLORS.cmfLine,
+        lineWidth: 2,
+        priceLineVisible: false,
+        lastValueVisible: false,
+      });
+      const cmfZero = chart.addSeries(LineSeries, {
+        priceScaleId: "cmf",
+        color: "#6B7280",
+        lineWidth: 1,
+        lineStyle: 2,
+        priceLineVisible: false,
+        lastValueVisible: false,
+        crosshairMarkerVisible: false,
+      });
+      cmfLine.setData(filteredCmf.data.map((p) => ({ time: p.time as Time, value: p.value })));
+      cmfZero.setData(filteredCmf.data.map((p) => ({ time: p.time as Time, value: 0 })));
+      dynamicSeriesRef.current.set("cmf", cmfLine as ISeriesApi<SeriesType>);
+      dynamicSeriesRef.current.set("cmf-zero", cmfZero as ISeriesApi<SeriesType>);
+    }
+
+    // --- Choppiness Index (Oscillator, 0-100) ---
+    if (indicators.choppiness.enabled && filteredChoppiness?.data.length) {
+      const chopLine = chart.addSeries(LineSeries, {
+        priceScaleId: "chop",
+        color: COLORS.chopLine,
+        lineWidth: 2,
+        priceLineVisible: false,
+        lastValueVisible: false,
+      });
+      const chopHigh = chart.addSeries(LineSeries, {
+        priceScaleId: "chop",
+        color: "#6B7280",
+        lineWidth: 1,
+        lineStyle: 2,
+        priceLineVisible: false,
+        lastValueVisible: false,
+        crosshairMarkerVisible: false,
+      });
+      const chopLow = chart.addSeries(LineSeries, {
+        priceScaleId: "chop",
+        color: "#6B7280",
+        lineWidth: 1,
+        lineStyle: 2,
+        priceLineVisible: false,
+        lastValueVisible: false,
+        crosshairMarkerVisible: false,
+      });
+      chopLine.setData(filteredChoppiness.data.map((p) => ({ time: p.time as Time, value: p.value })));
+      chopHigh.setData(filteredChoppiness.data.map((p) => ({ time: p.time as Time, value: 61.8 })));
+      chopLow.setData(filteredChoppiness.data.map((p) => ({ time: p.time as Time, value: 38.2 })));
+      dynamicSeriesRef.current.set("chop", chopLine as ISeriesApi<SeriesType>);
+      dynamicSeriesRef.current.set("chop-hi", chopHigh as ISeriesApi<SeriesType>);
+      dynamicSeriesRef.current.set("chop-lo", chopLow as ISeriesApi<SeriesType>);
+    }
+
+    // --- Williams %R (Oscillator, -100~0) ---
+    if (indicators.williamsR.enabled && filteredWillr?.data.length) {
+      const willrLine = chart.addSeries(LineSeries, {
+        priceScaleId: "willr",
+        color: COLORS.willrLine,
+        lineWidth: 2,
+        priceLineVisible: false,
+        lastValueVisible: false,
+      });
+      const willrOb = chart.addSeries(LineSeries, {
+        priceScaleId: "willr",
+        color: COLORS.rsiOverbought,
+        lineWidth: 1,
+        lineStyle: 2,
+        priceLineVisible: false,
+        lastValueVisible: false,
+        crosshairMarkerVisible: false,
+      });
+      const willrOs = chart.addSeries(LineSeries, {
+        priceScaleId: "willr",
+        color: COLORS.rsiOversold,
+        lineWidth: 1,
+        lineStyle: 2,
+        priceLineVisible: false,
+        lastValueVisible: false,
+        crosshairMarkerVisible: false,
+      });
+      willrLine.setData(filteredWillr.data.map((p) => ({ time: p.time as Time, value: p.value })));
+      willrOb.setData(filteredWillr.data.map((p) => ({ time: p.time as Time, value: -20 })));
+      willrOs.setData(filteredWillr.data.map((p) => ({ time: p.time as Time, value: -80 })));
+      dynamicSeriesRef.current.set("willr", willrLine as ISeriesApi<SeriesType>);
+      dynamicSeriesRef.current.set("willr-ob", willrOb as ISeriesApi<SeriesType>);
+      dynamicSeriesRef.current.set("willr-os", willrOs as ISeriesApi<SeriesType>);
+    }
+
+    // --- ADX / DI+ / DI- (Oscillator, 3 lines) ---
+    if (indicators.adx.enabled && filteredAdx?.data.length) {
+      const adxLine = chart.addSeries(LineSeries, {
+        priceScaleId: "adx",
+        color: COLORS.adxLine,
+        lineWidth: 2,
+        priceLineVisible: false,
+        lastValueVisible: false,
+        title: "ADX",
+      });
+      const plusDiLine = chart.addSeries(LineSeries, {
+        priceScaleId: "adx",
+        color: COLORS.adxPlusDi,
+        lineWidth: 1,
+        priceLineVisible: false,
+        lastValueVisible: false,
+        title: "+DI",
+      });
+      const minusDiLine = chart.addSeries(LineSeries, {
+        priceScaleId: "adx",
+        color: COLORS.adxMinusDi,
+        lineWidth: 1,
+        priceLineVisible: false,
+        lastValueVisible: false,
+        title: "-DI",
+      });
+      const adx25 = chart.addSeries(LineSeries, {
+        priceScaleId: "adx",
+        color: "#6B7280",
+        lineWidth: 1,
+        lineStyle: 2,
+        priceLineVisible: false,
+        lastValueVisible: false,
+        crosshairMarkerVisible: false,
+      });
+      adxLine.setData(filteredAdx.data.map((p) => ({ time: p.time as Time, value: p.adx })));
+      plusDiLine.setData(filteredAdx.data.map((p) => ({ time: p.time as Time, value: p.plusDi })));
+      minusDiLine.setData(filteredAdx.data.map((p) => ({ time: p.time as Time, value: p.minusDi })));
+      adx25.setData(filteredAdx.data.map((p) => ({ time: p.time as Time, value: 25 })));
+      dynamicSeriesRef.current.set("adx", adxLine as ISeriesApi<SeriesType>);
+      dynamicSeriesRef.current.set("adx-plus", plusDiLine as ISeriesApi<SeriesType>);
+      dynamicSeriesRef.current.set("adx-minus", minusDiLine as ISeriesApi<SeriesType>);
+      dynamicSeriesRef.current.set("adx-25", adx25 as ISeriesApi<SeriesType>);
+    }
+
+    // --- CVD (Oscillator, cumulative) ---
+    if (indicators.cvd.enabled && filteredCvd?.data.length) {
+      const cvdLine = chart.addSeries(LineSeries, {
+        priceScaleId: "cvd",
+        color: COLORS.cvdLine,
+        lineWidth: 2,
+        priceLineVisible: false,
+        lastValueVisible: false,
+        title: "CVD",
+      });
+      cvdLine.setData(filteredCvd.data.map((p) => ({ time: p.time as Time, value: p.value })));
+      dynamicSeriesRef.current.set("cvd", cvdLine as ISeriesApi<SeriesType>);
+    }
+
+    // --- STC (Oscillator, 0-100) ---
+    if (indicators.stc.enabled && filteredStc?.data.length) {
+      const stcLine = chart.addSeries(LineSeries, {
+        priceScaleId: "stc",
+        color: COLORS.stcLine,
+        lineWidth: 2,
+        priceLineVisible: false,
+        lastValueVisible: false,
+      });
+      const stcHigh = chart.addSeries(LineSeries, {
+        priceScaleId: "stc",
+        color: "#6B7280",
+        lineWidth: 1,
+        lineStyle: 2,
+        priceLineVisible: false,
+        lastValueVisible: false,
+        crosshairMarkerVisible: false,
+      });
+      const stcLow = chart.addSeries(LineSeries, {
+        priceScaleId: "stc",
+        color: "#6B7280",
+        lineWidth: 1,
+        lineStyle: 2,
+        priceLineVisible: false,
+        lastValueVisible: false,
+        crosshairMarkerVisible: false,
+      });
+      stcLine.setData(filteredStc.data.map((p) => ({ time: p.time as Time, value: p.value })));
+      stcHigh.setData(filteredStc.data.map((p) => ({ time: p.time as Time, value: 75 })));
+      stcLow.setData(filteredStc.data.map((p) => ({ time: p.time as Time, value: 25 })));
+      dynamicSeriesRef.current.set("stc", stcLine as ISeriesApi<SeriesType>);
+      dynamicSeriesRef.current.set("stc-hi", stcHigh as ISeriesApi<SeriesType>);
+      dynamicSeriesRef.current.set("stc-lo", stcLow as ISeriesApi<SeriesType>);
+    }
+
     applyIndicatorScaleLayout();
 
     if (markersPluginRef.current) {
@@ -1085,6 +1476,16 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
     indicators.atr.enabled,
     indicators.volume.enabled,
     indicators.vwap.enabled,
+    indicators.donchian.enabled,
+    indicators.keltner.enabled,
+    indicators.hma.enabled,
+    indicators.mfi.enabled,
+    indicators.cmf.enabled,
+    indicators.choppiness.enabled,
+    indicators.williamsR.enabled,
+    indicators.adx.enabled,
+    indicators.cvd.enabled,
+    indicators.stc.enabled,
     replayEnabled,
     replayIndex,
   ]);

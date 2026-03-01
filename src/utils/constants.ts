@@ -79,6 +79,30 @@ export const COLORS = {
   macdBearish: "#F97316",
   stochOversold: "#06B6D4",
   stochOverbought: "#EC4899",
+  // Donchian Channels
+  donchianUpper: "#0EA5E9",
+  donchianMiddle: "#F59E0B",
+  donchianLower: "#0EA5E9",
+  // Keltner Channels
+  keltnerUpper: "#8B5CF6",
+  keltnerMiddle: "#A78BFA",
+  keltnerLower: "#8B5CF6",
+  // MFI
+  mfiLine: "#F472B6",
+  // CMF
+  cmfLine: "#34D399",
+  // Choppiness
+  chopLine: "#FB923C",
+  // Williams %R
+  willrLine: "#38BDF8",
+  // ADX
+  adxLine: "#F59E0B",
+  adxPlusDi: "#22C55E",
+  adxMinusDi: "#EF4444",
+  // CVD
+  cvdLine: "#818CF8",
+  // STC
+  stcLine: "#E879F9",
 } as const;
 
 // MA dynamic color palette (up to 7 lines)
@@ -92,7 +116,16 @@ export const INDICATOR_DEFAULTS = {
   sma: { periods: [20, 50, 200] },
   ema: { periods: [12, 26] },
   macd: { fastPeriod: 12, slowPeriod: 26, signalPeriod: 9 },
+  hma: { periods: [20] },
   stochastic: { kPeriod: 14, dPeriod: 3, smooth: 3 },
+  donchian: { period: 20 },
+  keltner: { emaPeriod: 20, atrPeriod: 10, atrMultiplier: 2.0 },
+  mfi: { period: 14 },
+  cmf: { period: 20 },
+  choppiness: { period: 14 },
+  williamsR: { period: 14 },
+  adx: { period: 14 },
+  stc: { tcLen: 10, fastMa: 23, slowMa: 50 },
   signalFilter: {
     enabled: true,
     applyRegimeFilter: true,

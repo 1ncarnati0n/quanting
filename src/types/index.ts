@@ -137,6 +137,114 @@ export interface SignalPoint {
   source: string;
 }
 
+// Donchian Channels
+export interface DonchianPoint {
+  time: number;
+  upper: number;
+  middle: number;
+  lower: number;
+}
+
+export interface DonchianResult {
+  period: number;
+  data: DonchianPoint[];
+}
+
+// Keltner Channels
+export interface KeltnerPoint {
+  time: number;
+  upper: number;
+  middle: number;
+  lower: number;
+}
+
+export interface KeltnerResult {
+  emaPeriod: number;
+  atrPeriod: number;
+  atrMultiplier: number;
+  data: KeltnerPoint[];
+}
+
+// MFI (Money Flow Index)
+export interface MfiPoint {
+  time: number;
+  value: number;
+}
+
+export interface MfiResult {
+  period: number;
+  data: MfiPoint[];
+}
+
+// CMF (Chaikin Money Flow)
+export interface CmfPoint {
+  time: number;
+  value: number;
+}
+
+export interface CmfResult {
+  period: number;
+  data: CmfPoint[];
+}
+
+// Choppiness Index
+export interface ChoppinessPoint {
+  time: number;
+  value: number;
+}
+
+export interface ChoppinessResult {
+  period: number;
+  data: ChoppinessPoint[];
+}
+
+// Williams %R
+export interface WillrPoint {
+  time: number;
+  value: number;
+}
+
+export interface WillrResult {
+  period: number;
+  data: WillrPoint[];
+}
+
+// ADX / DI+ / DI-
+export interface AdxPoint {
+  time: number;
+  adx: number;
+  plusDi: number;
+  minusDi: number;
+}
+
+export interface AdxResult {
+  period: number;
+  data: AdxPoint[];
+}
+
+// CVD (Cumulative Volume Delta)
+export interface CvdPoint {
+  time: number;
+  value: number;
+}
+
+export interface CvdResult {
+  data: CvdPoint[];
+}
+
+// STC (Schaff Trend Cycle)
+export interface StcPoint {
+  time: number;
+  value: number;
+}
+
+export interface StcResult {
+  tcLen: number;
+  fastMa: number;
+  slowMa: number;
+  data: StcPoint[];
+}
+
 export interface AnalysisResponse {
   candles: Candle[];
   bollingerBands: BollingerBandsPoint[];
@@ -144,6 +252,7 @@ export interface AnalysisResponse {
   signals: SignalPoint[];
   sma: MovingAverageResult[];
   ema: MovingAverageResult[];
+  hma: MovingAverageResult[];
   macd: MacdResult | null;
   stochastic: StochasticResult | null;
   obv: ObvResult | null;
@@ -152,6 +261,15 @@ export interface AnalysisResponse {
   ichimoku: IchimokuResult | null;
   supertrend: SupertrendResult | null;
   parabolicSar: ParabolicSarResult | null;
+  donchian: DonchianResult | null;
+  keltner: KeltnerResult | null;
+  mfi: MfiResult | null;
+  cmf: CmfResult | null;
+  choppiness: ChoppinessResult | null;
+  williamsR: WillrResult | null;
+  adx: AdxResult | null;
+  cvd: CvdResult | null;
+  stc: StcResult | null;
   symbol: string;
   interval: string;
 }
@@ -215,6 +333,42 @@ export interface SignalFilterParams {
   keepStrongInHighVol: boolean;
 }
 
+export interface DonchianParams {
+  period: number;
+}
+
+export interface KeltnerParams {
+  emaPeriod: number;
+  atrPeriod: number;
+  atrMultiplier: number;
+}
+
+export interface MfiParams {
+  period: number;
+}
+
+export interface CmfParams {
+  period: number;
+}
+
+export interface ChoppinessParams {
+  period: number;
+}
+
+export interface WillrParams {
+  period: number;
+}
+
+export interface AdxParams {
+  period: number;
+}
+
+export interface StcParams {
+  tcLen: number;
+  fastMa: number;
+  slowMa: number;
+}
+
 export interface AnalysisParams {
   symbol: string;
   interval: string;
@@ -224,10 +378,20 @@ export interface AnalysisParams {
   market: MarketType;
   smaPeriods: number[];
   emaPeriods: number[];
+  hmaPeriods?: number[];
   macd: MacdParams | null;
   stochastic: StochasticParams | null;
   showVolume: boolean;
   showObv: boolean;
+  showCvd?: boolean;
+  donchian?: DonchianParams | null;
+  keltner?: KeltnerParams | null;
+  mfi?: MfiParams | null;
+  cmf?: CmfParams | null;
+  choppiness?: ChoppinessParams | null;
+  williamsR?: WillrParams | null;
+  adx?: AdxParams | null;
+  stc?: StcParams | null;
   signalFilter: SignalFilterParams;
 }
 

@@ -55,6 +55,13 @@ const LAYOUT_PRESETS = {
       stochasticWeight: 1,
       obvWeight: 1,
       atrWeight: 1,
+      mfiWeight: 1,
+      cmfWeight: 1,
+      chopWeight: 1,
+      willrWeight: 1,
+      adxWeight: 1,
+      cvdWeight: 1,
+      stcWeight: 1,
     },
   },
   oscillatorFocus: {
@@ -67,6 +74,13 @@ const LAYOUT_PRESETS = {
       stochasticWeight: 1.3,
       obvWeight: 0.8,
       atrWeight: 1.1,
+      mfiWeight: 1.2,
+      cmfWeight: 1,
+      chopWeight: 1,
+      willrWeight: 1.2,
+      adxWeight: 1.2,
+      cvdWeight: 0.8,
+      stcWeight: 1.2,
     },
   },
   volumeFocus: {
@@ -79,6 +93,13 @@ const LAYOUT_PRESETS = {
       stochasticWeight: 0.9,
       obvWeight: 1.3,
       atrWeight: 1.2,
+      mfiWeight: 1.3,
+      cmfWeight: 1.3,
+      chopWeight: 0.8,
+      willrWeight: 0.9,
+      adxWeight: 1,
+      cvdWeight: 1.5,
+      stcWeight: 0.9,
     },
   },
 } as const;
@@ -286,6 +307,16 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
         indicators.ichimoku.enabled,
         indicators.supertrend.enabled,
         indicators.psar.enabled,
+        indicators.hma.enabled,
+        indicators.donchian.enabled,
+        indicators.keltner.enabled,
+        indicators.mfi.enabled,
+        indicators.cmf.enabled,
+        indicators.choppiness.enabled,
+        indicators.williamsR.enabled,
+        indicators.adx.enabled,
+        indicators.cvd.enabled,
+        indicators.stc.enabled,
         indicators.signalFilter.enabled,
       ].filter(Boolean).length,
     [indicators],
@@ -317,7 +348,14 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
       Math.abs(layout.macdWeight - target.macdWeight) < eps &&
       Math.abs(layout.stochasticWeight - target.stochasticWeight) < eps &&
       Math.abs(layout.obvWeight - target.obvWeight) < eps &&
-      Math.abs(layout.atrWeight - target.atrWeight) < eps
+      Math.abs(layout.atrWeight - target.atrWeight) < eps &&
+      Math.abs(layout.mfiWeight - target.mfiWeight) < eps &&
+      Math.abs(layout.cmfWeight - target.cmfWeight) < eps &&
+      Math.abs(layout.chopWeight - target.chopWeight) < eps &&
+      Math.abs(layout.willrWeight - target.willrWeight) < eps &&
+      Math.abs(layout.adxWeight - target.adxWeight) < eps &&
+      Math.abs(layout.cvdWeight - target.cvdWeight) < eps &&
+      Math.abs(layout.stcWeight - target.stcWeight) < eps
     );
   };
 
@@ -883,6 +921,66 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
                   enabled={indicators.psar.enabled}
                   onToggle={() => toggleIndicator("psar")}
                 />
+
+                <IndicatorSection
+                  title="HMA"
+                  color="#14B8A6"
+                  enabled={indicators.hma.enabled}
+                  onToggle={() => toggleIndicator("hma")}
+                >
+                  <PeriodsInput
+                    periods={indicators.hma.periods}
+                    onChange={(periods) => setIndicator("hma", { periods })}
+                  />
+                </IndicatorSection>
+
+                <IndicatorSection
+                  title="Donchian Channels"
+                  color={COLORS.donchianUpper}
+                  enabled={indicators.donchian.enabled}
+                  onToggle={() => toggleIndicator("donchian")}
+                >
+                  <SliderRow
+                    label="기간"
+                    value={indicators.donchian.period}
+                    min={5}
+                    max={100}
+                    step={1}
+                    onChange={(v) => setIndicator("donchian", { period: v })}
+                  />
+                </IndicatorSection>
+
+                <IndicatorSection
+                  title="Keltner Channels"
+                  color={COLORS.keltnerUpper}
+                  enabled={indicators.keltner.enabled}
+                  onToggle={() => toggleIndicator("keltner")}
+                >
+                  <SliderRow
+                    label="EMA 기간"
+                    value={indicators.keltner.emaPeriod}
+                    min={5}
+                    max={50}
+                    step={1}
+                    onChange={(v) => setIndicator("keltner", { emaPeriod: v })}
+                  />
+                  <SliderRow
+                    label="ATR 기간"
+                    value={indicators.keltner.atrPeriod}
+                    min={5}
+                    max={50}
+                    step={1}
+                    onChange={(v) => setIndicator("keltner", { atrPeriod: v })}
+                  />
+                  <SliderRow
+                    label="ATR 배수"
+                    value={indicators.keltner.atrMultiplier}
+                    min={0.5}
+                    max={4.0}
+                    step={0.1}
+                    onChange={(v) => setIndicator("keltner", { atrMultiplier: v })}
+                  />
+                </IndicatorSection>
               </AccordionSection>
 
               <AccordionSection
@@ -979,6 +1077,118 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
                   enabled={indicators.atr.enabled}
                   onToggle={() => toggleIndicator("atr")}
                 />
+
+                <IndicatorSection
+                  title="MFI"
+                  color={COLORS.mfiLine}
+                  enabled={indicators.mfi.enabled}
+                  onToggle={() => toggleIndicator("mfi")}
+                >
+                  <SliderRow
+                    label="기간"
+                    value={indicators.mfi.period}
+                    min={2}
+                    max={50}
+                    step={1}
+                    onChange={(v) => setIndicator("mfi", { period: v })}
+                  />
+                </IndicatorSection>
+
+                <IndicatorSection
+                  title="CMF"
+                  color={COLORS.cmfLine}
+                  enabled={indicators.cmf.enabled}
+                  onToggle={() => toggleIndicator("cmf")}
+                >
+                  <SliderRow
+                    label="기간"
+                    value={indicators.cmf.period}
+                    min={2}
+                    max={50}
+                    step={1}
+                    onChange={(v) => setIndicator("cmf", { period: v })}
+                  />
+                </IndicatorSection>
+
+                <IndicatorSection
+                  title="Choppiness Index"
+                  color={COLORS.chopLine}
+                  enabled={indicators.choppiness.enabled}
+                  onToggle={() => toggleIndicator("choppiness")}
+                >
+                  <SliderRow
+                    label="기간"
+                    value={indicators.choppiness.period}
+                    min={2}
+                    max={50}
+                    step={1}
+                    onChange={(v) => setIndicator("choppiness", { period: v })}
+                  />
+                </IndicatorSection>
+
+                <IndicatorSection
+                  title="Williams %R"
+                  color={COLORS.willrLine}
+                  enabled={indicators.williamsR.enabled}
+                  onToggle={() => toggleIndicator("williamsR")}
+                >
+                  <SliderRow
+                    label="기간"
+                    value={indicators.williamsR.period}
+                    min={2}
+                    max={50}
+                    step={1}
+                    onChange={(v) => setIndicator("williamsR", { period: v })}
+                  />
+                </IndicatorSection>
+
+                <IndicatorSection
+                  title="ADX"
+                  color={COLORS.adxLine}
+                  enabled={indicators.adx.enabled}
+                  onToggle={() => toggleIndicator("adx")}
+                >
+                  <SliderRow
+                    label="기간"
+                    value={indicators.adx.period}
+                    min={2}
+                    max={50}
+                    step={1}
+                    onChange={(v) => setIndicator("adx", { period: v })}
+                  />
+                </IndicatorSection>
+
+                <IndicatorSection
+                  title="STC"
+                  color={COLORS.stcLine}
+                  enabled={indicators.stc.enabled}
+                  onToggle={() => toggleIndicator("stc")}
+                >
+                  <SliderRow
+                    label="TC 기간"
+                    value={indicators.stc.tcLen}
+                    min={2}
+                    max={30}
+                    step={1}
+                    onChange={(v) => setIndicator("stc", { tcLen: v })}
+                  />
+                  <SliderRow
+                    label="단기 MA"
+                    value={indicators.stc.fastMa}
+                    min={5}
+                    max={50}
+                    step={1}
+                    onChange={(v) => setIndicator("stc", { fastMa: v })}
+                  />
+                  <SliderRow
+                    label="장기 MA"
+                    value={indicators.stc.slowMa}
+                    min={20}
+                    max={100}
+                    step={1}
+                    onChange={(v) => setIndicator("stc", { slowMa: v })}
+                  />
+                </IndicatorSection>
               </AccordionSection>
 
               <AccordionSection
@@ -1117,6 +1327,12 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
                   color="#14B8A6"
                   enabled={indicators.obv.enabled}
                   onToggle={() => toggleIndicator("obv")}
+                />
+                <IndicatorSection
+                  title="CVD(누적거래량델타)"
+                  color={COLORS.cvdLine}
+                  enabled={indicators.cvd.enabled}
+                  onToggle={() => toggleIndicator("cvd")}
                 />
                 <IndicatorSection
                   title="볼륨 프로파일"

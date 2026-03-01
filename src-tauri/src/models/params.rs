@@ -88,6 +88,70 @@ impl Default for SignalFilterParams {
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct DonchianParams {
+    #[serde(default = "default_donchian_period")]
+    pub period: usize,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct KeltnerParams {
+    #[serde(default = "default_keltner_ema_period")]
+    pub ema_period: usize,
+    #[serde(default = "default_keltner_atr_period")]
+    pub atr_period: usize,
+    #[serde(default = "default_keltner_atr_multiplier")]
+    pub atr_multiplier: f64,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MfiParams {
+    #[serde(default = "default_mfi_period")]
+    pub period: usize,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CmfParams {
+    #[serde(default = "default_cmf_period")]
+    pub period: usize,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ChoppinessParams {
+    #[serde(default = "default_choppiness_period")]
+    pub period: usize,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WillrParams {
+    #[serde(default = "default_willr_period")]
+    pub period: usize,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AdxParams {
+    #[serde(default = "default_adx_period")]
+    pub period: usize,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StcParams {
+    #[serde(default = "default_stc_tc_len")]
+    pub tc_len: usize,
+    #[serde(default = "default_stc_fast_ma")]
+    pub fast_ma: usize,
+    #[serde(default = "default_stc_slow_ma")]
+    pub slow_ma: usize,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AnalysisParams {
     pub symbol: String,
     pub interval: String,
@@ -104,6 +168,8 @@ pub struct AnalysisParams {
     #[serde(default)]
     pub ema_periods: Vec<usize>,
     #[serde(default)]
+    pub hma_periods: Vec<usize>,
+    #[serde(default)]
     pub macd: Option<MacdParams>,
     #[serde(default)]
     pub stochastic: Option<StochasticParams>,
@@ -112,6 +178,24 @@ pub struct AnalysisParams {
     pub show_volume: bool,
     #[serde(default)]
     pub show_obv: bool,
+    #[serde(default)]
+    pub show_cvd: bool,
+    #[serde(default)]
+    pub donchian: Option<DonchianParams>,
+    #[serde(default)]
+    pub keltner: Option<KeltnerParams>,
+    #[serde(default)]
+    pub mfi: Option<MfiParams>,
+    #[serde(default)]
+    pub cmf: Option<CmfParams>,
+    #[serde(default)]
+    pub choppiness: Option<ChoppinessParams>,
+    #[serde(default)]
+    pub williams_r: Option<WillrParams>,
+    #[serde(default)]
+    pub adx: Option<AdxParams>,
+    #[serde(default)]
+    pub stc: Option<StcParams>,
     #[serde(default)]
     pub signal_filter: SignalFilterParams,
 }
@@ -184,4 +268,40 @@ fn default_keep_strong_counter_trend() -> bool {
 }
 fn default_keep_strong_in_high_vol() -> bool {
     true
+}
+fn default_donchian_period() -> usize {
+    20
+}
+fn default_keltner_ema_period() -> usize {
+    20
+}
+fn default_keltner_atr_period() -> usize {
+    10
+}
+fn default_keltner_atr_multiplier() -> f64 {
+    2.0
+}
+fn default_mfi_period() -> usize {
+    14
+}
+fn default_cmf_period() -> usize {
+    20
+}
+fn default_choppiness_period() -> usize {
+    14
+}
+fn default_willr_period() -> usize {
+    14
+}
+fn default_adx_period() -> usize {
+    14
+}
+fn default_stc_tc_len() -> usize {
+    10
+}
+fn default_stc_fast_ma() -> usize {
+    23
+}
+fn default_stc_slow_ma() -> usize {
+    50
 }

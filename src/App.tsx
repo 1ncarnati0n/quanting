@@ -77,6 +77,7 @@ function App() {
       market,
       smaPeriods: indicators.sma.enabled ? indicators.sma.periods : [],
       emaPeriods: indicators.ema.enabled ? indicators.ema.periods : [],
+      hmaPeriods: indicators.hma.enabled ? indicators.hma.periods : [],
       macd: indicators.macd.enabled
         ? {
             fastPeriod: indicators.macd.fastPeriod,
@@ -93,6 +94,33 @@ function App() {
         : null,
       showVolume: indicators.volume.enabled,
       showObv: indicators.obv.enabled,
+      showCvd: indicators.cvd.enabled,
+      donchian: indicators.donchian.enabled
+        ? { period: indicators.donchian.period }
+        : null,
+      keltner: indicators.keltner.enabled
+        ? {
+            emaPeriod: indicators.keltner.emaPeriod,
+            atrPeriod: indicators.keltner.atrPeriod,
+            atrMultiplier: indicators.keltner.atrMultiplier,
+          }
+        : null,
+      mfi: indicators.mfi.enabled ? { period: indicators.mfi.period } : null,
+      cmf: indicators.cmf.enabled ? { period: indicators.cmf.period } : null,
+      choppiness: indicators.choppiness.enabled
+        ? { period: indicators.choppiness.period }
+        : null,
+      williamsR: indicators.williamsR.enabled
+        ? { period: indicators.williamsR.period }
+        : null,
+      adx: indicators.adx.enabled ? { period: indicators.adx.period } : null,
+      stc: indicators.stc.enabled
+        ? {
+            tcLen: indicators.stc.tcLen,
+            fastMa: indicators.stc.fastMa,
+            slowMa: indicators.stc.slowMa,
+          }
+        : null,
       signalFilter: indicators.signalFilter,
     });
   }, [symbol, interval, market, indicators, fetchData]);
@@ -126,6 +154,7 @@ function App() {
         market: state.market,
         smaPeriods: state.indicators.sma.enabled ? state.indicators.sma.periods : [],
         emaPeriods: state.indicators.ema.enabled ? state.indicators.ema.periods : [],
+        hmaPeriods: state.indicators.hma.enabled ? state.indicators.hma.periods : [],
         macd: state.indicators.macd.enabled
           ? {
               fastPeriod: state.indicators.macd.fastPeriod,
@@ -142,6 +171,33 @@ function App() {
           : null,
         showVolume: state.indicators.volume.enabled,
         showObv: state.indicators.obv.enabled,
+        showCvd: state.indicators.cvd.enabled,
+        donchian: state.indicators.donchian.enabled
+          ? { period: state.indicators.donchian.period }
+          : null,
+        keltner: state.indicators.keltner.enabled
+          ? {
+              emaPeriod: state.indicators.keltner.emaPeriod,
+              atrPeriod: state.indicators.keltner.atrPeriod,
+              atrMultiplier: state.indicators.keltner.atrMultiplier,
+            }
+          : null,
+        mfi: state.indicators.mfi.enabled ? { period: state.indicators.mfi.period } : null,
+        cmf: state.indicators.cmf.enabled ? { period: state.indicators.cmf.period } : null,
+        choppiness: state.indicators.choppiness.enabled
+          ? { period: state.indicators.choppiness.period }
+          : null,
+        williamsR: state.indicators.williamsR.enabled
+          ? { period: state.indicators.williamsR.period }
+          : null,
+        adx: state.indicators.adx.enabled ? { period: state.indicators.adx.period } : null,
+        stc: state.indicators.stc.enabled
+          ? {
+              tcLen: state.indicators.stc.tcLen,
+              fastMa: state.indicators.stc.fastMa,
+              slowMa: state.indicators.stc.slowMa,
+            }
+          : null,
         signalFilter: state.indicators.signalFilter,
       });
     }, intervalMs);

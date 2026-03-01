@@ -84,6 +84,21 @@ export interface IndicatorConfig {
   ichimoku: { enabled: boolean };
   supertrend: { enabled: boolean };
   psar: { enabled: boolean };
+  hma: { enabled: boolean; periods: number[] };
+  donchian: { enabled: boolean; period: number };
+  keltner: {
+    enabled: boolean;
+    emaPeriod: number;
+    atrPeriod: number;
+    atrMultiplier: number;
+  };
+  mfi: { enabled: boolean; period: number };
+  cmf: { enabled: boolean; period: number };
+  choppiness: { enabled: boolean; period: number };
+  williamsR: { enabled: boolean; period: number };
+  adx: { enabled: boolean; period: number };
+  cvd: { enabled: boolean };
+  stc: { enabled: boolean; tcLen: number; fastMa: number; slowMa: number };
   layout: {
     priceAreaRatio: number;
     volumeWeight: number;
@@ -92,6 +107,13 @@ export interface IndicatorConfig {
     stochasticWeight: number;
     obvWeight: number;
     atrWeight: number;
+    mfiWeight: number;
+    cmfWeight: number;
+    chopWeight: number;
+    willrWeight: number;
+    adxWeight: number;
+    cvdWeight: number;
+    stcWeight: number;
   };
   signalFilter: {
     enabled: boolean;
@@ -131,6 +153,16 @@ const DEFAULT_INDICATORS: IndicatorConfig = {
   ichimoku: { enabled: false },
   supertrend: { enabled: false },
   psar: { enabled: false },
+  hma: { enabled: false, periods: [...INDICATOR_DEFAULTS.hma.periods] },
+  donchian: { enabled: false, ...INDICATOR_DEFAULTS.donchian },
+  keltner: { enabled: false, ...INDICATOR_DEFAULTS.keltner },
+  mfi: { enabled: false, ...INDICATOR_DEFAULTS.mfi },
+  cmf: { enabled: false, ...INDICATOR_DEFAULTS.cmf },
+  choppiness: { enabled: false, ...INDICATOR_DEFAULTS.choppiness },
+  williamsR: { enabled: false, ...INDICATOR_DEFAULTS.williamsR },
+  adx: { enabled: false, ...INDICATOR_DEFAULTS.adx },
+  cvd: { enabled: false },
+  stc: { enabled: false, ...INDICATOR_DEFAULTS.stc },
   layout: {
     priceAreaRatio: 0.62,
     volumeWeight: 1.2,
@@ -139,6 +171,13 @@ const DEFAULT_INDICATORS: IndicatorConfig = {
     stochasticWeight: 1,
     obvWeight: 1,
     atrWeight: 1,
+    mfiWeight: 1,
+    cmfWeight: 1,
+    chopWeight: 1,
+    willrWeight: 1,
+    adxWeight: 1,
+    cvdWeight: 1,
+    stcWeight: 1,
   },
   signalFilter: { ...INDICATOR_DEFAULTS.signalFilter },
 };
@@ -244,6 +283,16 @@ function getSavedIndicators(): IndicatorConfig {
         ichimoku: { ...DEFAULT_INDICATORS.ichimoku, ...parsed.ichimoku },
         supertrend: { ...DEFAULT_INDICATORS.supertrend, ...parsed.supertrend },
         psar: { ...DEFAULT_INDICATORS.psar, ...parsed.psar },
+        hma: { ...DEFAULT_INDICATORS.hma, ...parsed.hma },
+        donchian: { ...DEFAULT_INDICATORS.donchian, ...parsed.donchian },
+        keltner: { ...DEFAULT_INDICATORS.keltner, ...parsed.keltner },
+        mfi: { ...DEFAULT_INDICATORS.mfi, ...parsed.mfi },
+        cmf: { ...DEFAULT_INDICATORS.cmf, ...parsed.cmf },
+        choppiness: { ...DEFAULT_INDICATORS.choppiness, ...parsed.choppiness },
+        williamsR: { ...DEFAULT_INDICATORS.williamsR, ...parsed.williamsR },
+        adx: { ...DEFAULT_INDICATORS.adx, ...parsed.adx },
+        cvd: { ...DEFAULT_INDICATORS.cvd, ...parsed.cvd },
+        stc: { ...DEFAULT_INDICATORS.stc, ...parsed.stc },
         layout: { ...DEFAULT_INDICATORS.layout, ...parsed.layout },
         signalFilter: {
           ...DEFAULT_INDICATORS.signalFilter,

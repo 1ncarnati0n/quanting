@@ -57,8 +57,16 @@ export default function StatusBar() {
       return { trades: 0, wins: 0, winRate: 0, avgReturn: 0 };
     }
 
-    const buySignals = new Set(["strongBuy", "weakBuy", "macdBullish", "stochOversold"]);
-    const sellSignals = new Set(["strongSell", "weakSell", "macdBearish", "stochOverbought"]);
+    const buySignals = new Set([
+      "supertrendBuy", "emaCrossoverBuy", "stochRsiBuy", "cmfObvBuy",
+      "ttmSqueezeBuy", "vwapBreakoutBuy", "parabolicSarBuy",
+      "macdHistReversalBuy", "ibsMeanRevBuy", "rsiDivergenceBuy",
+    ]);
+    const sellSignals = new Set([
+      "supertrendSell", "emaCrossoverSell", "stochRsiSell", "cmfObvSell",
+      "ttmSqueezeSell", "vwapBreakoutSell", "parabolicSarSell",
+      "macdHistReversalSell", "ibsMeanRevSell", "rsiDivergenceSell",
+    ]);
     let entry: number | null = null;
     const returns: number[] = [];
 
@@ -99,7 +107,7 @@ export default function StatusBar() {
       <div className="min-w-0 flex-1">
         {lastSignal ? (
           <div className="flex min-w-0 items-center gap-2">
-            <SignalBadge signalType={lastSignal.signalType} source={lastSignal.source} />
+            <SignalBadge signalType={lastSignal.signalType} />
             <span className="ds-type-label truncate" style={{ color: "var(--muted-foreground)" }}>
               {formatTime(lastSignal.time)} · 진입 {formatPrice(lastSignal.price, market)}
               {lastRsi ? ` · RSI ${lastRsi.value.toFixed(1)}` : ""}

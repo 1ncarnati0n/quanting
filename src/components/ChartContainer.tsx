@@ -12,6 +12,7 @@ import FundamentalsOverlay from "./FundamentalsOverlay";
 import { useChartStore } from "../stores/useChartStore";
 import { useSettingsStore } from "../stores/useSettingsStore";
 import { calculateRvol } from "../utils/rvol";
+import { computeIndicatorBandLayout } from "../utils/indicatorBandLayout";
 import type { IChartApi, ISeriesApi, SeriesType } from "lightweight-charts";
 
 type OverlayBand = {
@@ -21,14 +22,6 @@ type OverlayBand = {
   weight: number;
   value: string;
 };
-
-type OverlayBandLayout = OverlayBand & {
-  top: number;
-};
-
-function clamp(value: number, min: number, max: number): number {
-  return Math.min(max, Math.max(min, value));
-}
 
 export default function ChartContainer() {
   const { data, isLoading, error } = useChartStore();
@@ -133,25 +126,20 @@ export default function ChartContainer() {
     return next;
   }, [compactFormatter, data, indicators]);
 
-  const bandLayouts = useMemo<OverlayBandLayout[]>(() => {
+  const bandLayouts = useMemo(() => {
     if (bands.length === 0) return [];
 
-    const regionTop = clamp(indicators.layout.priceAreaRatio, 0.35, 0.85);
-    const regionBottom = 0.02;
-    const regionHeight = Math.max(0.08, 1 - regionTop - regionBottom);
-    const totalWeight = bands.reduce((sum, band) => sum + band.weight, 0);
-
-    let cursorTop = regionTop;
-    return bands.map((band, index) => {
-      const isLast = index === bands.length - 1;
-      const bandHeight = isLast
-        ? Math.max(0.01, 1 - regionBottom - cursorTop)
-        : regionHeight * (band.weight / Math.max(0.0001, totalWeight));
-      const top = clamp(cursorTop, 0.01, 0.95);
-
-      cursorTop += bandHeight;
-      return { ...band, top };
-    });
+    return computeIndicatorBandLayout(
+      bands,
+      indicators.layout.priceAreaRatio,
+      {
+        minMainRegionTop: 0.35,
+        maxMainRegionTop: 0.85,
+        splitGap: 0.006,
+        oscBottomMargin: 0.02,
+        minBandHeight: 0.028,
+      },
+    ).bands.filter((band) => Number.isFinite(band.top) && Number.isFinite(band.height));
   }, [bands, indicators.layout.priceAreaRatio]);
 
   const chartSlots = useMemo(() => {

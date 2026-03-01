@@ -79,7 +79,6 @@ export function buildAnalysisParams({
           swingLength: indicators.autoFib.swingLength,
         }
       : null,
-    signalFilter: indicators.signalFilter,
     signalStrategies: indicators.signalStrategies,
   };
 }

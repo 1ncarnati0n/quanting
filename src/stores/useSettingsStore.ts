@@ -121,22 +121,6 @@ export interface IndicatorConfig {
     rvolWeight: number;
     stcWeight: number;
   };
-  signalFilter: {
-    enabled: boolean;
-    applyRegimeFilter: boolean;
-    applyMomentumFilter: boolean;
-    applyVolatilityFilter: boolean;
-    regimePeriod: number;
-    regimeBuffer: number;
-    momentumPeriod: number;
-    minMomentumForBuy: number;
-    maxMomentumForSell: number;
-    volatilityPeriod: number;
-    volatilityRankPeriod: number;
-    highVolPercentile: number;
-    keepStrongCounterTrend: boolean;
-    keepStrongInHighVol: boolean;
-  };
   signalStrategies: {
     supertrendAdx: boolean;
     emaCrossover: boolean;
@@ -205,7 +189,6 @@ const DEFAULT_INDICATORS: IndicatorConfig = {
     rvolWeight: 1,
     stcWeight: 1,
   },
-  signalFilter: { ...INDICATOR_DEFAULTS.signalFilter },
   signalStrategies: { ...INDICATOR_DEFAULTS.signalStrategies },
 };
 
@@ -269,6 +252,36 @@ interface SettingsState {
   toggleFullscreen: () => void;
 }
 
+function toFiniteNumber(value: unknown, fallback: number): number {
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}
+
+function sanitizeLayoutConfig(layout: IndicatorConfig["layout"] | undefined): IndicatorConfig["layout"] {
+  const base = DEFAULT_INDICATORS.layout;
+  if (!layout) return { ...base };
+  return {
+    priceAreaRatio: clamp(toFiniteNumber(layout.priceAreaRatio, base.priceAreaRatio), 0.35, 0.85),
+    volumeWeight: clamp(toFiniteNumber(layout.volumeWeight, base.volumeWeight), 0.2, 3),
+    rsiWeight: clamp(toFiniteNumber(layout.rsiWeight, base.rsiWeight), 0.2, 3),
+    macdWeight: clamp(toFiniteNumber(layout.macdWeight, base.macdWeight), 0.2, 3),
+    stochasticWeight: clamp(toFiniteNumber(layout.stochasticWeight, base.stochasticWeight), 0.2, 3),
+    obvWeight: clamp(toFiniteNumber(layout.obvWeight, base.obvWeight), 0.2, 3),
+    atrWeight: clamp(toFiniteNumber(layout.atrWeight, base.atrWeight), 0.2, 3),
+    mfiWeight: clamp(toFiniteNumber(layout.mfiWeight, base.mfiWeight), 0.2, 3),
+    cmfWeight: clamp(toFiniteNumber(layout.cmfWeight, base.cmfWeight), 0.2, 3),
+    chopWeight: clamp(toFiniteNumber(layout.chopWeight, base.chopWeight), 0.2, 3),
+    willrWeight: clamp(toFiniteNumber(layout.willrWeight, base.willrWeight), 0.2, 3),
+    adxWeight: clamp(toFiniteNumber(layout.adxWeight, base.adxWeight), 0.2, 3),
+    cvdWeight: clamp(toFiniteNumber(layout.cvdWeight, base.cvdWeight), 0.2, 3),
+    rvolWeight: clamp(toFiniteNumber(layout.rvolWeight, base.rvolWeight), 0.2, 3),
+    stcWeight: clamp(toFiniteNumber(layout.stcWeight, base.stcWeight), 0.2, 3),
+  };
+}
+
 function getSavedTheme(): Theme {
   try {
     const saved = localStorage.getItem("bb-rsi-theme");
@@ -326,11 +339,7 @@ function getSavedIndicators(): IndicatorConfig {
         smc: { ...DEFAULT_INDICATORS.smc, ...parsed.smc },
         anchoredVwap: { ...DEFAULT_INDICATORS.anchoredVwap, ...parsed.anchoredVwap },
         autoFib: { ...DEFAULT_INDICATORS.autoFib, ...parsed.autoFib },
-        layout: { ...DEFAULT_INDICATORS.layout, ...parsed.layout },
-        signalFilter: {
-          ...DEFAULT_INDICATORS.signalFilter,
-          ...parsed.signalFilter,
-        },
+        layout: sanitizeLayoutConfig({ ...DEFAULT_INDICATORS.layout, ...parsed.layout }),
         signalStrategies: {
           ...DEFAULT_INDICATORS.signalStrategies,
           ...parsed.signalStrategies,
@@ -338,7 +347,10 @@ function getSavedIndicators(): IndicatorConfig {
       };
     }
   } catch {}
-  return { ...DEFAULT_INDICATORS };
+  return {
+    ...DEFAULT_INDICATORS,
+    layout: sanitizeLayoutConfig(DEFAULT_INDICATORS.layout),
+  };
 }
 
 function saveIndicators(indicators: IndicatorConfig) {
@@ -487,7 +499,17 @@ function getSavedPriceScale(): PriceScaleSettings {
     const raw = localStorage.getItem(PRICE_SCALE_STORAGE_KEY);
     if (!raw) return DEFAULT_PRICE_SCALE;
     const parsed = JSON.parse(raw);
-    return { ...DEFAULT_PRICE_SCALE, ...parsed };
+    const mode =
+      parsed?.mode === "normal" || parsed?.mode === "logarithmic" || parsed?.mode === "percentage"
+        ? parsed.mode
+        : DEFAULT_PRICE_SCALE.mode;
+    const autoScale =
+      typeof parsed?.autoScale === "boolean" ? parsed.autoScale : DEFAULT_PRICE_SCALE.autoScale;
+    const invertScale =
+      typeof parsed?.invertScale === "boolean"
+        ? parsed.invertScale
+        : DEFAULT_PRICE_SCALE.invertScale;
+    return { mode, autoScale, invertScale };
   } catch {}
   return DEFAULT_PRICE_SCALE;
 }
@@ -720,12 +742,26 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
         changed = true;
       }
 
+      // 종목/마켓 전환 시 화면 이탈 방지를 위해 자동 스케일을 항상 복구한다.
+      if ((updates.symbol || updates.market || updates.interval) && !state.priceScale.autoScale) {
+        const nextPriceScale = { ...state.priceScale, autoScale: true };
+        updates.priceScale = nextPriceScale;
+        savePriceScale(nextPriceScale);
+        changed = true;
+      }
+
       return changed ? updates : {};
     }),
   setInterval: (interval) =>
-    set(() => {
+    set((state) => {
+      const updates: Partial<SettingsState> = { interval };
+      if (!state.priceScale.autoScale) {
+        const nextPriceScale = { ...state.priceScale, autoScale: true };
+        updates.priceScale = nextPriceScale;
+        savePriceScale(nextPriceScale);
+      }
       saveInterval(interval);
-      return { interval };
+      return updates;
     }),
   setMarket: (market) => {
     const current = get();
@@ -739,6 +775,11 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     }
     if (!validIntervals.includes(currentInterval)) {
       updates.interval = "1d";
+    }
+    if (!current.priceScale.autoScale) {
+      const nextPriceScale = { ...current.priceScale, autoScale: true };
+      updates.priceScale = nextPriceScale;
+      savePriceScale(nextPriceScale);
     }
     set(updates);
     saveInterval((updates.interval ?? currentInterval) as Interval);
@@ -896,10 +937,15 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   },
   setIndicator: (key, partial) =>
     set((state) => {
+      const merged = { ...state.indicators[key], ...partial } as IndicatorConfig[typeof key];
+      const nextValue =
+        key === "layout"
+          ? (sanitizeLayoutConfig(merged as IndicatorConfig["layout"]) as IndicatorConfig[typeof key])
+          : merged;
       const updated = {
         indicators: {
           ...state.indicators,
-          [key]: { ...state.indicators[key], ...partial },
+          [key]: nextValue,
         },
       };
       saveIndicators(updated.indicators);

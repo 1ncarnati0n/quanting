@@ -70,10 +70,6 @@ export const DEFAULTS = {
 
 // --- Signal & Indicator Colors (theme-independent) ---
 export const COLORS = {
-  strongBuy: "#22C55E",
-  weakBuy: "#86EFAC",
-  strongSell: "#EF4444",
-  weakSell: "#FCA5A5",
   bbUpper: "#2563EB",
   bbMiddle: "#F59E0B",
   bbLower: "#2563EB",
@@ -93,11 +89,6 @@ export const COLORS = {
   // Volume
   volumeUp: "rgba(34,197,94,0.5)",
   volumeDown: "rgba(239,68,68,0.5)",
-  // Signal extensions
-  macdBullish: "#2563EB",
-  macdBearish: "#F97316",
-  stochOversold: "#06B6D4",
-  stochOverbought: "#EC4899",
   // Donchian Channels
   donchianUpper: "#0EA5E9",
   donchianMiddle: "#F59E0B",
@@ -182,22 +173,6 @@ export const INDICATOR_DEFAULTS = {
   smc: { swingLength: 5 },
   rvol: { period: 20 },
   autoFib: { lookback: 120, swingLength: 5 },
-  signalFilter: {
-    enabled: true,
-    applyRegimeFilter: true,
-    applyMomentumFilter: true,
-    applyVolatilityFilter: true,
-    regimePeriod: 200,
-    regimeBuffer: 0.002,
-    momentumPeriod: 63,
-    minMomentumForBuy: -0.05,
-    maxMomentumForSell: 0.05,
-    volatilityPeriod: 20,
-    volatilityRankPeriod: 120,
-    highVolPercentile: 0.9,
-    keepStrongCounterTrend: true,
-    keepStrongInHighVol: true,
-  },
   signalStrategies: {
     supertrendAdx: false,
     emaCrossover: false,

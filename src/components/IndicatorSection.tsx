@@ -23,7 +23,7 @@ export default function IndicatorSection({
   const hasContent = !!(children || guide);
 
   return (
-    <div className="mb-2.5 overflow-hidden rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--card)] shadow-sm">
+    <div className="mb-2.5 overflow-hidden rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--card)] shadow-sm last:mb-0">
       <div className="flex items-start gap-2.5 px-2.5 py-2">
         <div
           className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full"

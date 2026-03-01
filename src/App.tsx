@@ -101,7 +101,6 @@ function App() {
       indicators.smc.enabled, indicators.smc.swingLength,
       indicators.anchoredVwap.enabled, indicators.anchoredVwap.anchorTime,
       indicators.autoFib.enabled, indicators.autoFib.lookback, indicators.autoFib.swingLength,
-      indicators.signalFilter,
       indicators.signalStrategies,
     ],
   );
@@ -426,7 +425,7 @@ function App() {
 
   return (
     <div className="flex h-full min-h-0 w-full flex-col" style={shellStyle}>
-      <div className="relative flex min-h-0 flex-1 w-full gap-2 xl:gap-3">
+      <div className="relative flex min-h-0 flex-1 w-full gap-[var(--layout-column-gap)]">
         <CollapsibleSidebar
           side="left"
           label="WATCH"

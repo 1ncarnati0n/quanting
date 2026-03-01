@@ -34,60 +34,6 @@ pub struct StochasticParams {
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct SignalFilterParams {
-    #[serde(default = "default_signal_filter_enabled")]
-    pub enabled: bool,
-    #[serde(default = "default_apply_regime_filter")]
-    pub apply_regime_filter: bool,
-    #[serde(default = "default_apply_momentum_filter")]
-    pub apply_momentum_filter: bool,
-    #[serde(default = "default_apply_volatility_filter")]
-    pub apply_volatility_filter: bool,
-    #[serde(default = "default_regime_period")]
-    pub regime_period: usize,
-    #[serde(default = "default_regime_buffer")]
-    pub regime_buffer: f64,
-    #[serde(default = "default_momentum_period")]
-    pub momentum_period: usize,
-    #[serde(default = "default_min_momentum_for_buy")]
-    pub min_momentum_for_buy: f64,
-    #[serde(default = "default_max_momentum_for_sell")]
-    pub max_momentum_for_sell: f64,
-    #[serde(default = "default_volatility_period")]
-    pub volatility_period: usize,
-    #[serde(default = "default_volatility_rank_period")]
-    pub volatility_rank_period: usize,
-    #[serde(default = "default_high_vol_percentile")]
-    pub high_vol_percentile: f64,
-    #[serde(default = "default_keep_strong_counter_trend")]
-    pub keep_strong_counter_trend: bool,
-    #[serde(default = "default_keep_strong_in_high_vol")]
-    pub keep_strong_in_high_vol: bool,
-}
-
-impl Default for SignalFilterParams {
-    fn default() -> Self {
-        Self {
-            enabled: default_signal_filter_enabled(),
-            apply_regime_filter: default_apply_regime_filter(),
-            apply_momentum_filter: default_apply_momentum_filter(),
-            apply_volatility_filter: default_apply_volatility_filter(),
-            regime_period: default_regime_period(),
-            regime_buffer: default_regime_buffer(),
-            momentum_period: default_momentum_period(),
-            min_momentum_for_buy: default_min_momentum_for_buy(),
-            max_momentum_for_sell: default_max_momentum_for_sell(),
-            volatility_period: default_volatility_period(),
-            volatility_rank_period: default_volatility_rank_period(),
-            high_vol_percentile: default_high_vol_percentile(),
-            keep_strong_counter_trend: default_keep_strong_counter_trend(),
-            keep_strong_in_high_vol: default_keep_strong_in_high_vol(),
-        }
-    }
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct DonchianParams {
     #[serde(default = "default_donchian_period")]
     pub period: usize,
@@ -253,8 +199,6 @@ pub struct AnalysisParams {
     #[serde(default)]
     pub auto_fib: Option<AutoFibParams>,
     #[serde(default)]
-    pub signal_filter: SignalFilterParams,
-    #[serde(default)]
     pub signal_strategies: SignalStrategyParams,
 }
 
@@ -284,48 +228,6 @@ fn default_stoch_d() -> usize {
 }
 fn default_stoch_smooth() -> usize {
     3
-}
-fn default_signal_filter_enabled() -> bool {
-    true
-}
-fn default_apply_regime_filter() -> bool {
-    true
-}
-fn default_apply_momentum_filter() -> bool {
-    true
-}
-fn default_apply_volatility_filter() -> bool {
-    true
-}
-fn default_regime_period() -> usize {
-    200
-}
-fn default_regime_buffer() -> f64 {
-    0.002
-}
-fn default_momentum_period() -> usize {
-    63
-}
-fn default_min_momentum_for_buy() -> f64 {
-    -0.05
-}
-fn default_max_momentum_for_sell() -> f64 {
-    0.05
-}
-fn default_volatility_period() -> usize {
-    20
-}
-fn default_volatility_rank_period() -> usize {
-    120
-}
-fn default_high_vol_percentile() -> f64 {
-    0.90
-}
-fn default_keep_strong_counter_trend() -> bool {
-    true
-}
-fn default_keep_strong_in_high_vol() -> bool {
-    true
 }
 fn default_donchian_period() -> usize {
     20

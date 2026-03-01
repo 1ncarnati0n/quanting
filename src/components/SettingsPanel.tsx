@@ -152,8 +152,8 @@ function SettingCard({
   children: ReactNode;
 }) {
   return (
-    <section className={cn("rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--card)] p-2.5 shadow-sm", className)}>
-      <div className="mb-2.5">
+    <section className={cn("rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--card)] p-3 shadow-sm", className)}>
+      <div className="side-panel-heading">
         <h4 className="ds-type-caption font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
           {title}
         </h4>
@@ -189,7 +189,7 @@ function SliderRow({
 }) {
   return (
     <SettingRow
-      className="mb-2.5"
+      className="mb-2.5 last:mb-0"
       label={label}
       description={description}
       right={(
@@ -222,7 +222,7 @@ function ToggleRow({
 }) {
   return (
     <SettingRow
-      className="mb-2.5"
+      className="mb-2.5 last:mb-0"
       label={label}
       right={(
         <Switch
@@ -264,7 +264,7 @@ function AccordionSection({
             : [];
         onOpenChange(values.includes(value));
       }}
-      className="space-y-2.5"
+      className="side-panel-stack"
     >
       <AccordionItem value={value} className="space-y-2">
         <AccordionTrigger
@@ -327,7 +327,6 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
     setSettingsTab,
   } = useSettingsStore();
   const { drawings, setDrawings } = useDrawingStore();
-  const quant = indicators.signalFilter;
   const strat = indicators.signalStrategies;
   const layout = indicators.layout;
   const [openSections, setOpenSections] = useState<SectionState>(loadSectionState);
@@ -370,7 +369,6 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
         indicators.smc.enabled,
         indicators.anchoredVwap.enabled,
         indicators.autoFib.enabled,
-        indicators.signalFilter.enabled,
       ].filter(Boolean).length,
     [indicators],
   );
@@ -578,8 +576,8 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
           </TabsList>
         </div>
 
-        <div className="side-panel-scroll min-h-0 flex-1 overflow-y-auto px-3 py-3">
-          <div className="space-y-3">
+        <div className="side-panel-scroll min-h-0 flex-1 overflow-y-auto px-3 pb-3 pt-3">
+          <div className="side-panel-stack">
           {activeTab === "appearance" && (
             <AccordionSection
               value="appearance"
@@ -589,12 +587,12 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
               onOpenChange={(open) => setOpenSections((prev) => ({ ...prev, appearance: open }))}
               sectionId="appearance"
             >
-              <div className="space-y-2.5">
+              <div className="side-panel-stack">
                 <SettingCard
                   title="차트 스타일"
                   description="테마와 기본 차트 표시 방식을 정합니다."
                 >
-                  <div className="mb-3 flex gap-2">
+                  <div className="grid grid-cols-2 gap-2">
                     <SegmentButton
                       active={theme === "dark"}
                       className="flex-1"
@@ -634,7 +632,7 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
                   title="가격 스케일"
                   description="차트 축 표시 형식과 자동 스케일 옵션입니다."
                 >
-                  <div className="mb-2 grid grid-cols-3 gap-1.5">
+                  <div className="grid grid-cols-3 gap-1.5">
                     {([
                       { value: "normal" as const, label: "기본" },
                       { value: "logarithmic" as const, label: "로그" },
@@ -671,7 +669,7 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
                     checked={compare.enabled}
                     onChange={(checked) => setCompare({ enabled: checked })}
                   />
-                  <div className="mb-2 grid grid-cols-2 gap-1.5">
+                  <div className="grid grid-cols-2 gap-1.5">
                     <Input
                       type="text"
                       size="sm"
@@ -702,7 +700,7 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
                   title="레이아웃 및 워크스페이스"
                   description="멀티 차트 분할과 설정 백업을 관리합니다."
                 >
-                  <div className="mb-2 grid grid-cols-3 gap-1.5">
+                  <div className="grid grid-cols-3 gap-1.5">
                     {([
                       { value: 1 as const, label: "1분할" },
                       { value: 2 as const, label: "2분할" },
@@ -741,7 +739,7 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
               onOpenChange={(open) => setOpenSections((prev) => ({ ...prev, layout: open }))}
               sectionId="layout"
             >
-              <div className="space-y-2.5">
+              <div className="side-panel-stack">
                 <SettingCard
                   title="프리셋"
                   description="자주 쓰는 지표 패널 비율을 빠르게 적용합니다."
@@ -1291,8 +1289,8 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
 
               <AccordionSection
                 value="quant"
-                title="퀀트 필터"
-                subtitle="레짐/모멘텀/변동성"
+                title="퀀트 전략"
+                subtitle="시그널 전략"
                 open={openSections.quant}
                 onOpenChange={(open) => setOpenSections((prev) => ({ ...prev, quant: open }))}
                 sectionId="quant"
@@ -1303,115 +1301,6 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
                   enabled={indicators.signalZones.enabled}
                   onToggle={() => toggleIndicator("signalZones")}
                 />
-
-                <IndicatorSection
-                  title="Quanting 신호 필터"
-                  color="#06B6D4"
-                  enabled={quant.enabled}
-                  onToggle={() => toggleIndicator("signalFilter")}
-                >
-                  <ToggleRow
-                    label="레짐 필터 적용"
-                    checked={quant.applyRegimeFilter}
-                    onChange={(checked) => setIndicator("signalFilter", { applyRegimeFilter: checked })}
-                  />
-                  <SliderRow
-                    label="레짐 기간"
-                    value={quant.regimePeriod}
-                    min={20}
-                    max={300}
-                    step={1}
-                    onChange={(v) => setIndicator("signalFilter", { regimePeriod: v })}
-                    description={paramDesc("Quanting 신호 필터", "레짐 기간")}
-                  />
-                  <SliderRow
-                    label="레짐 버퍼"
-                    value={quant.regimeBuffer}
-                    min={0}
-                    max={0.02}
-                    step={0.001}
-                    formatValue={(v) => v.toFixed(3)}
-                    onChange={(v) => setIndicator("signalFilter", { regimeBuffer: v })}
-                    description={paramDesc("Quanting 신호 필터", "레짐 버퍼")}
-                  />
-                  <ToggleRow
-                    label="모멘텀 필터 적용"
-                    checked={quant.applyMomentumFilter}
-                    onChange={(checked) => setIndicator("signalFilter", { applyMomentumFilter: checked })}
-                  />
-                  <SliderRow
-                    label="모멘텀 기간"
-                    value={quant.momentumPeriod}
-                    min={10}
-                    max={252}
-                    step={1}
-                    onChange={(v) => setIndicator("signalFilter", { momentumPeriod: v })}
-                    description={paramDesc("Quanting 신호 필터", "모멘텀 기간")}
-                  />
-                  <SliderRow
-                    label="매수 최소 모멘텀"
-                    value={quant.minMomentumForBuy}
-                    min={-0.3}
-                    max={0}
-                    step={0.01}
-                    formatValue={(v) => `${(v * 100).toFixed(1)}%`}
-                    onChange={(v) => setIndicator("signalFilter", { minMomentumForBuy: v })}
-                    description={paramDesc("Quanting 신호 필터", "매수 최소 모멘텀")}
-                  />
-                  <SliderRow
-                    label="매도 최대 모멘텀"
-                    value={quant.maxMomentumForSell}
-                    min={0}
-                    max={0.3}
-                    step={0.01}
-                    formatValue={(v) => `${(v * 100).toFixed(1)}%`}
-                    onChange={(v) => setIndicator("signalFilter", { maxMomentumForSell: v })}
-                    description={paramDesc("Quanting 신호 필터", "매도 최대 모멘텀")}
-                  />
-                  <ToggleRow
-                    label="변동성 필터 적용"
-                    checked={quant.applyVolatilityFilter}
-                    onChange={(checked) => setIndicator("signalFilter", { applyVolatilityFilter: checked })}
-                  />
-                  <SliderRow
-                    label="변동성 기간"
-                    value={quant.volatilityPeriod}
-                    min={5}
-                    max={100}
-                    step={1}
-                    onChange={(v) => setIndicator("signalFilter", { volatilityPeriod: v })}
-                    description={paramDesc("Quanting 신호 필터", "변동성 기간")}
-                  />
-                  <SliderRow
-                    label="변동성 랭크 기간"
-                    value={quant.volatilityRankPeriod}
-                    min={20}
-                    max={252}
-                    step={1}
-                    onChange={(v) => setIndicator("signalFilter", { volatilityRankPeriod: v })}
-                    description={paramDesc("Quanting 신호 필터", "변동성 랭크 기간")}
-                  />
-                  <SliderRow
-                    label="고변동성 분위수"
-                    value={quant.highVolPercentile}
-                    min={0.5}
-                    max={0.99}
-                    step={0.01}
-                    formatValue={(v) => `${(v * 100).toFixed(0)}%`}
-                    description={paramDesc("Quanting 신호 필터", "고변동성 분위수")}
-                    onChange={(v) => setIndicator("signalFilter", { highVolPercentile: v })}
-                  />
-                  <ToggleRow
-                    label="강한 역추세 신호 유지"
-                    checked={quant.keepStrongCounterTrend}
-                    onChange={(checked) => setIndicator("signalFilter", { keepStrongCounterTrend: checked })}
-                  />
-                  <ToggleRow
-                    label="고변동성 강신호 유지"
-                    checked={quant.keepStrongInHighVol}
-                    onChange={(checked) => setIndicator("signalFilter", { keepStrongInHighVol: checked })}
-                  />
-                </IndicatorSection>
 
                 <IndicatorSection
                   title="퀀트 시그널 전략"
@@ -1425,7 +1314,7 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
                     setIndicator("signalStrategies", update);
                   }}
                 >
-                  <div className="text-[10px] text-[var(--muted-foreground)] mb-2 font-medium">추세 추종</div>
+                  <div className="ds-type-caption font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">추세 추종</div>
                   <ToggleRow label="Supertrend + ADX" checked={strat.supertrendAdx} onChange={(v) => setIndicator("signalStrategies", { supertrendAdx: v })} />
                   <ToggleRow label="EMA Crossover" checked={strat.emaCrossover} onChange={(v) => setIndicator("signalStrategies", { emaCrossover: v })} />
                   {strat.emaCrossover && (
@@ -1435,14 +1324,14 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
                     </>
                   )}
                   <ToggleRow label="Parabolic SAR 반전" checked={strat.parabolicSar} onChange={(v) => setIndicator("signalStrategies", { parabolicSar: v })} />
-                  <div className="text-[10px] text-[var(--muted-foreground)] mb-2 mt-3 font-medium">모멘텀/오실레이터</div>
+                  <div className="mt-3 ds-type-caption font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">모멘텀/오실레이터</div>
                   <ToggleRow label="Stochastic + RSI" checked={strat.stochRsiCombined} onChange={(v) => setIndicator("signalStrategies", { stochRsiCombined: v })} />
                   <ToggleRow label="MACD Histogram 반전" checked={strat.macdHistReversal} onChange={(v) => setIndicator("signalStrategies", { macdHistReversal: v })} />
                   <ToggleRow label="TTM Squeeze" checked={strat.ttmSqueeze} onChange={(v) => setIndicator("signalStrategies", { ttmSqueeze: v })} />
-                  <div className="text-[10px] text-[var(--muted-foreground)] mb-2 mt-3 font-medium">거래량</div>
+                  <div className="mt-3 ds-type-caption font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">거래량</div>
                   <ToggleRow label="CMF + OBV Flow" checked={strat.cmfObv} onChange={(v) => setIndicator("signalStrategies", { cmfObv: v })} />
                   <ToggleRow label="VWAP Breakout" checked={strat.vwapBreakout} onChange={(v) => setIndicator("signalStrategies", { vwapBreakout: v })} />
-                  <div className="text-[10px] text-[var(--muted-foreground)] mb-2 mt-3 font-medium">평균 회귀</div>
+                  <div className="mt-3 ds-type-caption font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">평균 회귀</div>
                   <ToggleRow label="IBS Mean Reversion" checked={strat.ibsMeanReversion} onChange={(v) => setIndicator("signalStrategies", { ibsMeanReversion: v })} />
                   <ToggleRow label="RSI Divergence" checked={strat.rsiDivergence} onChange={(v) => setIndicator("signalStrategies", { rsiDivergence: v })} />
                   {strat.rsiDivergence && (
@@ -1519,7 +1408,7 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
                 onOpenChange={(open) => setOpenSections((prev) => ({ ...prev, alerts: open }))}
                 sectionId="alerts"
               >
-                <div className="space-y-2.5">
+                <div className="side-panel-stack">
                   <SettingCard
                     title="알림 등록"
                     description="가격이 지정 레벨을 상향/하향 돌파할 때 알림을 생성합니다."
@@ -1623,7 +1512,7 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
                     title={`알림 이력 (${alertHistory.length})`}
                     description="최근 발생한 가격 알림 내역입니다."
                   >
-                    <div className="mb-2 flex items-center justify-end">
+                    <div className="flex items-center justify-end">
                       <Button
                         type="button"
                         variant="outline"

@@ -39,20 +39,12 @@ import { useCrosshairStore } from "../stores/useCrosshairStore";
 import { useReplayStore } from "../stores/useReplayStore";
 import { fetchAnalysis } from "../services/tauriApi";
 import { calculateRvol } from "../utils/rvol";
+import { computeIndicatorBandLayout } from "../utils/indicatorBandLayout";
 
 const SIGNAL_MARKERS: Record<
   SignalType,
   { position: "belowBar" | "aboveBar"; color: string; shape: "arrowUp" | "arrowDown"; text: string }
 > = {
-  strongBuy: { position: "belowBar", color: COLORS.strongBuy, shape: "arrowUp", text: "강" },
-  weakBuy: { position: "belowBar", color: COLORS.weakBuy, shape: "arrowUp", text: "약" },
-  strongSell: { position: "aboveBar", color: COLORS.strongSell, shape: "arrowDown", text: "강" },
-  weakSell: { position: "aboveBar", color: COLORS.weakSell, shape: "arrowDown", text: "약" },
-  macdBullish: { position: "belowBar", color: COLORS.macdBullish, shape: "arrowUp", text: "MACD 상승" },
-  macdBearish: { position: "aboveBar", color: COLORS.macdBearish, shape: "arrowDown", text: "MACD 하락" },
-  stochOversold: { position: "belowBar", color: COLORS.stochOversold, shape: "arrowUp", text: "스토캐스틱 과매도" },
-  stochOverbought: { position: "aboveBar", color: COLORS.stochOverbought, shape: "arrowDown", text: "스토캐스틱 과매수" },
-  // Quant Signal Strategies
   supertrendBuy: { position: "belowBar", color: COLORS.supertrendBuy, shape: "arrowUp", text: "ST" },
   supertrendSell: { position: "aboveBar", color: COLORS.supertrendSell, shape: "arrowDown", text: "ST" },
   emaCrossoverBuy: { position: "belowBar", color: COLORS.emaCrossoverBuy, shape: "arrowUp", text: "EMA" },
@@ -137,9 +129,7 @@ function calculateBollingerFromCandles(
   return output;
 }
 
-function clamp(value: number, min: number, max: number): number {
-  return Math.min(max, Math.max(min, value));
-}
+const MAIN_SCALE_TOP_MARGIN = 0.03;
 
 function makePriceFormatter(market: MarketType) {
   return (price: number) => formatPrice(price, market);
@@ -200,6 +190,7 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
   const alertLinesRef = useRef<IPriceLine[]>([]);
   const resizeRafRef = useRef<number | null>(null);
   const prevDataScopeRef = useRef<string | null>(null);
+  const prevDataSymbolRef = useRef<string | null>(null);
   const lastVisibleTimeRangeRef = useRef<{ from: number; to: number } | null>(null);
   const activeTimeRangeIdRef = useRef<TimeRangeId>(readSavedTimeRangeId());
   const crosshairRafRef = useRef<number | null>(null);
@@ -225,13 +216,20 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
   }, []);
 
   const applyRequestedTimeRange = useCallback(
-    (chart: IChartApi, candles: AnalysisResponse["candles"], detail: ChartTimeRange | null) => {
+    (chart: IChartApi, candles: AnalysisResponse["candles"], detail: ChartTimeRange | null): boolean => {
       const ts = chart.timeScale();
       if (!detail) {
         ts.fitContent();
-        return;
+        return true;
       }
-      if (candles.length === 0) return;
+      if (candles.length === 0) return false;
+
+      const firstTime = candles[0]?.time ?? 0;
+      const lastTime = candles[candles.length - 1]?.time ?? 0;
+      if (detail.to < firstTime || detail.from > lastTime) {
+        ts.fitContent();
+        return false;
+      }
 
       let toIdx = -1;
       for (let i = 0; i < candles.length; i += 1) {
@@ -255,15 +253,19 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
         fromIdx = toIdx;
       }
 
-      const minBars = 2;
+      const minBars = Math.min(12, candles.length);
       if (toIdx - fromIdx + 1 < minBars) {
-        fromIdx = Math.max(0, toIdx - (minBars - 1));
+        const nextTo = Math.min(candles.length - 1, fromIdx + (minBars - 1));
+        const nextFrom = Math.max(0, nextTo - (minBars - 1));
+        fromIdx = nextFrom;
+        toIdx = nextTo;
       }
 
       ts.setVisibleLogicalRange({
         from: fromIdx - 0.25,
         to: toIdx + 0.25,
       });
+      return true;
     },
     [],
   );
@@ -318,34 +320,46 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
 
     if (bandConfigs.length === 0) {
       chart.priceScale("right").applyOptions({
-        scaleMargins: { top: 0.03, bottom: 0.03 },
+        scaleMargins: { top: MAIN_SCALE_TOP_MARGIN, bottom: 0.03 },
       });
       return;
     }
 
-    const regionTop = clamp(indicators.layout.priceAreaRatio, 0.35, 0.85);
-    const regionBottom = 0.02;
-    const regionHeight = Math.max(0.08, 1 - regionTop - regionBottom);
-    const totalWeight = bandConfigs.reduce((sum, band) => sum + band.weight, 0);
+    const paneLayout = computeIndicatorBandLayout(
+      bandConfigs,
+      indicators.layout.priceAreaRatio,
+      {
+        minMainRegionTop: 0.35,
+        maxMainRegionTop: 0.85,
+        splitGap: 0.006,
+        oscBottomMargin: 0.02,
+        // Prevent pane collisions when many oscillators are enabled.
+        minBandHeight: 0.028,
+      },
+    );
+
+    if (!Number.isFinite(paneLayout.mainBottomMargin)) {
+      chart.priceScale("right").applyOptions({
+        scaleMargins: { top: MAIN_SCALE_TOP_MARGIN, bottom: 0.03 },
+      });
+      return;
+    }
 
     chart.priceScale("right").applyOptions({
-      scaleMargins: { top: 0.03, bottom: 1 - regionTop + 0.01 },
+      scaleMargins: {
+        top: MAIN_SCALE_TOP_MARGIN,
+        bottom: paneLayout.mainBottomMargin,
+      },
     });
 
-    let cursorTop = regionTop;
-    bandConfigs.forEach((band, idx) => {
-      const isLast = idx === bandConfigs.length - 1;
-      const bandHeight = isLast
-        ? Math.max(0.01, 1 - regionBottom - cursorTop)
-        : regionHeight * (band.weight / Math.max(0.0001, totalWeight));
-      const top = clamp(cursorTop, 0.01, 0.95);
-      const bottom = clamp(1 - (cursorTop + bandHeight), 0.01, 0.95);
+    paneLayout.bands.forEach((band) => {
+      if (!Number.isFinite(band.top) || !Number.isFinite(band.height)) return;
+      const bottom = Math.max(0.001, 1 - (band.top + band.height));
       try {
         chart.priceScale(band.id).applyOptions({
-          scaleMargins: { top, bottom },
+          scaleMargins: { top: band.top, bottom },
         });
       } catch {}
-      cursorTop += bandHeight;
     });
   }, [
     indicators.layout.macdWeight,
@@ -739,7 +753,9 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
         invertScale: priceScale.invertScale,
       },
     });
-  }, [priceScale.autoScale, priceScale.invertScale, priceScale.mode]);
+    // Keep main/oscillator pane split stable even after rightPriceScale option updates.
+    applyIndicatorScaleLayout();
+  }, [applyIndicatorScaleLayout, priceScale.autoScale, priceScale.invertScale, priceScale.mode]);
 
   useEffect(() => {
     applyIndicatorScaleLayout();
@@ -761,7 +777,7 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
         to: savedTimeRange.to as number,
       };
     }
-    const currentScope = `${data.symbol}:${data.interval}:${chartType}:${replayEnabled ? "replay" : "live"}`;
+    const currentScope = `${market}:${data.symbol}:${data.interval}:${chartType}:${replayEnabled ? "replay" : "live"}`;
 
     const cappedReplayIndex = replayEnabled
       ? Math.min(Math.max(replayIndex, 0), data.candles.length - 1)
@@ -1620,16 +1636,22 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
     }
 
     const scopeChanged = prevDataScopeRef.current !== currentScope;
-    const prevSymbol = prevDataScopeRef.current?.split(":")[0];
+    const prevSymbol = prevDataSymbolRef.current;
     prevDataScopeRef.current = currentScope;
+    prevDataSymbolRef.current = data.symbol;
+    const symbolChanged = prevSymbol != null && prevSymbol !== data.symbol;
 
     if (scopeChanged) {
+      // 종목 변경 시 이전 종목의 뷰 범위 복원을 막는다.
+      if (symbolChanged) {
+        lastVisibleTimeRangeRef.current = null;
+      }
+
       const persistedRange = buildTimeRangeDetail(activeTimeRangeIdRef.current);
       if (persistedRange) {
         // 저장된 기간 버튼(예: 1일/5일/1개월)이 있으면 심볼/인터벌 변경 후에도 재적용
         applyRequestedTimeRange(chart, displayCandles, persistedRange);
       } else {
-        const symbolChanged = prevSymbol != null && prevSymbol !== data.symbol;
         if (symbolChanged || !lastVisibleTimeRangeRef.current) {
           // 심볼 변경 또는 최초 마운트 → 전체 기간 표시
           chart.timeScale().fitContent();
@@ -1770,7 +1792,6 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
       macd: null,
       stochastic: null,
       showObv: false,
-      signalFilter: indicators.signalFilter,
       signalStrategies: indicators.signalStrategies,
     })
       .then((resp) => {
@@ -1823,7 +1844,6 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
     compare.normalize,
     compare.symbol,
     data,
-    indicators.signalFilter,
     market,
     replayEnabled,
     replayIndex,

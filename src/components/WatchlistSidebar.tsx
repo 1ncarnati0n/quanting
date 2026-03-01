@@ -28,9 +28,9 @@ interface WatchlistSidebarProps {
 
 type MarketFilter = "all" | MarketType;
 type ScreenerCondition =
-  | "strongBuy"
+  | "quantBuy"
   | "rsiOversold"
-  | "macdBullish"
+  | "macdHistBuy"
   | "bbLowerTouch";
 type ScreenerMode = "any" | "all";
 type ScreenerSort = "scoreDesc" | "priceDesc" | "priceAsc" | "symbolAsc";
@@ -55,9 +55,9 @@ const SNAPSHOT_REQUEST_SIZE = 18;
 const SCREENER_PRESET_STORAGE_KEY = "quanting-screener-presets";
 
 const SCREENER_CONDITION_ITEMS: { value: ScreenerCondition; label: string }[] = [
-  { value: "strongBuy", label: "강매수" },
+  { value: "quantBuy", label: "퀀트매수" },
   { value: "rsiOversold", label: "RSI<30" },
-  { value: "macdBullish", label: "MACD↑" },
+  { value: "macdHistBuy", label: "MACD Hist↑" },
   { value: "bbLowerTouch", label: "BB 하단" },
 ];
 
@@ -67,7 +67,7 @@ const DEFAULT_SCREENER_PRESETS: ScreenerPreset[] = [
     name: "모멘텀",
     mode: "any",
     sort: "scoreDesc",
-    conditions: ["strongBuy", "macdBullish"],
+    conditions: ["quantBuy", "macdHistBuy"],
   },
   {
     id: "preset-rebound",
@@ -84,9 +84,9 @@ function normalizeConditions(conditions: unknown): ScreenerCondition[] {
   const next: ScreenerCondition[] = [];
   for (const condition of conditions) {
     if (
-      condition === "strongBuy" ||
+      condition === "quantBuy" ||
       condition === "rsiOversold" ||
-      condition === "macdBullish" ||
+      condition === "macdHistBuy" ||
       condition === "bbLowerTouch"
     ) {
       if (!seen.has(condition)) {
@@ -154,16 +154,21 @@ function evaluateScreenerCondition(
   const lastCandle = candles[candles.length - 1];
   if (!lastCandle) return { matched: false, score: 0 };
 
-  if (condition === "strongBuy") {
-    const recent = response.signals.slice(-4).find((signal) => signal.signalType === "strongBuy");
+  if (condition === "quantBuy") {
+    const quantBuyTypes = new Set([
+      "supertrendBuy", "emaCrossoverBuy", "stochRsiBuy", "cmfObvBuy",
+      "ttmSqueezeBuy", "vwapBreakoutBuy", "parabolicSarBuy",
+      "macdHistReversalBuy", "ibsMeanRevBuy", "rsiDivergenceBuy",
+    ]);
+    const recent = response.signals.slice(-4).find((signal) => quantBuyTypes.has(signal.signalType));
     if (!recent) return { matched: false, score: 0 };
-    return { matched: true, reason: "강매수 시그널", score: 4 };
+    return { matched: true, reason: "퀀트 매수 시그널", score: 4 };
   }
 
-  if (condition === "macdBullish") {
-    const recent = response.signals.slice(-4).find((signal) => signal.signalType === "macdBullish");
+  if (condition === "macdHistBuy") {
+    const recent = response.signals.slice(-4).find((signal) => signal.signalType === "macdHistReversalBuy");
     if (!recent) return { matched: false, score: 0 };
-    return { matched: true, reason: "MACD 상승 크로스", score: 3 };
+    return { matched: true, reason: "MACD Hist 반전↑", score: 3 };
   }
 
   if (condition === "rsiOversold") {
@@ -276,7 +281,7 @@ export default function WatchlistSidebar({
   const [marketFilter, setMarketFilter] = useState<MarketFilter>("all");
   const [favoriteOnly, setFavoriteOnly] = useState(false);
   const [screenerConditions, setScreenerConditions] = useState<ScreenerCondition[]>([
-    "strongBuy",
+    "quantBuy",
   ]);
   const [screenerMode, setScreenerMode] = useState<ScreenerMode>("any");
   const [screenerSort, setScreenerSort] = useState<ScreenerSort>("scoreDesc");
@@ -446,7 +451,6 @@ export default function WatchlistSidebar({
               macd: null,
               stochastic: null,
               showObv: false,
-              signalFilter: settings.indicators.signalFilter,
               signalStrategies: settings.indicators.signalStrategies,
             });
             return evaluateScreenerHit(
@@ -596,8 +600,8 @@ export default function WatchlistSidebar({
         </div>
       </PanelHeader>
 
-      <div className="space-y-2.5 px-3 pb-2 pt-3">
-        <section className="side-panel-section">
+      <div className="side-panel-stack px-3 pb-2.5 pt-3">
+        <section className="side-panel-section side-panel-stack-tight">
           <Input
             type="text"
             size="md"
@@ -607,11 +611,13 @@ export default function WatchlistSidebar({
             spellCheck={false}
             className="ds-type-label"
           />
-          <div className="mt-2 flex flex-wrap gap-1">
+          <div className="grid grid-cols-3 gap-1">
             {(["all", "usStock", "krStock", "crypto", "forex"] as const).map((mf) => (
               <SegmentButton
                 key={mf}
                 type="button"
+                size="sm"
+                className="w-full"
                 active={marketFilter === mf}
                 onClick={() => setMarketFilter(mf)}
               >
@@ -628,6 +634,8 @@ export default function WatchlistSidebar({
             ))}
             <SegmentButton
               type="button"
+              size="sm"
+              className="w-full"
               active={favoriteOnly}
               activeTone="warning"
               onClick={() => setFavoriteOnly((prev) => !prev)}
@@ -636,13 +644,13 @@ export default function WatchlistSidebar({
               ★ 즐겨찾기
             </SegmentButton>
           </div>
-          <div className="ds-type-caption mt-1.5 text-[var(--muted-foreground)]">
+          <div className="ds-type-caption text-[var(--muted-foreground)]">
             표시 {visibleItems.length}개 · 즐겨찾기 {favorites.length}개
           </div>
 
           {recentSymbols.length > 0 && (
-            <div className="mt-2">
-              <div className="ds-type-caption mb-1 font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
+            <div className="side-panel-stack-tight">
+              <div className="ds-type-caption font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
                 최근 심볼
               </div>
               <div className="flex flex-wrap gap-1">
@@ -664,8 +672,8 @@ export default function WatchlistSidebar({
           )}
         </section>
 
-        <section className="side-panel-section">
-          <div className="mb-2 flex items-center justify-between">
+        <section className="side-panel-section side-panel-stack-tight">
+          <div className="flex items-center justify-between">
             <span className="ds-type-caption font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
               기술 스크리너
             </span>
@@ -678,13 +686,15 @@ export default function WatchlistSidebar({
               {isScanning ? "스캔 중..." : "스캔 실행"}
             </button>
           </div>
-          <div className="mb-2 grid grid-cols-2 gap-1">
+          <div className="grid grid-cols-3 gap-1">
             {SCREENER_CONDITION_ITEMS.map((rule) => {
               const active = screenerConditions.includes(rule.value);
               return (
                 <SegmentButton
                   key={rule.value}
                   type="button"
+                  size="sm"
+                  className="w-full"
                   active={active}
                   onClick={() => toggleScreenerCondition(rule.value)}
                 >
@@ -693,7 +703,7 @@ export default function WatchlistSidebar({
               );
             })}
           </div>
-          <div className="mb-1.5 grid grid-cols-2 gap-1">
+          <div className="grid grid-cols-2 gap-1">
             {([
               { value: "any" as const, label: "ANY(OR)" },
               { value: "all" as const, label: "ALL(AND)" },
@@ -701,6 +711,8 @@ export default function WatchlistSidebar({
               <SegmentButton
                 key={modeOption.value}
                 type="button"
+                size="sm"
+                className="w-full"
                 active={screenerMode === modeOption.value}
                 activeTone="warning"
                 onClick={() => setScreenerMode(modeOption.value)}
@@ -709,7 +721,7 @@ export default function WatchlistSidebar({
               </SegmentButton>
             ))}
           </div>
-          <div className="mb-2 flex flex-wrap gap-1">
+          <div className="flex flex-wrap gap-1">
             {([
               { value: "scoreDesc" as const, label: "점수" },
               { value: "priceDesc" as const, label: "가격↓" },
@@ -729,7 +741,6 @@ export default function WatchlistSidebar({
             ))}
           </div>
           <SettingRow
-            className="mb-1.5"
             label="프리셋 저장"
             description="현재 조건 조합을 이름으로 저장"
             right={(
@@ -753,7 +764,7 @@ export default function WatchlistSidebar({
               placeholder="프리셋 이름"
             />
           </SettingRow>
-          <ScrollArea className="mb-2 max-h-14" viewportClassName="space-y-1 pr-1">
+          <ScrollArea className="max-h-14" viewportClassName="space-y-1 pr-1">
             {screenerPresets.map((preset) => (
               <div
                 key={preset.id}
@@ -810,8 +821,8 @@ export default function WatchlistSidebar({
         </section>
       </div>
 
-      <ScrollArea className="side-panel-scroll min-h-0 flex-1 border-t border-[var(--border)]" viewportClassName="px-3 pb-3 pt-2">
-        <div className="space-y-2">
+      <ScrollArea className="side-panel-scroll min-h-0 flex-1 border-t border-[var(--border)]" viewportClassName="px-3 pb-3 pt-3">
+        <div className="space-y-2.5">
           {visibleItems.map((item) => {
             const badge = marketBadge(item.market);
             const active = symbol === item.symbol && market === item.market;

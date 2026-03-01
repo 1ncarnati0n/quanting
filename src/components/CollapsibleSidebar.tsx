@@ -22,6 +22,7 @@ export default function CollapsibleSidebar({
   maxWidth,
   children,
 }: CollapsibleSidebarProps) {
+  const RESIZER_GUTTER_PX = 6;
   const widthStorageKey = `${storageKey}:width`;
   const widthRange = useMemo(() => {
     const resolvedMin = minWidth ?? Math.max(240, Math.floor(expandedWidth * 0.8));
@@ -95,23 +96,28 @@ export default function CollapsibleSidebar({
         width: resizable ? width : expandedWidth,
         borderColor: "var(--border)",
         boxShadow: "var(--shadow-elevated)",
-        order: side === "left" ? 0 : 2,
       }}
     >
       {resizable && (
         <button
           type="button"
-          className="group absolute inset-y-0 z-20 w-2 cursor-col-resize bg-transparent transition-colors hover:bg-[color-mix(in_srgb,var(--primary)_22%,transparent)]"
+          className="group absolute inset-y-0 z-30 w-3 cursor-col-resize bg-transparent transition-colors hover:bg-[color-mix(in_srgb,var(--primary)_16%,transparent)]"
           style={{ [side === "right" ? "left" : "right"]: 0 } as CSSProperties}
           onMouseDown={startResize}
           onDoubleClick={resetWidth}
           aria-label={`${label} 패널 너비 조절`}
           title={`${label} 패널 너비 조절 (더블클릭: 기본 너비)`}
         >
-          <span className="pointer-events-none absolute left-1/2 top-1/2 h-16 w-[2px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[var(--border)] opacity-70 transition-colors group-hover:bg-[var(--primary)] group-hover:opacity-100" />
+          <span className="pointer-events-none absolute bottom-0 left-1/2 top-0 w-px -translate-x-1/2 bg-[var(--border)] opacity-85 transition-colors group-hover:bg-[var(--primary)]" />
         </button>
       )}
-      <div className="min-w-0 flex-1 overflow-hidden">
+      <div
+        className="min-w-0 flex-1 overflow-hidden"
+        style={{
+          paddingRight: resizable && side === "left" ? `${RESIZER_GUTTER_PX}px` : 0,
+          paddingLeft: resizable && side === "right" ? `${RESIZER_GUTTER_PX}px` : 0,
+        }}
+      >
         {children}
       </div>
     </aside>

@@ -120,14 +120,6 @@ export interface ParabolicSarResult {
 
 // Signal types
 export type SignalType =
-  | "strongBuy"
-  | "weakBuy"
-  | "strongSell"
-  | "weakSell"
-  | "macdBullish"
-  | "macdBearish"
-  | "stochOversold"
-  | "stochOverbought"
   | "supertrendBuy"
   | "supertrendSell"
   | "emaCrossoverBuy"
@@ -367,23 +359,6 @@ export interface StochasticParams {
   smooth: number;
 }
 
-export interface SignalFilterParams {
-  enabled: boolean;
-  applyRegimeFilter: boolean;
-  applyMomentumFilter: boolean;
-  applyVolatilityFilter: boolean;
-  regimePeriod: number;
-  regimeBuffer: number;
-  momentumPeriod: number;
-  minMomentumForBuy: number;
-  maxMomentumForSell: number;
-  volatilityPeriod: number;
-  volatilityRankPeriod: number;
-  highVolPercentile: number;
-  keepStrongCounterTrend: boolean;
-  keepStrongInHighVol: boolean;
-}
-
 export interface DonchianParams {
   period: number;
 }
@@ -474,7 +449,6 @@ export interface AnalysisParams {
   smc?: SmcParams | null;
   anchoredVwap?: AnchoredVwapParams | null;
   autoFib?: AutoFibParams | null;
-  signalFilter: SignalFilterParams;
   signalStrategies: SignalStrategyParams;
 }
 

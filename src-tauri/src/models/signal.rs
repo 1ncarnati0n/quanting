@@ -3,15 +3,6 @@ use serde::Serialize;
 #[derive(Debug, Clone, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub enum SignalType {
-    StrongBuy,
-    WeakBuy,
-    StrongSell,
-    WeakSell,
-    MacdBullish,
-    MacdBearish,
-    StochOversold,
-    StochOverbought,
-    // Quant signal strategies
     SupertrendBuy,
     SupertrendSell,
     EmaCrossoverBuy,

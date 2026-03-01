@@ -17,7 +17,7 @@ pub use indicator::{
     StochasticResult, SupertrendPoint, SupertrendResult, VwapPoint, VwapResult, WillrPoint,
     WillrResult,
 };
-pub use params::{AnalysisParams, MarketType, SignalFilterParams};
+pub use params::{AnalysisParams, MarketType};
 pub use signal::{SignalPoint, SignalType};
 pub use strategy::{
     MultiSymbolCandlesParams, MultiSymbolCandlesResponse, PremarketSnapshot,

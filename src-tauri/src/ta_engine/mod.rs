@@ -38,9 +38,7 @@ pub fn analyze(candles: &[Candle], params: &AnalysisParams) -> AnalysisResponse 
     let supertrend_result = Some(supertrend::calculate(candles, 10, 3.0));
     let parabolic_sar_result = Some(parabolic_sar::calculate(candles, 0.02, 0.2));
 
-    // BB+RSI signals with optional quant filters (regime/momentum/volatility)
-    let mut signals = signal::detect_bb_rsi(&bb, &rsi_data, candles);
-    signals = signal::apply_bb_rsi_quant_filter(signals, candles, &params.signal_filter);
+    let mut signals = Vec::new();
 
     // SMA — only for requested periods
     let sma_results: Vec<_> = params
@@ -65,16 +63,12 @@ pub fn analyze(candles: &[Candle], params: &AnalysisParams) -> AnalysisResponse 
 
     // MACD
     let macd_result = params.macd.as_ref().map(|mp| {
-        let result = macd::calculate(candles, mp.fast_period, mp.slow_period, mp.signal_period);
-        signals.extend(signal::detect_macd(&result, candles));
-        result
+        macd::calculate(candles, mp.fast_period, mp.slow_period, mp.signal_period)
     });
 
     // Stochastic
     let stoch_result = params.stochastic.as_ref().map(|sp| {
-        let result = stochastic::calculate(candles, sp.k_period, sp.d_period, sp.smooth);
-        signals.extend(signal::detect_stochastic(&result, candles));
-        result
+        stochastic::calculate(candles, sp.k_period, sp.d_period, sp.smooth)
     });
 
     // OBV

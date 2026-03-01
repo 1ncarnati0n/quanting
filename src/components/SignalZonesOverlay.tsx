@@ -17,16 +17,14 @@ interface SignalZonesOverlayProps {
 }
 
 const BUY_SIGNALS = new Set<SignalType>([
-  "strongBuy",
-  "weakBuy",
-  "macdBullish",
-  "stochOversold",
+  "supertrendBuy", "emaCrossoverBuy", "stochRsiBuy", "cmfObvBuy",
+  "ttmSqueezeBuy", "vwapBreakoutBuy", "parabolicSarBuy",
+  "macdHistReversalBuy", "ibsMeanRevBuy", "rsiDivergenceBuy",
 ]);
 const SELL_SIGNALS = new Set<SignalType>([
-  "strongSell",
-  "weakSell",
-  "macdBearish",
-  "stochOverbought",
+  "supertrendSell", "emaCrossoverSell", "stochRsiSell", "cmfObvSell",
+  "ttmSqueezeSell", "vwapBreakoutSell", "parabolicSarSell",
+  "macdHistReversalSell", "ibsMeanRevSell", "rsiDivergenceSell",
 ]);
 
 function buildZones(data: AnalysisResponse, maxTime: number): Zone[] {

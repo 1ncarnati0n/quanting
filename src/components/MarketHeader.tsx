@@ -12,6 +12,7 @@ import {
   summarizeCandles,
 } from "../utils/marketView";
 import { Button } from "@/components/ui/button";
+import QuantingLogo from "./QuantingLogo";
 
 interface MarketHeaderProps {
   onToggleWatchlist: () => void;
@@ -42,6 +43,7 @@ export default function MarketHeader({
       <div className="flex min-w-0 flex-wrap items-end gap-x-3 gap-y-2 px-4 py-3 sm:gap-x-4 sm:px-5 sm:py-3.5">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5 sm:gap-2">
+            <QuantingLogo size={16} color="var(--primary)" />
             <span className="ds-type-caption font-semibold tracking-wide text-[var(--primary)]">
               Quanting
             </span>

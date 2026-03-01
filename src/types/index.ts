@@ -425,7 +425,6 @@ export interface AnalysisParams {
   hmaPeriods?: number[];
   macd: MacdParams | null;
   stochastic: StochasticParams | null;
-  showVolume: boolean;
   showObv: boolean;
   showCvd?: boolean;
   donchian?: DonchianParams | null;

@@ -36,9 +36,9 @@ pub fn calculate_from_values(values: &[f64], period: usize) -> Vec<f64> {
     let mut result = Vec::with_capacity(values.len() - period + 1);
     result.push(sma_seed[0]); // first EMA = SMA of initial period
 
-    for i in period..values.len() {
+    for value in values.iter().skip(period) {
         let prev = *result.last().unwrap();
-        let ema = (values[i] - prev) * multiplier + prev;
+        let ema = (*value - prev) * multiplier + prev;
         result.push(ema);
     }
 

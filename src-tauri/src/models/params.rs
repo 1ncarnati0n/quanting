@@ -196,9 +196,6 @@ pub struct AnalysisParams {
     #[serde(default)]
     pub stochastic: Option<StochasticParams>,
     #[serde(default)]
-    #[allow(dead_code)]
-    pub show_volume: bool,
-    #[serde(default)]
     pub show_obv: bool,
     #[serde(default)]
     pub show_cvd: bool,

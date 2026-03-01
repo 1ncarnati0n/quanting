@@ -1707,7 +1707,6 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
       emaPeriods: [],
       macd: null,
       stochastic: null,
-      showVolume: false,
       showObv: false,
       signalFilter: indicators.signalFilter,
     })

@@ -294,12 +294,10 @@ fn compute_volatility_percentile(
     let mut total = 0usize;
     let mut less_or_equal = 0usize;
 
-    for vol in &rolling_vol[start..=idx] {
-        if let Some(v) = vol {
-            total += 1;
-            if *v <= current {
-                less_or_equal += 1;
-            }
+    for v in rolling_vol[start..=idx].iter().flatten() {
+        total += 1;
+        if *v <= current {
+            less_or_equal += 1;
         }
     }
 

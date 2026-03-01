@@ -22,7 +22,14 @@ interface ChartState {
 }
 
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;
-let isFirstCall = true;
+let hasFetchedOnce = false;
+let latestFetchRequestId = 0;
+
+function toErrorMessage(error: unknown, fallback: string): string {
+  if (typeof error === "string") return error;
+  if (error instanceof Error) return error.message;
+  return fallback;
+}
 
 export const useChartStore = create<ChartState>((set) => ({
   data: null,
@@ -34,30 +41,31 @@ export const useChartStore = create<ChartState>((set) => ({
   fundamentalsKey: null,
   fetchData: (params: AnalysisParams) => {
     if (debounceTimer) clearTimeout(debounceTimer);
+    const requestId = ++latestFetchRequestId;
 
     const doFetch = async () => {
       set({ isLoading: true, error: null });
       try {
         const data = await fetchAnalysis(params);
+        if (requestId !== latestFetchRequestId) return;
         set({ data, isLoading: false });
       } catch (e) {
-        const msg =
-          typeof e === "string"
-            ? e
-            : e instanceof Error
-              ? e.message
-              : "분석 데이터 조회에 실패했습니다";
+        if (requestId !== latestFetchRequestId) return;
+        const msg = toErrorMessage(e, "분석 데이터 조회에 실패했습니다");
         console.error("데이터 조회 오류:", msg);
         set({ error: msg, isLoading: false });
       }
     };
 
     // No debounce on first call for instant loading
-    if (isFirstCall) {
-      isFirstCall = false;
-      doFetch();
+    if (!hasFetchedOnce) {
+      hasFetchedOnce = true;
+      void doFetch();
     } else {
-      debounceTimer = setTimeout(doFetch, 300);
+      debounceTimer = setTimeout(() => {
+        debounceTimer = null;
+        void doFetch();
+      }, 300);
     }
   },
   fetchFundamentals: async (params: FundamentalsParams) => {
@@ -100,12 +108,7 @@ export const useChartStore = create<ChartState>((set) => ({
         };
       });
     } catch (e) {
-      const msg =
-        typeof e === "string"
-          ? e
-          : e instanceof Error
-            ? e.message
-            : "재무 데이터 조회에 실패했습니다";
+      const msg = toErrorMessage(e, "재무 데이터 조회에 실패했습니다");
 
       set((state) => {
         if (state.fundamentalsKey !== key) return {};

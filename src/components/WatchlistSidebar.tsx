@@ -445,7 +445,6 @@ export default function WatchlistSidebar({
               emaPeriods: [],
               macd: null,
               stochastic: null,
-              showVolume: false,
               showObv: false,
               signalFilter: settings.indicators.signalFilter,
             });

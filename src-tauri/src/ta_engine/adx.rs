@@ -79,13 +79,13 @@ pub fn calculate(candles: &[Candle], period: usize) -> AdxResult {
         minus_di: dx_values[period - 1].2,
     });
 
-    for i in period..dx_values.len() {
-        adx = (adx * (p - 1.0) + dx_values[i].3) / p;
+    for (time, plus_di, minus_di, dx) in dx_values.iter().skip(period) {
+        adx = (adx * (p - 1.0) + *dx) / p;
         data.push(AdxPoint {
-            time: dx_values[i].0,
+            time: *time,
             adx,
-            plus_di: dx_values[i].1,
-            minus_di: dx_values[i].2,
+            plus_di: *plus_di,
+            minus_di: *minus_di,
         });
     }
 

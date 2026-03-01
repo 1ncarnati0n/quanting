@@ -27,7 +27,7 @@ pub fn calculate(
     let common_start = ema_start.max(atr_start);
 
     let mut data = Vec::new();
-    for candle_idx in common_start..candles.len() {
+    for (candle_idx, candle) in candles.iter().enumerate().skip(common_start) {
         let ema_idx = candle_idx - ema_start;
         let atr_idx = candle_idx - atr_start;
 
@@ -38,7 +38,7 @@ pub fn calculate(
         let mid = ema_values[ema_idx];
         let atr_val = atr_result.data[atr_idx].value;
         data.push(KeltnerPoint {
-            time: candles[candle_idx].time,
+            time: candle.time,
             upper: mid + atr_multiplier * atr_val,
             middle: mid,
             lower: mid - atr_multiplier * atr_val,

@@ -10,6 +10,7 @@ import SymbolSearch from "./components/SymbolSearch";
 import { useChartStore } from "./stores/useChartStore";
 import { useSettingsStore } from "./stores/useSettingsStore";
 import { useReplayStore } from "./stores/useReplayStore";
+import { buildAnalysisParams } from "./utils/analysisParams";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 
 const BINANCE_STREAM_INTERVALS = new Set([
@@ -71,92 +72,38 @@ function App() {
   // Indicator enabled states that don't affect backend params (e.g. RSI toggle,
   // BB toggle) are excluded so toggling display-only indicators won't trigger
   // an unnecessary refetch that replaces WebSocket-updated candle data.
-  const fetchParams = useMemo(() => ({
-    symbol,
-    interval,
-    market,
-    bbPeriod: indicators.bb.period,
-    bbMultiplier: indicators.bb.multiplier,
-    rsiPeriod: indicators.rsi.period,
-    smaPeriods: indicators.sma.enabled ? indicators.sma.periods : [],
-    emaPeriods: indicators.ema.enabled ? indicators.ema.periods : [],
-    hmaPeriods: indicators.hma.enabled ? indicators.hma.periods : [],
-    macd: indicators.macd.enabled
-      ? {
-          fastPeriod: indicators.macd.fastPeriod,
-          slowPeriod: indicators.macd.slowPeriod,
-          signalPeriod: indicators.macd.signalPeriod,
-        }
-      : null,
-    stochastic: indicators.stochastic.enabled
-      ? {
-          kPeriod: indicators.stochastic.kPeriod,
-          dPeriod: indicators.stochastic.dPeriod,
-          smooth: indicators.stochastic.smooth,
-        }
-      : null,
-    showVolume: indicators.volume.enabled,
-    showObv: indicators.obv.enabled,
-    showCvd: indicators.cvd.enabled,
-    donchian: indicators.donchian.enabled
-      ? { period: indicators.donchian.period }
-      : null,
-    keltner: indicators.keltner.enabled
-      ? {
-          emaPeriod: indicators.keltner.emaPeriod,
-          atrPeriod: indicators.keltner.atrPeriod,
-          atrMultiplier: indicators.keltner.atrMultiplier,
-        }
-      : null,
-    mfi: indicators.mfi.enabled ? { period: indicators.mfi.period } : null,
-    cmf: indicators.cmf.enabled ? { period: indicators.cmf.period } : null,
-    choppiness: indicators.choppiness.enabled
-      ? { period: indicators.choppiness.period }
-      : null,
-    williamsR: indicators.williamsR.enabled
-      ? { period: indicators.williamsR.period }
-      : null,
-    adx: indicators.adx.enabled ? { period: indicators.adx.period } : null,
-    stc: indicators.stc.enabled
-      ? {
-          tcLen: indicators.stc.tcLen,
-          fastMa: indicators.stc.fastMa,
-          slowMa: indicators.stc.slowMa,
-        }
-      : null,
-    smc: indicators.smc.enabled
-      ? { swingLength: indicators.smc.swingLength }
-      : null,
-    anchoredVwap: indicators.anchoredVwap.enabled && indicators.anchoredVwap.anchorTime
-      ? { anchorTime: indicators.anchoredVwap.anchorTime }
-      : null,
-    autoFib: indicators.autoFib.enabled
-      ? { lookback: indicators.autoFib.lookback, swingLength: indicators.autoFib.swingLength }
-      : null,
-    signalFilter: indicators.signalFilter,
-  }), [
-    symbol, interval, market,
-    indicators.bb.period, indicators.bb.multiplier,
-    indicators.rsi.period,
-    indicators.sma.enabled, indicators.sma.periods,
-    indicators.ema.enabled, indicators.ema.periods,
-    indicators.hma.enabled, indicators.hma.periods,
-    indicators.macd.enabled, indicators.macd.fastPeriod, indicators.macd.slowPeriod, indicators.macd.signalPeriod,
-    indicators.stochastic.enabled, indicators.stochastic.kPeriod, indicators.stochastic.dPeriod, indicators.stochastic.smooth,
-    indicators.volume.enabled, indicators.obv.enabled, indicators.cvd.enabled,
-    indicators.donchian.enabled, indicators.donchian.period,
-    indicators.keltner.enabled, indicators.keltner.emaPeriod, indicators.keltner.atrPeriod, indicators.keltner.atrMultiplier,
-    indicators.mfi.enabled, indicators.mfi.period,
-    indicators.cmf.enabled, indicators.cmf.period,
-    indicators.choppiness.enabled, indicators.choppiness.period,
-    indicators.williamsR.enabled, indicators.williamsR.period,
-    indicators.adx.enabled, indicators.adx.period,
-    indicators.stc.enabled, indicators.stc.tcLen, indicators.stc.fastMa, indicators.stc.slowMa,
-    indicators.smc.enabled, indicators.smc.swingLength,
-    indicators.anchoredVwap.enabled, indicators.anchoredVwap.anchorTime,
-    indicators.autoFib.enabled, indicators.autoFib.lookback, indicators.autoFib.swingLength,
-    indicators.signalFilter,
-  ]);
+  const fetchParams = useMemo(
+    () =>
+      buildAnalysisParams({
+        symbol,
+        interval,
+        market,
+        indicators,
+      }),
+    [
+      symbol, interval, market,
+      indicators.bb.period, indicators.bb.multiplier,
+      indicators.rsi.period,
+      indicators.sma.enabled, indicators.sma.periods,
+      indicators.ema.enabled, indicators.ema.periods,
+      indicators.hma.enabled, indicators.hma.periods,
+      indicators.macd.enabled, indicators.macd.fastPeriod, indicators.macd.slowPeriod, indicators.macd.signalPeriod,
+      indicators.stochastic.enabled, indicators.stochastic.kPeriod, indicators.stochastic.dPeriod, indicators.stochastic.smooth,
+      indicators.obv.enabled, indicators.cvd.enabled,
+      indicators.donchian.enabled, indicators.donchian.period,
+      indicators.keltner.enabled, indicators.keltner.emaPeriod, indicators.keltner.atrPeriod, indicators.keltner.atrMultiplier,
+      indicators.mfi.enabled, indicators.mfi.period,
+      indicators.cmf.enabled, indicators.cmf.period,
+      indicators.choppiness.enabled, indicators.choppiness.period,
+      indicators.williamsR.enabled, indicators.williamsR.period,
+      indicators.adx.enabled, indicators.adx.period,
+      indicators.stc.enabled, indicators.stc.tcLen, indicators.stc.fastMa, indicators.stc.slowMa,
+      indicators.smc.enabled, indicators.smc.swingLength,
+      indicators.anchoredVwap.enabled, indicators.anchoredVwap.anchorTime,
+      indicators.autoFib.enabled, indicators.autoFib.lookback, indicators.autoFib.swingLength,
+      indicators.signalFilter,
+    ],
+  );
 
   // Data fetching — only triggers when actual backend params change
   useEffect(() => {
@@ -183,70 +130,14 @@ function App() {
     const timer = setInterval(() => {
       const state = useSettingsStore.getState();
       const chartState = useChartStore.getState();
-      chartState.fetchData({
-        symbol: state.symbol,
-        interval: state.interval,
-        bbPeriod: state.indicators.bb.period,
-        bbMultiplier: state.indicators.bb.multiplier,
-        rsiPeriod: state.indicators.rsi.period,
-        market: state.market,
-        smaPeriods: state.indicators.sma.enabled ? state.indicators.sma.periods : [],
-        emaPeriods: state.indicators.ema.enabled ? state.indicators.ema.periods : [],
-        hmaPeriods: state.indicators.hma.enabled ? state.indicators.hma.periods : [],
-        macd: state.indicators.macd.enabled
-          ? {
-              fastPeriod: state.indicators.macd.fastPeriod,
-              slowPeriod: state.indicators.macd.slowPeriod,
-              signalPeriod: state.indicators.macd.signalPeriod,
-            }
-          : null,
-        stochastic: state.indicators.stochastic.enabled
-          ? {
-              kPeriod: state.indicators.stochastic.kPeriod,
-              dPeriod: state.indicators.stochastic.dPeriod,
-              smooth: state.indicators.stochastic.smooth,
-            }
-          : null,
-        showVolume: state.indicators.volume.enabled,
-        showObv: state.indicators.obv.enabled,
-        showCvd: state.indicators.cvd.enabled,
-        donchian: state.indicators.donchian.enabled
-          ? { period: state.indicators.donchian.period }
-          : null,
-        keltner: state.indicators.keltner.enabled
-          ? {
-              emaPeriod: state.indicators.keltner.emaPeriod,
-              atrPeriod: state.indicators.keltner.atrPeriod,
-              atrMultiplier: state.indicators.keltner.atrMultiplier,
-            }
-          : null,
-        mfi: state.indicators.mfi.enabled ? { period: state.indicators.mfi.period } : null,
-        cmf: state.indicators.cmf.enabled ? { period: state.indicators.cmf.period } : null,
-        choppiness: state.indicators.choppiness.enabled
-          ? { period: state.indicators.choppiness.period }
-          : null,
-        williamsR: state.indicators.williamsR.enabled
-          ? { period: state.indicators.williamsR.period }
-          : null,
-        adx: state.indicators.adx.enabled ? { period: state.indicators.adx.period } : null,
-        stc: state.indicators.stc.enabled
-          ? {
-              tcLen: state.indicators.stc.tcLen,
-              fastMa: state.indicators.stc.fastMa,
-              slowMa: state.indicators.stc.slowMa,
-            }
-          : null,
-        smc: state.indicators.smc.enabled
-          ? { swingLength: state.indicators.smc.swingLength }
-          : null,
-        anchoredVwap: state.indicators.anchoredVwap.enabled && state.indicators.anchoredVwap.anchorTime
-          ? { anchorTime: state.indicators.anchoredVwap.anchorTime }
-          : null,
-        autoFib: state.indicators.autoFib.enabled
-          ? { lookback: state.indicators.autoFib.lookback, swingLength: state.indicators.autoFib.swingLength }
-          : null,
-        signalFilter: state.indicators.signalFilter,
-      });
+      chartState.fetchData(
+        buildAnalysisParams({
+          symbol: state.symbol,
+          interval: state.interval,
+          market: state.market,
+          indicators: state.indicators,
+        }),
+      );
     }, intervalMs);
     return () => clearInterval(timer);
   }, [market]);

@@ -7,6 +7,12 @@
     <title>Quanting</title>
   </head>
   <body>
+    <script>
+      try {
+        var t = localStorage.getItem("bb-rsi-theme");
+        if (t === "dark" || (!t && true)) document.documentElement.classList.add("dark");
+      } catch (e) {}
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

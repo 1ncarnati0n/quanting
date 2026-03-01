@@ -43,7 +43,7 @@ export default function ChartToolbar() {
 
   return (
     <div
-      className="pointer-events-auto absolute right-3 top-2 z-10 flex items-center gap-0.5 rounded-lg px-1 py-0.5"
+      className="pointer-events-auto absolute right-20 top-2 z-10 flex items-center gap-0.5 rounded px-1 py-0.5"
       style={{
         background: "color-mix(in srgb, var(--background) 85%, transparent)",
         backdropFilter: "blur(6px)",

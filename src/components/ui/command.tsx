@@ -6,7 +6,7 @@ const Command = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivEle
     <div
       ref={ref}
       className={cn(
-        "flex h-full w-full flex-col overflow-hidden rounded-md border border-border bg-card",
+        "flex h-full w-full flex-col overflow-hidden rounded border border-border bg-card",
         className,
       )}
       {...props}
@@ -84,7 +84,7 @@ const CommandItem = React.forwardRef<HTMLButtonElement, CommandItemProps>(
       ref={ref}
       type="button"
       className={cn(
-        "flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm text-foreground transition-colors hover:bg-secondary",
+        "flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm text-foreground transition-colors hover:bg-secondary",
         active && "bg-accent",
         className,
       )}

@@ -1,7 +1,7 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useSettingsStore } from "../stores/useSettingsStore";
 import { useDrawingStore } from "../stores/useDrawingStore";
-import { COLORS } from "../utils/constants";
+import { COLORS, getSymbolLabel } from "../utils/constants";
 import IndicatorSection from "./IndicatorSection";
 import PeriodsInput from "./PeriodsInput";
 import { Button } from "@/components/ui/button";
@@ -190,14 +190,17 @@ function AccordionSection({
             : [];
         onOpenChange(values.includes(value));
       }}
-      className="space-y-2"
+      className="space-y-1.5"
     >
-      <AccordionItem value={value} className="space-y-2">
+      <AccordionItem value={value} className="space-y-1.5">
         <AccordionTrigger
+          className="shadow-sm"
           id={`${sectionId}-header`}
           style={{
             borderColor: "var(--border)",
-            background: "var(--muted)",
+            background: open
+              ? "color-mix(in srgb, var(--primary) 8%, var(--muted))"
+              : "var(--muted)",
           }}
         >
           <div className="min-w-0">
@@ -215,7 +218,7 @@ function AccordionSection({
           id={`${sectionId}-content`}
           role="region"
           aria-labelledby={`${sectionId}-header`}
-          className="rounded-md border p-2.5"
+          className="rounded border p-2.5 shadow-sm"
           style={{ borderColor: "var(--border)", background: "var(--muted)" }}
         >
           {children}
@@ -255,6 +258,44 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
   const [openSections, setOpenSections] = useState<SectionState>(loadSectionState);
   const [activeTab, setActiveTab] = useState<SettingsTab>("indicators");
   const [alertInput, setAlertInput] = useState("");
+  const symbolLabel = getSymbolLabel(symbol);
+  const marketBadge =
+    market === "crypto"
+      ? { text: "코인", color: "var(--warning)" }
+      : market === "krStock"
+        ? { text: "KR", color: "#EC4899" }
+        : market === "forex"
+          ? { text: "FX", color: "#14B8A6" }
+          : { text: "US", color: "var(--primary)" };
+  const enabledIndicatorCount = useMemo(
+    () =>
+      [
+        indicators.bb.enabled,
+        indicators.rsi.enabled,
+        indicators.sma.enabled,
+        indicators.ema.enabled,
+        indicators.macd.enabled,
+        indicators.stochastic.enabled,
+        indicators.volume.enabled,
+        indicators.obv.enabled,
+        indicators.signalZones.enabled,
+        indicators.volumeProfile.enabled,
+        indicators.fundamentals.enabled,
+        indicators.vwap.enabled,
+        indicators.atr.enabled,
+        indicators.ichimoku.enabled,
+        indicators.supertrend.enabled,
+        indicators.psar.enabled,
+        indicators.signalFilter.enabled,
+      ].filter(Boolean).length,
+    [indicators],
+  );
+  const activeAlertCount = useMemo(
+    () => priceAlerts.filter((alert) => alert.symbol === symbol && alert.market === market).length,
+    [market, priceAlerts, symbol],
+  );
+  const activeTabLabel =
+    activeTab === "indicators" ? "지표" : activeTab === "layout" ? "레이아웃" : "화면";
 
   useEffect(() => {
     try {
@@ -356,7 +397,7 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
 
   return (
     <div
-      className={`flex h-full min-w-0 flex-col ${embedded ? "w-full rounded-lg border" : "w-[min(24rem,calc(100vw-1rem))] border-l"}`}
+      className={`flex h-full min-w-0 flex-col ${embedded ? "w-full rounded border" : "w-[min(24rem,calc(100vw-1rem))] border-l"}`}
       style={{
         background: "var(--card)",
         borderColor: "var(--border)",
@@ -365,24 +406,68 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
     >
       {/* Header */}
       <div
-        className="flex items-center justify-between border-b px-4 py-3"
+        className="border-b px-4 py-3"
         style={{ borderColor: "var(--border)" }}
       >
-        <span className="text-sm font-medium" style={{ color: "var(--foreground)" }}>
-          지표 설정
-        </span>
-        {!embedded && (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onClose}
-            className="h-8 w-8 text-xs text-[var(--muted-foreground)]"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M18 6L6 18M6 6l12 12" />
-            </svg>
-          </Button>
-        )}
+        <div className="flex items-center justify-between gap-2">
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5">
+              <span className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>
+                지표 설정
+              </span>
+              <span
+                className="rounded px-1 py-0.5 text-[9px] font-bold"
+                style={{
+                  background: `color-mix(in srgb, ${marketBadge.color} 18%, transparent)`,
+                  color: marketBadge.color,
+                }}
+              >
+                {marketBadge.text}
+              </span>
+            </div>
+            <p className="mt-0.5 truncate text-[10px]" style={{ color: "var(--muted-foreground)" }}>
+              {symbolLabel ? `${symbol} · ${symbolLabel}` : symbol}
+            </p>
+          </div>
+          {!embedded && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onClose}
+              className="h-8 w-8 text-xs text-[var(--muted-foreground)]"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M18 6L6 18M6 6l12 12" />
+              </svg>
+            </Button>
+          )}
+        </div>
+        <div className="mt-2 grid grid-cols-3 gap-1.5">
+          <div className="rounded border px-2 py-1.5" style={{ borderColor: "var(--border)", background: "var(--muted)" }}>
+            <div className="text-[9px] uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>
+              현재 탭
+            </div>
+            <div className="mt-0.5 text-[11px] font-semibold" style={{ color: "var(--foreground)" }}>
+              {activeTabLabel}
+            </div>
+          </div>
+          <div className="rounded border px-2 py-1.5" style={{ borderColor: "var(--border)", background: "var(--muted)" }}>
+            <div className="text-[9px] uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>
+              활성 지표
+            </div>
+            <div className="mt-0.5 text-[11px] font-semibold" style={{ color: "var(--foreground)" }}>
+              {enabledIndicatorCount}개
+            </div>
+          </div>
+          <div className="rounded border px-2 py-1.5" style={{ borderColor: "var(--border)", background: "var(--muted)" }}>
+            <div className="text-[9px] uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>
+              현재 알림
+            </div>
+            <div className="mt-0.5 text-[11px] font-semibold" style={{ color: "var(--foreground)" }}>
+              {activeAlertCount}개
+            </div>
+          </div>
+        </div>
       </div>
 
       <Tabs
@@ -390,22 +475,22 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
         onValueChange={(value) => setActiveTab(value as SettingsTab)}
         className="flex min-h-0 flex-1 flex-col"
       >
-        <div className="border-b px-3 py-2" style={{ borderColor: "var(--border)" }}>
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="indicators" aria-label="지표 탭">
+        <div className="border-b px-3 pb-2 pt-1.5" style={{ borderColor: "var(--border)" }}>
+          <TabsList className="grid w-full grid-cols-3 rounded-md border border-[var(--border)] bg-[var(--muted)] p-1">
+            <TabsTrigger value="indicators" aria-label="지표 탭" className="text-[11px]">
               지표
             </TabsTrigger>
-            <TabsTrigger value="layout" aria-label="레이아웃 탭">
+            <TabsTrigger value="layout" aria-label="레이아웃 탭" className="text-[11px]">
               레이아웃
             </TabsTrigger>
-            <TabsTrigger value="appearance" aria-label="화면 탭">
+            <TabsTrigger value="appearance" aria-label="화면 탭" className="text-[11px]">
               화면
             </TabsTrigger>
           </TabsList>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto p-3">
-          <div className="space-y-2">
+        <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-3 pt-2">
+          <div className="space-y-2.5">
           {activeTab === "appearance" && (
             <AccordionSection
               value="appearance"

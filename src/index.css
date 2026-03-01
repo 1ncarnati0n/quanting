@@ -142,8 +142,7 @@ body {
 }
 
 .market-header {
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--card) 92%, transparent), var(--card));
+  background: var(--card);
   border-bottom: 1px solid var(--border);
 }
 
@@ -178,13 +177,13 @@ body {
   max-width: 100%;
   border: 1px solid var(--border);
   background: var(--secondary);
-  border-radius: 8px;
+  border-radius: 6px;
   padding: 2px;
 }
 
 .segment-button {
   border: 0;
-  border-radius: 6px;
+  border-radius: 4px;
   background: transparent;
   padding: 4px 10px;
   font-size: var(--font-size-body-sm);
@@ -201,7 +200,7 @@ body {
 
 .sidebar-shell {
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 6px;
   background: var(--card);
   box-shadow: var(--shadow-elevated);
 }
@@ -220,7 +219,7 @@ body {
   align-items: center;
   gap: 6px;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 4px;
   padding: 2px 6px;
   background: color-mix(in srgb, var(--background) 76%, transparent);
   backdrop-filter: blur(4px);
@@ -279,7 +278,7 @@ select:focus-visible {
   width: 26px;
   height: 26px;
   border: 0;
-  border-radius: 4px;
+  border-radius: 3px;
   background: transparent;
   color: var(--muted-foreground);
   cursor: pointer;
@@ -297,7 +296,7 @@ select:focus-visible {
   display: flex;
   flex-direction: column;
   gap: 1px;
-  border-radius: 8px;
+  border-radius: 6px;
   border: 1px solid var(--border);
   background: var(--card);
   box-shadow: var(--shadow-elevated);
@@ -309,7 +308,7 @@ select:focus-visible {
   align-items: center;
   gap: 8px;
   border: 0;
-  border-radius: 4px;
+  border-radius: 3px;
   background: transparent;
   padding: 5px 8px;
   font-size: 11px;
@@ -327,7 +326,7 @@ select:focus-visible {
   position: fixed;
   z-index: 100;
   min-width: 160px;
-  border-radius: 8px;
+  border-radius: 6px;
   border: 1px solid var(--border);
   background: var(--card);
   box-shadow: var(--shadow-elevated);
@@ -339,9 +338,9 @@ select:focus-visible {
   gap: 8px;
   width: 100%;
   border: 0;
-  border-radius: 4px;
+  border-radius: 3px;
   background: transparent;
-  padding: 6px 10px;
+  padding: 7px 10px;
   font-size: 11px;
   color: var(--foreground);
   cursor: pointer;
@@ -374,7 +373,7 @@ select:focus-visible {
   width: calc(100% - 2rem);
   max-height: calc(100vh - 4rem);
   overflow-y: auto;
-  border-radius: 12px;
+  border-radius: 8px;
   border: 1px solid var(--border);
   background: var(--card);
   box-shadow: var(--shadow-elevated);

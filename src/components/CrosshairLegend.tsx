@@ -24,7 +24,7 @@ export default function CrosshairLegend() {
 
   return (
     <div
-      className="pointer-events-none absolute left-3 top-2 z-10 flex flex-col gap-0.5 rounded px-2 py-1"
+      className="pointer-events-none absolute left-3 top-10 z-10 flex flex-col gap-0.5 rounded px-2 py-1"
       style={{
         background: "color-mix(in srgb, var(--background) 80%, transparent)",
         backdropFilter: "blur(4px)",

@@ -1,5 +1,7 @@
 import { create } from "zustand";
 import {
+  CRYPTO_INTERVALS,
+  STOCK_INTERVALS,
   DEFAULT_SYMBOL,
   DEFAULT_INTERVAL,
   DEFAULT_MARKET,
@@ -266,10 +268,53 @@ const COMPARE_STORAGE_KEY = "quanting-compare";
 const PRICE_ALERTS_STORAGE_KEY = "quanting-price-alerts";
 const ALERT_HISTORY_STORAGE_KEY = "quanting-alert-history";
 const MULTI_CHART_LAYOUT_STORAGE_KEY = "quanting-multi-layout";
+const LAST_SYMBOL_STORAGE_KEY = "quanting-last-symbol";
+const INTERVAL_STORAGE_KEY = "quanting-interval";
 const MAX_RECENT_SYMBOLS = 12;
+const TRACKED_CRYPTO_SYMBOLS = new Set(["BTCUSDT", "ETHUSDT", "SOLUSDT"]);
+const TRACKED_FOREX_SYMBOLS = new Set(["USDKRW=X", "EURKRW=X", "JPYKRW=X", "CNYKRW=X"]);
 
 function normalizeSymbol(symbol: string): string {
   return symbol.trim().toUpperCase();
+}
+
+function isKnownInterval(interval: unknown): interval is Interval {
+  if (typeof interval !== "string") return false;
+  return (
+    (CRYPTO_INTERVALS as readonly string[]).includes(interval) ||
+    (STOCK_INTERVALS as readonly string[]).includes(interval)
+  );
+}
+
+function isKnownMarketType(market: unknown): market is MarketType {
+  return market === "crypto" || market === "usStock" || market === "krStock" || market === "forex";
+}
+
+function isAllowedSymbolForMarket(symbol: string, market: MarketType): boolean {
+  if (market === "crypto") return TRACKED_CRYPTO_SYMBOLS.has(symbol);
+  if (market === "forex") return TRACKED_FOREX_SYMBOLS.has(symbol);
+  return symbol.length > 0;
+}
+
+function sanitizeSymbolForMarket(symbol: string, market: MarketType): string | null {
+  const normalized = normalizeSymbol(symbol);
+  if (!normalized) return null;
+  return isAllowedSymbolForMarket(normalized, market) ? normalized : null;
+}
+
+function fallbackSymbolForMarket(market: MarketType): string {
+  if (market === "crypto") return "BTCUSDT";
+  if (market === "forex") return "USDKRW=X";
+  return DEFAULT_SYMBOL;
+}
+
+function parseFavoriteSymbol(item: unknown): FavoriteSymbol | null {
+  if (!item || typeof item !== "object") return null;
+  const raw = item as { symbol?: unknown; market?: unknown };
+  if (typeof raw.symbol !== "string" || !isKnownMarketType(raw.market)) return null;
+  const symbol = sanitizeSymbolForMarket(raw.symbol, raw.market);
+  if (!symbol) return null;
+  return { symbol, market: raw.market };
 }
 
 function favoriteKey(favorite: FavoriteSymbol): string {
@@ -284,12 +329,8 @@ function getSavedFavorites(): FavoriteSymbol[] {
     if (!Array.isArray(parsed)) return [];
 
     const normalized = parsed
-      .filter((item) => item && typeof item.symbol === "string" && typeof item.market === "string")
-      .map((item) => ({
-        symbol: normalizeSymbol(item.symbol),
-        market: item.market as MarketType,
-      }))
-      .filter((item) => item.symbol.length > 0);
+      .map(parseFavoriteSymbol)
+      .filter((item): item is FavoriteSymbol => item !== null);
 
     const deduped: FavoriteSymbol[] = [];
     const seen = new Set<string>();
@@ -299,6 +340,7 @@ function getSavedFavorites(): FavoriteSymbol[] {
       seen.add(key);
       deduped.push(item);
     }
+    saveFavorites(deduped);
     return deduped;
   } catch {}
   return [];
@@ -318,12 +360,8 @@ function getSavedRecentSymbols(): FavoriteSymbol[] {
     if (!Array.isArray(parsed)) return [];
 
     const normalized = parsed
-      .filter((item) => item && typeof item.symbol === "string" && typeof item.market === "string")
-      .map((item) => ({
-        symbol: normalizeSymbol(item.symbol),
-        market: item.market as MarketType,
-      }))
-      .filter((item) => item.symbol.length > 0);
+      .map(parseFavoriteSymbol)
+      .filter((item): item is FavoriteSymbol => item !== null);
 
     const deduped: FavoriteSymbol[] = [];
     const seen = new Set<string>();
@@ -334,6 +372,7 @@ function getSavedRecentSymbols(): FavoriteSymbol[] {
       deduped.push(item);
       if (deduped.length >= MAX_RECENT_SYMBOLS) break;
     }
+    saveRecentSymbols(deduped);
     return deduped;
   } catch {}
   return [];
@@ -378,11 +417,17 @@ function getSavedCompare(): CompareSettings {
     const raw = localStorage.getItem(COMPARE_STORAGE_KEY);
     if (!raw) return DEFAULT_COMPARE;
     const parsed = JSON.parse(raw);
-    return {
+    const market = isKnownMarketType(parsed.market) ? parsed.market : DEFAULT_COMPARE.market;
+    const symbol = sanitizeSymbolForMarket(parsed.symbol ?? DEFAULT_COMPARE.symbol, market)
+      ?? fallbackSymbolForMarket(market);
+    const next: CompareSettings = {
       ...DEFAULT_COMPARE,
       ...parsed,
-      symbol: normalizeSymbol(parsed.symbol ?? DEFAULT_COMPARE.symbol),
+      market,
+      symbol,
     };
+    saveCompare(next);
+    return next;
   } catch {}
   return DEFAULT_COMPARE;
 }
@@ -399,19 +444,27 @@ function getSavedPriceAlerts(): PriceAlert[] {
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
-    return parsed
+    const normalized = parsed
       .filter((item) => item && typeof item.id === "string" && typeof item.symbol === "string")
-      .map((item) => ({
-        id: item.id as string,
-        symbol: normalizeSymbol(item.symbol as string),
-        market: (item.market ?? "usStock") as MarketType,
-        price: Number(item.price ?? 0),
-        condition: (item.condition ?? "above") as AlertCondition,
-        active: Boolean(item.active ?? true),
-        createdAt: Number(item.createdAt ?? Date.now()),
-        triggeredAt: item.triggeredAt ? Number(item.triggeredAt) : null,
-      }))
+      .map((item) => {
+        const market = isKnownMarketType(item.market) ? item.market : "usStock";
+        const symbol = sanitizeSymbolForMarket(item.symbol as string, market);
+        if (!symbol) return null;
+        return {
+          id: item.id as string,
+          symbol,
+          market,
+          price: Number(item.price ?? 0),
+          condition: (item.condition ?? "above") as AlertCondition,
+          active: Boolean(item.active ?? true),
+          createdAt: Number(item.createdAt ?? Date.now()),
+          triggeredAt: item.triggeredAt ? Number(item.triggeredAt) : null,
+        };
+      })
+      .filter((item): item is PriceAlert => item !== null)
       .filter((item) => item.price > 0);
+    savePriceAlerts(normalized);
+    return normalized;
   } catch {}
   return [];
 }
@@ -428,18 +481,26 @@ function getSavedAlertHistory(): AlertHistoryItem[] {
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
-    return parsed
+    const normalized = parsed
       .filter((item) => item && typeof item.id === "string" && typeof item.alertId === "string")
-      .map((item) => ({
-        id: item.id as string,
-        alertId: item.alertId as string,
-        symbol: normalizeSymbol(item.symbol as string),
-        market: (item.market ?? "usStock") as MarketType,
-        price: Number(item.price ?? 0),
-        condition: (item.condition ?? "above") as AlertCondition,
-        triggeredPrice: Number(item.triggeredPrice ?? 0),
-        triggeredAt: Number(item.triggeredAt ?? Date.now()),
-      }));
+      .map((item) => {
+        const market = isKnownMarketType(item.market) ? item.market : "usStock";
+        const symbol = sanitizeSymbolForMarket(item.symbol as string, market);
+        if (!symbol) return null;
+        return {
+          id: item.id as string,
+          alertId: item.alertId as string,
+          symbol,
+          market,
+          price: Number(item.price ?? 0),
+          condition: (item.condition ?? "above") as AlertCondition,
+          triggeredPrice: Number(item.triggeredPrice ?? 0),
+          triggeredAt: Number(item.triggeredAt ?? Date.now()),
+        };
+      })
+      .filter((item): item is AlertHistoryItem => item !== null);
+    saveAlertHistory(normalized);
+    return normalized;
   } catch {}
   return [];
 }
@@ -471,10 +532,50 @@ function saveMultiChartLayout(layout: MultiChartLayout) {
   } catch {}
 }
 
+function getSavedLastSymbol(): { symbol: string; market: MarketType } {
+  try {
+    const raw = localStorage.getItem(LAST_SYMBOL_STORAGE_KEY);
+    if (!raw) return { symbol: DEFAULT_SYMBOL, market: DEFAULT_MARKET };
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed.symbol === "string" && typeof parsed.market === "string") {
+      const market = isKnownMarketType(parsed.market) ? parsed.market : DEFAULT_MARKET;
+      const symbol = sanitizeSymbolForMarket(parsed.symbol, market) ?? fallbackSymbolForMarket(market);
+      const next = { symbol, market };
+      saveLastSymbol(next.symbol, next.market);
+      return next;
+    }
+  } catch {}
+  return { symbol: DEFAULT_SYMBOL, market: DEFAULT_MARKET };
+}
+
+function saveLastSymbol(symbol: string, market: MarketType) {
+  try {
+    localStorage.setItem(LAST_SYMBOL_STORAGE_KEY, JSON.stringify({ symbol, market }));
+  } catch {}
+}
+
+function getSavedInterval(): Interval {
+  try {
+    const raw = localStorage.getItem(INTERVAL_STORAGE_KEY);
+    if (!raw) return DEFAULT_INTERVAL;
+    if (isKnownInterval(raw)) return raw;
+  } catch {}
+  return DEFAULT_INTERVAL;
+}
+
+function saveInterval(interval: Interval) {
+  try {
+    localStorage.setItem(INTERVAL_STORAGE_KEY, interval);
+  } catch {}
+}
+
+const INITIAL_LAST_SYMBOL = getSavedLastSymbol();
+const INITIAL_INTERVAL = getSavedInterval();
+
 export const useSettingsStore = create<SettingsState>((set, get) => ({
-  symbol: DEFAULT_SYMBOL,
-  interval: DEFAULT_INTERVAL,
-  market: DEFAULT_MARKET,
+  symbol: INITIAL_LAST_SYMBOL.symbol,
+  interval: INITIAL_INTERVAL,
+  market: INITIAL_LAST_SYMBOL.market,
   theme: getSavedTheme(),
   chartType: getSavedChartType(),
   multiChartLayout: getSavedMultiChartLayout(),
@@ -489,10 +590,10 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   isFullscreen: false,
   setSymbol: (symbol, market) =>
     set((state) => {
-      const normalizedSymbol = normalizeSymbol(symbol);
+      const resolvedMarket = market ?? state.market;
+      const normalizedSymbol = sanitizeSymbolForMarket(symbol, resolvedMarket);
       if (!normalizedSymbol) return {};
 
-      const resolvedMarket = market ?? state.market;
       const updates: Partial<SettingsState> = {};
       let changed = false;
 
@@ -509,6 +610,11 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
         if (!validIntervals.includes(state.interval)) {
           updates.interval = "1d";
         }
+      }
+
+      if (changed) {
+        saveLastSymbol(normalizedSymbol, resolvedMarket);
+        saveInterval((updates.interval ?? state.interval) as Interval);
       }
 
       const nextRecent = mergeRecentSymbols(state.recentSymbols, {
@@ -529,24 +635,39 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
 
       return changed ? updates : {};
     }),
-  setInterval: (interval) => set({ interval }),
+  setInterval: (interval) =>
+    set(() => {
+      saveInterval(interval);
+      return { interval };
+    }),
   setMarket: (market) => {
+    const current = get();
     const validIntervals = getIntervalsForMarket(market);
-    const currentInterval = get().interval;
+    const currentInterval = current.interval;
+    const currentSymbol = sanitizeSymbolForMarket(current.symbol, market);
+    const nextSymbol = currentSymbol ?? fallbackSymbolForMarket(market);
     const updates: Partial<SettingsState> = { market };
+    if (nextSymbol !== current.symbol) {
+      updates.symbol = nextSymbol;
+    }
     if (!validIntervals.includes(currentInterval)) {
       updates.interval = "1d";
     }
     set(updates);
+    saveInterval((updates.interval ?? currentInterval) as Interval);
+    if (market !== current.market || nextSymbol !== current.symbol) {
+      saveLastSymbol(nextSymbol, market);
+    }
   },
   toggleFavorite: (symbol, market) =>
     set((state) => {
-      const normalizedSymbol = normalizeSymbol(symbol);
+      const resolvedMarket = market ?? state.market;
+      const normalizedSymbol = sanitizeSymbolForMarket(symbol, resolvedMarket);
       if (!normalizedSymbol) return {};
 
       const target: FavoriteSymbol = {
         symbol: normalizedSymbol,
-        market: market ?? state.market,
+        market: resolvedMarket,
       };
       const targetKey = favoriteKey(target);
       const exists = state.favorites.some((item) => favoriteKey(item) === targetKey);
@@ -570,18 +691,27 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     }),
   setCompare: (partial) =>
     set((state) => {
+      const market = partial.market ?? state.compare.market;
+      let symbol = normalizeSymbol(partial.symbol ?? state.compare.symbol);
+      if (!symbol) {
+        symbol = state.compare.symbol;
+      }
+      if (partial.symbol === undefined && !isAllowedSymbolForMarket(symbol, market)) {
+        symbol = fallbackSymbolForMarket(market);
+      }
       const next: CompareSettings = {
         ...state.compare,
         ...partial,
-        symbol: normalizeSymbol(partial.symbol ?? state.compare.symbol),
+        market,
+        symbol,
       };
       saveCompare(next);
       return { compare: next };
     }),
   addPriceAlert: (price, condition, symbol, market) =>
     set((state) => {
-      const resolvedSymbol = normalizeSymbol(symbol ?? state.symbol);
       const resolvedMarket = market ?? state.market;
+      const resolvedSymbol = sanitizeSymbolForMarket(symbol ?? state.symbol, resolvedMarket);
       if (!resolvedSymbol || !Number.isFinite(price) || price <= 0) return {};
 
       const exists = state.priceAlerts.some(

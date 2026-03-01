@@ -48,7 +48,7 @@ function DialogContent({
         role="dialog"
         aria-modal="true"
         className={cn(
-          "relative z-[201] max-h-[calc(100vh-4rem)] w-[min(100%-2rem,480px)] overflow-y-auto rounded-xl border border-border bg-card p-6 shadow-[var(--shadow-elevated)]",
+          "relative z-[201] max-h-[calc(100vh-4rem)] w-[min(100%-2rem,480px)] overflow-y-auto rounded border border-border bg-card p-6 shadow-[var(--shadow-elevated)]",
           className,
         )}
         {...props}

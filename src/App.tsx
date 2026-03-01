@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useLayoutEffect, useState, type CSSProperties } from "react";
 import MarketHeader from "./components/MarketHeader";
 import ChartContainer from "./components/ChartContainer";
 import StatusBar from "./components/StatusBar";
@@ -58,7 +58,9 @@ function App() {
   };
 
   // Apply theme class (.dark) using shadcn token pattern
-  useEffect(() => {
+  // useLayoutEffect ensures .dark is set synchronously before any child useEffect
+  // reads CSS variables (e.g. MainChart's readChartPalette via getComputedStyle)
+  useLayoutEffect(() => {
     const root = document.documentElement;
     root.classList.toggle("dark", theme === "dark");
     root.style.colorScheme = theme;
@@ -373,13 +375,18 @@ function App() {
       }
       if (isMod && keyLower === "k") {
         e.preventDefault();
-        window.dispatchEvent(new CustomEvent("quanting:open-symbol-search"));
+        if (window.matchMedia("(min-width: 1536px)").matches) {
+          window.dispatchEvent(new CustomEvent("quanting:open-left-sidebar"));
+        } else {
+          setShowSettings(false);
+          setShowWatchlist(true);
+        }
       }
     };
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [setShowSettings, showSettings, toggleFullscreen]);
+  }, [setShowSettings, setShowWatchlist, showSettings, toggleFullscreen]);
 
   // Fullscreen mode: only render chart
   if (isFullscreen) {
@@ -426,18 +433,18 @@ function App() {
         <WatchlistSidebar embedded />
       </CollapsibleSidebar>
 
-      <main className="flex min-h-0 min-w-0 flex-1 flex-col gap-2">
-        <div className="surface-card overflow-hidden rounded-lg">
+      <main className="flex min-h-0 min-w-0 flex-1 flex-col">
+        <div className="surface-card flex min-h-0 flex-1 flex-col overflow-hidden rounded">
           <MarketHeader
             onToggleWatchlist={handleToggleWatchlistPanel}
             onToggleSettings={handleToggleSettingsPanel}
           />
-        </div>
-        <div className="surface-card flex flex-1 min-h-0 overflow-hidden rounded-lg">
-          <ChartContainer />
-        </div>
-        <div className="surface-card overflow-hidden rounded-lg">
-          <StatusBar />
+          <div className="flex flex-1 min-h-0 overflow-hidden">
+            <ChartContainer />
+          </div>
+          <div style={{ borderTop: "1px solid var(--border)" }}>
+            <StatusBar />
+          </div>
         </div>
       </main>
 

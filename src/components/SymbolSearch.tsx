@@ -14,6 +14,8 @@ import {
   CommandSeparator,
 } from "@/components/ui/command";
 
+type MarketFilter = "all" | MarketType;
+
 function watchKey(symbol: string, market: MarketType): string {
   return `${market}:${symbol}`;
 }
@@ -24,6 +26,14 @@ function marketMeta(market: MarketType) {
   if (market === "forex") return { text: "FX", color: "#14B8A6" };
   return { text: "US", color: "var(--primary)" };
 }
+
+const MARKET_FILTER_OPTIONS: Array<{ value: MarketFilter; label: string }> = [
+  { value: "all", label: "전체" },
+  { value: "usStock", label: "US" },
+  { value: "krStock", label: "KR" },
+  { value: "crypto", label: "코인" },
+  { value: "forex", label: "FX" },
+];
 
 export default function SymbolSearch() {
   const {
@@ -39,6 +49,7 @@ export default function SymbolSearch() {
   const [filter, setFilter] = useState("");
   const [manualInput, setManualInput] = useState("");
   const [favoriteOnly, setFavoriteOnly] = useState(false);
+  const [marketFilter, setMarketFilter] = useState<MarketFilter>("all");
   const [activeIndex, setActiveIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -50,6 +61,7 @@ export default function SymbolSearch() {
       setFilter("");
       setManualInput("");
       setFavoriteOnly(false);
+      setMarketFilter("all");
       setActiveIndex(-1);
     }
   }, [isOpen]);
@@ -76,10 +88,11 @@ export default function SymbolSearch() {
         }))
         .filter(
           (item) =>
-            item.symbol.toLowerCase().includes(lowerFilter) ||
-            item.label.toLowerCase().includes(lowerFilter),
+            (marketFilter === "all" || item.market === marketFilter) &&
+            (item.symbol.toLowerCase().includes(lowerFilter) ||
+              item.label.toLowerCase().includes(lowerFilter)),
         ),
-    [favorites, lowerFilter],
+    [favorites, lowerFilter, marketFilter],
   );
 
   const recentItems = useMemo(
@@ -92,13 +105,14 @@ export default function SymbolSearch() {
         .filter((item) => {
           const key = watchKey(item.symbol, item.market);
           if (favoriteOnly && !favoriteSet.has(key)) return false;
+          if (marketFilter !== "all" && item.market !== marketFilter) return false;
           if (!lowerFilter) return true;
           return (
             item.symbol.toLowerCase().includes(lowerFilter) ||
             item.label.toLowerCase().includes(lowerFilter)
           );
         }),
-    [favoriteOnly, favoriteSet, lowerFilter, recentSymbols],
+    [favoriteOnly, favoriteSet, lowerFilter, marketFilter, recentSymbols],
   );
 
   const filteredCategories = useMemo(
@@ -110,6 +124,7 @@ export default function SymbolSearch() {
             .filter((item) => {
               const key = watchKey(item.symbol, item.market);
               const isFavorite = favoriteSet.has(key);
+              if (marketFilter !== "all" && item.market !== marketFilter) return false;
 
               if (!favoriteOnly && isFavorite) {
                 return false;
@@ -138,7 +153,7 @@ export default function SymbolSearch() {
             }),
         }))
         .filter((cat) => cat.items.length > 0),
-    [favoriteOnly, favoriteSet, lowerFilter],
+    [favoriteOnly, favoriteSet, lowerFilter, marketFilter],
   );
 
   const resultItems = useMemo(() => {
@@ -225,6 +240,19 @@ export default function SymbolSearch() {
       <div className="flex items-center gap-1">
         <Button
           variant="ghost"
+          size="sm"
+          className="h-8 gap-1.5 px-2 text-[11px] text-[var(--muted-foreground)]"
+          onClick={() => setIsOpen(true)}
+          title="종목 검색 열기 (Ctrl/Cmd+K)"
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="11" cy="11" r="7" />
+            <line x1="16.65" y1="16.65" x2="21" y2="21" />
+          </svg>
+          <span className="hidden sm:inline">종목</span>
+        </Button>
+        <Button
+          variant="ghost"
           size="icon"
           className="h-8 w-8"
           onClick={() => toggleFavorite(symbol, market)}
@@ -246,11 +274,45 @@ export default function SymbolSearch() {
                 onKeyDown={handleFilterKeyDown}
                 placeholder="심볼 검색..."
                 spellCheck={false}
-                className="h-8 rounded-md border border-[var(--border)] bg-[var(--secondary)] text-sm"
+                className="h-8 rounded-sm border border-[var(--border)] bg-[var(--secondary)] text-sm"
               />
+              <div className="mt-2 flex items-center gap-1.5 rounded border px-2 py-1.5" style={{ borderColor: "var(--border)", background: "var(--secondary)" }}>
+                <span className="text-[10px] font-semibold" style={{ color: "var(--muted-foreground)" }}>
+                  현재
+                </span>
+                <span
+                  className="rounded px-1 py-0.5 text-[9px] font-bold"
+                  style={{
+                    background: `color-mix(in srgb, ${marketMeta(market).color} 18%, transparent)`,
+                    color: marketMeta(market).color,
+                  }}
+                >
+                  {marketMeta(market).text}
+                </span>
+                <span className="font-mono text-[11px]" style={{ color: "var(--foreground)" }}>
+                  {symbol}
+                </span>
+                <span className="truncate text-[10px]" style={{ color: "var(--muted-foreground)" }}>
+                  {getSymbolLabel(symbol) ?? "직접 입력 심볼"}
+                </span>
+              </div>
+              <div className="mt-2 flex flex-wrap items-center gap-1">
+                {MARKET_FILTER_OPTIONS.map((option) => (
+                  <Button
+                    key={option.value}
+                    type="button"
+                    onClick={() => setMarketFilter(option.value)}
+                    variant={marketFilter === option.value ? "default" : "secondary"}
+                    size="sm"
+                    className="h-6 px-2 text-[10px]"
+                  >
+                    {option.label}
+                  </Button>
+                ))}
+              </div>
               <div className="mt-2 flex items-center justify-between">
                 <div className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>
-                  즐겨찾기 {favorites.length}개 · 최근 {recentSymbols.length}개
+                  즐겨찾기 {favoriteItems.length}개 · 최근 {recentItems.length}개 · 결과 {resultItems.length}개
                 </div>
                 <Button
                   type="button"
@@ -468,19 +530,25 @@ export default function SymbolSearch() {
 
             <CommandSeparator />
 
-            <div className="flex gap-1.5 p-2">
-              <Input
-                type="text"
-                value={manualInput}
-                onChange={(e) => setManualInput(e.target.value.toUpperCase())}
-                onKeyDown={handleManualKeyDown}
-                placeholder="티커 직접 입력..."
-                spellCheck={false}
-                className="h-7 flex-1 font-mono text-xs"
-              />
-              <Button onClick={handleManualSubmit} size="sm" className="h-7 px-2 text-xs">
-                적용
-              </Button>
+            <div className="space-y-1.5 p-2">
+              <div className="flex gap-1.5">
+                <Input
+                  type="text"
+                  value={manualInput}
+                  onChange={(e) => setManualInput(e.target.value.toUpperCase())}
+                  onKeyDown={handleManualKeyDown}
+                  placeholder="티커 직접 입력..."
+                  spellCheck={false}
+                  className="h-7 flex-1 font-mono text-xs"
+                />
+                <Button onClick={handleManualSubmit} size="sm" className="h-7 px-2 text-xs">
+                  적용
+                </Button>
+              </div>
+              <div className="flex items-center justify-between text-[10px]" style={{ color: "var(--muted-foreground)" }}>
+                <span>↑↓ 이동 · Enter 선택 · Esc 닫기</span>
+                <span>Ctrl/Cmd+K 검색</span>
+              </div>
             </div>
           </Command>
         </DialogContent>

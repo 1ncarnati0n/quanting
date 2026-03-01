@@ -47,7 +47,7 @@ export default function ReplayControls() {
 
   return (
     <div
-      className="pointer-events-auto absolute bottom-2 left-2 z-[11] rounded-md border px-2 py-1.5"
+      className="pointer-events-auto absolute bottom-2 left-2 z-[11] rounded-sm border px-2 py-1.5"
       style={{
         background: "color-mix(in srgb, var(--background) 88%, transparent)",
         borderColor: "var(--border)",

@@ -36,15 +36,19 @@ export default function CollapsibleSidebar({
 
   useEffect(() => {
     const toggleEvent = side === "left" ? "quanting:toggle-left-sidebar" : "quanting:toggle-right-sidebar";
+    const openEvent = side === "left" ? "quanting:open-left-sidebar" : "quanting:open-right-sidebar";
     const closeEvent = "quanting:close-sidebars";
 
     const onToggle = () => setIsOpen((prev) => !prev);
+    const onOpen = () => setIsOpen(true);
     const onClose = () => setIsOpen(false);
 
     window.addEventListener(toggleEvent, onToggle as EventListener);
+    window.addEventListener(openEvent, onOpen as EventListener);
     window.addEventListener(closeEvent, onClose as EventListener);
     return () => {
       window.removeEventListener(toggleEvent, onToggle as EventListener);
+      window.removeEventListener(openEvent, onOpen as EventListener);
       window.removeEventListener(closeEvent, onClose as EventListener);
     };
   }, [side]);

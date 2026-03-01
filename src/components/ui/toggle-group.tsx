@@ -27,7 +27,7 @@ function ToggleGroup({
     <ToggleGroupContext.Provider value={{ value, onValueChange }}>
       <div
         className={cn(
-          "inline-flex items-center gap-1 rounded-md border border-border bg-secondary p-1",
+          "inline-flex items-center gap-1 rounded border border-border bg-secondary p-1",
           className,
         )}
         {...props}

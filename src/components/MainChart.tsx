@@ -171,7 +171,7 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
   const compareSeriesRef = useRef<ISeriesApi<"Line"> | null>(null);
   const alertLinesRef = useRef<IPriceLine[]>([]);
   const resizeRafRef = useRef<number | null>(null);
-  const fittedScopeRef = useRef<string | null>(null);
+  const prevDataScopeRef = useRef<string | null>(null);
   const crosshairRafRef = useRef<number | null>(null);
 
   const theme = useSettingsStore((s) => s.theme);
@@ -274,6 +274,7 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
     dynamicSeriesRef.current.clear();
     compareSeriesRef.current = null;
     alertLinesRef.current = [];
+    prevDataScopeRef.current = null;
 
     const palette = readChartPalette();
     const ps = useSettingsStore.getState().priceScale;
@@ -618,6 +619,11 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
     if (data.candles.length === 0) return;
 
     const chart = chartRef.current;
+
+    // 뷰 상태 캡처 (setData/clearDynamicSeries 전)
+    const savedRange = chart.timeScale().getVisibleLogicalRange();
+    const currentScope = `${data.symbol}:${data.interval}:${chartType}:${replayEnabled ? "replay" : "live"}`;
+
     const cappedReplayIndex = replayEnabled
       ? Math.min(Math.max(replayIndex, 0), data.candles.length - 1)
       : data.candles.length - 1;
@@ -720,8 +726,8 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
       filteredEma.forEach((ma, idx) => {
         const series = chart.addSeries(LineSeries, {
           color: MA_COLORS[(idx + filteredSma.length) % MA_COLORS.length],
-          lineWidth: 1,
-          lineStyle: 2,
+          lineWidth: 2,
+          lineStyle: 0,
           priceLineVisible: false,
           crosshairMarkerVisible: false,
           title: `EMA${ma.period}`,
@@ -1036,10 +1042,28 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
       });
     }
 
-    const fitScope = `${data.symbol}:${data.interval}:${chartType}:${replayEnabled ? "replay" : "live"}`;
-    if (fittedScopeRef.current !== fitScope) {
+    const scopeChanged = prevDataScopeRef.current !== currentScope;
+    prevDataScopeRef.current = currentScope;
+
+    if (scopeChanged) {
+      // symbol/interval 변경, replay 토글 → 전체 데이터 맞춤
       chart.timeScale().fitContent();
-      fittedScopeRef.current = fitScope;
+    } else if (savedRange) {
+      // auto-refresh, WebSocket, indicator 변경 → 뷰 위치 복원
+      const newBarCount = displayCandles.length;
+      const wasAtTrailingEdge = savedRange.to >= newBarCount - 3;
+
+      if (wasAtTrailingEdge) {
+        // 최신 바를 보고 있었으면 → 새 바도 보이도록 shift
+        const span = savedRange.to - savedRange.from;
+        chart.timeScale().setVisibleLogicalRange({
+          from: newBarCount - 1 - span,
+          to: newBarCount - 1 + Math.max(0, savedRange.to - Math.floor(savedRange.to)),
+        });
+      } else {
+        // 과거 영역을 보고 있었으면 → 정확히 같은 위치 복원
+        chart.timeScale().setVisibleLogicalRange(savedRange);
+      }
     }
   }, [
     applyIndicatorScaleLayout,

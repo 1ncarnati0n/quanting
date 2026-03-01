@@ -515,7 +515,7 @@ export default function WatchlistSidebar({
   return (
     <aside
       className={`flex h-full min-w-0 flex-col ${
-        embedded ? "w-full rounded-lg border" : "w-[min(22rem,calc(100vw-1rem))] border-l"
+        embedded ? "w-full rounded border" : "w-[min(22rem,calc(100vw-1rem))] border-l"
       }`}
       style={{
         background: "var(--card)",
@@ -847,7 +847,7 @@ export default function WatchlistSidebar({
                     selectSymbolFromWatch(item);
                   }
                 }}
-                className="w-full rounded-md border px-2.5 py-2 text-left transition-colors"
+                className="w-full rounded border px-2.5 py-2 text-left transition-colors"
                 style={{
                   background: active
                     ? "color-mix(in srgb, var(--primary) 10%, var(--secondary))"

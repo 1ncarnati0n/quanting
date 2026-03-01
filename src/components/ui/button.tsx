@@ -25,8 +25,8 @@ const VARIANT_CLASSES: Record<ButtonVariant, string> = {
 
 const SIZE_CLASSES: Record<ButtonSize, string> = {
   default: "h-9 px-4 py-2 text-sm",
-  sm: "h-8 rounded-md px-3 text-xs",
-  lg: "h-10 rounded-md px-6 text-sm",
+  sm: "h-8 rounded px-3 text-xs",
+  lg: "h-10 rounded px-6 text-sm",
   icon: "h-8 w-8 p-0",
 };
 
@@ -46,7 +46,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         type={type}
         className={cn(
-          "inline-flex items-center justify-center gap-2 rounded-md font-medium transition-colors disabled:pointer-events-none disabled:opacity-50",
+          "inline-flex items-center justify-center gap-2 rounded font-medium transition-colors disabled:pointer-events-none disabled:opacity-50",
           VARIANT_CLASSES[variant],
           SIZE_CLASSES[size],
           className,

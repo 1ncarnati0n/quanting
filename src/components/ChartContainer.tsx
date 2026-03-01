@@ -159,7 +159,7 @@ export default function ChartContainer() {
 
   if (error) {
     return (
-      <div className="flex h-full w-full items-center justify-center rounded-lg border p-6" style={{ borderColor: "var(--border)", background: "var(--card)" }}>
+      <div className="flex h-full w-full items-center justify-center rounded border p-6" style={{ borderColor: "var(--border)", background: "var(--card)" }}>
         <div className="text-center">
           <p className="mb-2 text-sm" style={{ color: "var(--destructive)" }}>
             {error}
@@ -174,7 +174,7 @@ export default function ChartContainer() {
 
   if (isLoading && !data) {
     return (
-      <div className="flex h-full w-full items-center justify-center rounded-lg border p-6" style={{ borderColor: "var(--border)", background: "var(--card)" }}>
+      <div className="flex h-full w-full items-center justify-center rounded border p-6" style={{ borderColor: "var(--border)", background: "var(--card)" }}>
         <div className="text-center">
           <div
             className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-2 border-t-transparent"
@@ -190,7 +190,7 @@ export default function ChartContainer() {
 
   return (
     <div
-      className="relative flex h-full w-full flex-col overflow-hidden rounded-lg border"
+      className="relative flex h-full w-full flex-col overflow-hidden rounded border"
       style={{
         borderColor: "var(--border)",
         background: "var(--card)",

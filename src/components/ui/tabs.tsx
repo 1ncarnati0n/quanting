@@ -36,7 +36,7 @@ function TabsList({ className, ...props }: React.HTMLAttributes<HTMLDivElement>)
     <div
       role="tablist"
       className={cn(
-        "inline-flex items-center rounded-md border border-border bg-secondary p-1",
+        "inline-flex items-center rounded border border-border bg-secondary p-1",
         className,
       )}
       {...props}

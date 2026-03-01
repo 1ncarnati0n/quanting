@@ -121,7 +121,7 @@ function AccordionTrigger({
       aria-expanded={open}
       data-state={open ? "open" : "closed"}
       className={cn(
-        "flex w-full items-center justify-between gap-3 rounded-md border px-3 py-2 text-left transition-colors",
+        "flex w-full items-center justify-between gap-3 rounded border px-3 py-2 text-left transition-colors",
         className,
       )}
       onClick={(event) => {

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 const TIME_RANGES = [
@@ -13,11 +13,27 @@ const TIME_RANGES = [
   { label: "전체", days: 0 },
 ] as const;
 
+const TIME_RANGE_STORAGE_KEY = "quanting-time-range";
+
+function getSavedTimeRangeLabel(): string {
+  try {
+    const raw = localStorage.getItem(TIME_RANGE_STORAGE_KEY);
+    if (!raw) return "전체";
+    const exists = TIME_RANGES.some((item) => item.label === raw);
+    return exists ? raw : "전체";
+  } catch {
+    return "전체";
+  }
+}
+
 export default function TimeRangeBar() {
-  const [active, setActive] = useState<string>("전체");
+  const [active, setActive] = useState<string>(() => getSavedTimeRangeLabel());
 
   const handleClick = (range: typeof TIME_RANGES[number]) => {
     setActive(range.label);
+    try {
+      localStorage.setItem(TIME_RANGE_STORAGE_KEY, range.label);
+    } catch {}
 
     if (range.days === 0) {
       window.dispatchEvent(new CustomEvent("quanting:chart-set-time-range", { detail: null }));
@@ -39,6 +55,17 @@ export default function TimeRangeBar() {
       new CustomEvent("quanting:chart-set-time-range", { detail: { from, to: now } }),
     );
   };
+
+  useEffect(() => {
+    const initial = TIME_RANGES.find((item) => item.label === active);
+    if (!initial) return;
+    const timer = window.setTimeout(() => {
+      handleClick(initial);
+    }, 120);
+    return () => window.clearTimeout(timer);
+    // 초기 1회만 저장된 기간을 차트에 재적용
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <ToggleGroup

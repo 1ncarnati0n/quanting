@@ -105,7 +105,7 @@ const ContextMenuContent = React.forwardRef<HTMLDivElement, ContextMenuContentPr
         }}
         role="menu"
         className={cn(
-          "fixed z-[140] min-w-[10rem] overflow-hidden rounded-md border border-border bg-card p-1 shadow-[var(--shadow-elevated)]",
+          "fixed z-[140] min-w-[10rem] overflow-hidden rounded border border-border bg-card p-1 shadow-[var(--shadow-elevated)]",
           className,
         )}
         style={{
@@ -137,7 +137,7 @@ const ContextMenuItem = React.forwardRef<HTMLButtonElement, ContextMenuItemProps
         type="button"
         role="menuitem"
         className={cn(
-          "flex w-full items-center gap-2 rounded-sm px-2.5 py-1.5 text-left text-xs text-foreground transition-colors hover:bg-secondary disabled:pointer-events-none disabled:opacity-50",
+          "flex w-full items-center gap-2 rounded px-2.5 py-1.5 text-left text-xs text-foreground transition-colors hover:bg-secondary disabled:pointer-events-none disabled:opacity-50",
           className,
         )}
         onClick={(event) => {

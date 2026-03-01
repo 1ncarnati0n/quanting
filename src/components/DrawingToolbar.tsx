@@ -62,7 +62,7 @@ export default function DrawingToolbar() {
   return (
     <div
       ref={menuRef}
-      className="pointer-events-auto absolute left-3 top-2 z-10 flex items-center gap-1 rounded-lg px-1 py-0.5"
+      className="pointer-events-auto absolute left-3 top-2 z-10 flex items-center gap-1 rounded px-1 py-0.5"
       style={{
         background: "color-mix(in srgb, var(--background) 85%, transparent)",
         backdropFilter: "blur(6px)",

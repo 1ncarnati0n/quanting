@@ -1,9 +1,17 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 import { useSettingsStore } from "../stores/useSettingsStore";
 import { useDrawingStore } from "../stores/useDrawingStore";
 import { COLORS, getSymbolLabel } from "../utils/constants";
 import IndicatorSection from "./IndicatorSection";
 import PeriodsInput from "./PeriodsInput";
+import PanelHeader from "./patterns/PanelHeader";
+import SegmentButton from "./patterns/SegmentButton";
+import SettingRow from "./patterns/SettingRow";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -16,6 +24,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { cn } from "@/lib/utils";
 
 interface SettingsPanelProps {
   onClose: () => void;
@@ -119,6 +128,25 @@ function loadSectionState(): SectionState {
   }
 }
 
+function SectionLabel({
+  children,
+  className,
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "ds-type-caption mb-2 font-semibold uppercase tracking-wider text-[var(--muted-foreground)]",
+        className,
+      )}
+    >
+      {children}
+    </div>
+  );
+}
+
 function SliderRow({
   label,
   value,
@@ -137,15 +165,15 @@ function SliderRow({
   onChange: (v: number) => void;
 }) {
   return (
-    <div className="mb-3">
-      <div className="mb-1 flex items-center justify-between">
-        <span className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>
-          {label}
-        </span>
-        <span className="font-mono text-[10px]" style={{ color: "var(--foreground)" }}>
+    <SettingRow
+      className="mb-3"
+      label={label}
+      right={(
+        <span className="font-mono text-sm text-[var(--foreground)]">
           {formatValue ? formatValue(value) : step < 1 ? value.toFixed(1) : value}
         </span>
-      </div>
+      )}
+    >
       <Slider
         min={min}
         max={max}
@@ -155,7 +183,7 @@ function SliderRow({
         className="w-full"
         aria-label={label}
       />
-    </div>
+    </SettingRow>
   );
 }
 
@@ -169,16 +197,17 @@ function ToggleRow({
   onChange: (checked: boolean) => void;
 }) {
   return (
-    <label className="mb-2 flex cursor-pointer items-center justify-between gap-2">
-      <span className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>
-        {label}
-      </span>
-      <Switch
-        checked={checked}
-        onCheckedChange={onChange}
-        aria-label={label}
-      />
-    </label>
+    <SettingRow
+      className="mb-2"
+      label={label}
+      right={(
+        <Switch
+          checked={checked}
+          onCheckedChange={onChange}
+          aria-label={label}
+        />
+      )}
+    />
   );
 }
 
@@ -215,21 +244,20 @@ function AccordionSection({
     >
       <AccordionItem value={value} className="space-y-1.5">
         <AccordionTrigger
-          className="shadow-sm"
+          className="border border-[var(--border)] shadow-sm"
           id={`${sectionId}-header`}
           style={{
-            borderColor: "var(--border)",
             background: open
               ? "color-mix(in srgb, var(--primary) 8%, var(--muted))"
               : "var(--muted)",
           }}
         >
           <div className="min-w-0">
-            <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--foreground)" }}>
+            <div className="ds-type-caption font-semibold uppercase tracking-wider text-[var(--foreground)]">
               {title}
             </div>
             {subtitle && (
-              <div className="mt-0.5 text-[10px]" style={{ color: "var(--muted-foreground)" }}>
+              <div className="ds-type-caption mt-0.5 text-[var(--muted-foreground)]">
                 {subtitle}
               </div>
             )}
@@ -239,8 +267,7 @@ function AccordionSection({
           id={`${sectionId}-content`}
           role="region"
           aria-labelledby={`${sectionId}-header`}
-          className="rounded border p-2.5 shadow-sm"
-          style={{ borderColor: "var(--border)", background: "var(--muted)" }}
+          className="rounded border border-[var(--border)] bg-[var(--muted)] p-2.5 shadow-sm"
         >
           {children}
         </AccordionContent>
@@ -317,6 +344,9 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
         indicators.adx.enabled,
         indicators.cvd.enabled,
         indicators.stc.enabled,
+        indicators.smc.enabled,
+        indicators.anchoredVwap.enabled,
+        indicators.autoFib.enabled,
         indicators.signalFilter.enabled,
       ].filter(Boolean).length,
     [indicators],
@@ -435,93 +465,71 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
 
   return (
     <div
-      className={`flex h-full min-w-0 flex-col ${embedded ? "w-full rounded border" : "w-[min(24rem,calc(100vw-1rem))] border-l"}`}
-      style={{
-        background: "var(--card)",
-        borderColor: "var(--border)",
-        boxShadow: "var(--shadow-elevated)",
-      }}
+      className={`flex h-full min-w-0 flex-col ${embedded ? "w-full rounded border" : "w-[min(24rem,calc(100vw-1rem))] border-l"} border-[var(--border)] bg-[var(--card)] shadow-[var(--shadow-elevated)]`}
     >
-      {/* Header */}
-      <div
-        className="border-b px-4 py-3"
-        style={{ borderColor: "var(--border)" }}
+      <PanelHeader
+        title="지표 설정"
+        subtitle={symbolLabel ? `${symbol} · ${symbolLabel}` : symbol}
+        badgeText={marketBadge.text}
+        badgeColor={marketBadge.color}
+        className="px-4 py-3"
+        density="compact"
+        actionAlign="start"
+        actions={!embedded ? (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onClose}
+            className="text-[var(--muted-foreground)]"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M18 6L6 18M6 6l12 12" />
+            </svg>
+          </Button>
+        ) : undefined}
       >
-        <div className="flex items-center justify-between gap-2">
-          <div className="min-w-0">
-            <div className="flex items-center gap-1.5">
-              <span className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>
-                지표 설정
-              </span>
-              <span
-                className="rounded px-1 py-0.5 text-[9px] font-bold"
-                style={{
-                  background: `color-mix(in srgb, ${marketBadge.color} 18%, transparent)`,
-                  color: marketBadge.color,
-                }}
-              >
-                {marketBadge.text}
-              </span>
-            </div>
-            <p className="mt-0.5 truncate text-[10px]" style={{ color: "var(--muted-foreground)" }}>
-              {symbolLabel ? `${symbol} · ${symbolLabel}` : symbol}
-            </p>
-          </div>
-          {!embedded && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onClose}
-              className="h-8 w-8 text-xs text-[var(--muted-foreground)]"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M18 6L6 18M6 6l12 12" />
-              </svg>
-            </Button>
-          )}
-        </div>
-        <div className="mt-2 grid grid-cols-3 gap-1.5">
-          <div className="rounded border px-2 py-1.5" style={{ borderColor: "var(--border)", background: "var(--muted)" }}>
-            <div className="text-[9px] uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>
+        <div className="grid grid-cols-3 gap-2">
+          <div className="rounded border border-[var(--border)] bg-[var(--muted)] px-2.5 py-2">
+            <div className="ds-type-caption uppercase tracking-wider text-[var(--muted-foreground)]">
               현재 탭
             </div>
-            <div className="mt-0.5 text-[11px] font-semibold" style={{ color: "var(--foreground)" }}>
+            <div className="ds-type-title mt-1 font-semibold text-[var(--foreground)]">
               {activeTabLabel}
             </div>
           </div>
-          <div className="rounded border px-2 py-1.5" style={{ borderColor: "var(--border)", background: "var(--muted)" }}>
-            <div className="text-[9px] uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>
+          <div className="rounded border border-[var(--border)] bg-[var(--muted)] px-2.5 py-2">
+            <div className="ds-type-caption uppercase tracking-wider text-[var(--muted-foreground)]">
               활성 지표
             </div>
-            <div className="mt-0.5 text-[11px] font-semibold" style={{ color: "var(--foreground)" }}>
+            <div className="ds-type-title mt-1 font-semibold text-[var(--foreground)]">
               {enabledIndicatorCount}개
             </div>
           </div>
-          <div className="rounded border px-2 py-1.5" style={{ borderColor: "var(--border)", background: "var(--muted)" }}>
-            <div className="text-[9px] uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>
+          <div className="rounded border border-[var(--border)] bg-[var(--muted)] px-2.5 py-2">
+            <div className="ds-type-caption uppercase tracking-wider text-[var(--muted-foreground)]">
               현재 알림
             </div>
-            <div className="mt-0.5 text-[11px] font-semibold" style={{ color: "var(--foreground)" }}>
+            <div className="ds-type-title mt-1 font-semibold text-[var(--foreground)]">
               {activeAlertCount}개
             </div>
           </div>
         </div>
-      </div>
+      </PanelHeader>
 
       <Tabs
         value={activeTab}
         onValueChange={(value) => setActiveTab(value as SettingsTab)}
         className="flex min-h-0 flex-1 flex-col"
       >
-        <div className="border-b px-3 pb-2 pt-1.5" style={{ borderColor: "var(--border)" }}>
+        <div className="border-b border-[var(--border)] px-3 pb-2 pt-2">
           <TabsList className="grid w-full grid-cols-3 rounded-md border border-[var(--border)] bg-[var(--muted)] p-1">
-            <TabsTrigger value="indicators" aria-label="지표 탭" className="text-[11px]">
+            <TabsTrigger value="indicators" aria-label="지표 탭" className="text-sm">
               지표
             </TabsTrigger>
-            <TabsTrigger value="layout" aria-label="레이아웃 탭" className="text-[11px]">
+            <TabsTrigger value="layout" aria-label="레이아웃 탭" className="text-sm">
               레이아웃
             </TabsTrigger>
-            <TabsTrigger value="appearance" aria-label="화면 탭" className="text-[11px]">
+            <TabsTrigger value="appearance" aria-label="화면 탭" className="text-sm">
               화면
             </TabsTrigger>
           </TabsList>
@@ -538,84 +546,60 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
               onOpenChange={(open) => setOpenSections((prev) => ({ ...prev, appearance: open }))}
               sectionId="appearance"
             >
-              <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>
-                테마
+              <SectionLabel>테마</SectionLabel>
+              <div className="mb-3 flex gap-2">
+                <SegmentButton
+                  active={theme === "dark"}
+                  className="flex-1"
+                  onClick={() => theme !== "dark" && toggleTheme()}
+                >
+                  다크
+                </SegmentButton>
+                <SegmentButton
+                  active={theme === "light"}
+                  className="flex-1"
+                  onClick={() => theme !== "light" && toggleTheme()}
+                >
+                  라이트
+                </SegmentButton>
               </div>
-                  <div className="mb-3 flex gap-2">
-                    <button
-                      onClick={() => theme !== "dark" && toggleTheme()}
-                      className="flex-1 rounded px-3 py-1.5 text-xs font-medium transition-colors"
-                      style={{
-                        background: theme === "dark" ? "var(--primary)" : "var(--secondary)",
-                        color: theme === "dark" ? "var(--primary-foreground)" : "var(--muted-foreground)",
-                        border: `1px solid ${theme === "dark" ? "var(--primary)" : "var(--border)"}`,
-                      }}
-                    >
-                      다크
-                    </button>
-                    <button
-                      onClick={() => theme !== "light" && toggleTheme()}
-                      className="flex-1 rounded px-3 py-1.5 text-xs font-medium transition-colors"
-                      style={{
-                        background: theme === "light" ? "var(--primary)" : "var(--secondary)",
-                        color: theme === "light" ? "var(--primary-foreground)" : "var(--muted-foreground)",
-                        border: `1px solid ${theme === "light" ? "var(--primary)" : "var(--border)"}`,
-                      }}
-                    >
-                      라이트
-                    </button>
-                  </div>
 
-                  <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>
-                    차트 타입
-                  </div>
-                  <div className="grid grid-cols-3 gap-1.5">
-                    {([
-                      { value: "candlestick" as const, label: "캔들스틱" },
-                      { value: "heikinAshi" as const, label: "하이킨 아시" },
-                      { value: "line" as const, label: "라인" },
-                      { value: "area" as const, label: "영역" },
-                      { value: "bar" as const, label: "바" },
-                    ] as const).map((opt) => (
-                      <button
-                        key={opt.value}
-                        onClick={() => setChartType(opt.value)}
-                        className="rounded px-2 py-1.5 text-[10px] font-medium transition-colors"
-                        style={{
-                          background: chartType === opt.value ? "var(--primary)" : "var(--secondary)",
-                          color: chartType === opt.value ? "var(--primary-foreground)" : "var(--muted-foreground)",
-                          border: `1px solid ${chartType === opt.value ? "var(--primary)" : "var(--border)"}`,
-                        }}
-                      >
-                        {opt.label}
-                      </button>
-                    ))}
-                  </div>
+              <SectionLabel>차트 타입</SectionLabel>
+              <div className="grid grid-cols-3 gap-1.5">
+                {([
+                  { value: "candlestick" as const, label: "캔들스틱" },
+                  { value: "heikinAshi" as const, label: "하이킨 아시" },
+                  { value: "line" as const, label: "라인" },
+                  { value: "area" as const, label: "영역" },
+                  { value: "bar" as const, label: "바" },
+                ] as const).map((opt) => (
+                  <SegmentButton
+                    key={opt.value}
+                    active={chartType === opt.value}
+                    onClick={() => setChartType(opt.value)}
+                  >
+                    {opt.label}
+                  </SegmentButton>
+                ))}
+              </div>
 
-                  <div className="mt-3 mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>
-                    가격 스케일
-                  </div>
-                  <div className="mb-2 grid grid-cols-3 gap-1.5">
-                    {([
-                      { value: "normal" as const, label: "기본" },
-                      { value: "logarithmic" as const, label: "로그" },
-                      { value: "percentage" as const, label: "%" },
-                    ] as const).map((opt) => (
-                      <button
-                        key={opt.value}
-                        type="button"
-                        onClick={() => setPriceScale({ mode: opt.value })}
-                        className="rounded px-2 py-1 text-[10px] font-medium transition-colors"
-                        style={{
-                          background: priceScale.mode === opt.value ? "var(--primary)" : "var(--secondary)",
-                          color: priceScale.mode === opt.value ? "var(--primary-foreground)" : "var(--muted-foreground)",
-                          border: `1px solid ${priceScale.mode === opt.value ? "var(--primary)" : "var(--border)"}`,
-                        }}
-                      >
-                        {opt.label}
-                      </button>
-                    ))}
-                  </div>
+              <SectionLabel className="mt-3">가격 스케일</SectionLabel>
+              <div className="mb-2 grid grid-cols-3 gap-1.5">
+                {([
+                  { value: "normal" as const, label: "기본" },
+                  { value: "logarithmic" as const, label: "로그" },
+                  { value: "percentage" as const, label: "%" },
+                ] as const).map((opt) => (
+                  <SegmentButton
+                    key={opt.value}
+                    type="button"
+                    active={priceScale.mode === opt.value}
+                    onClick={() => setPriceScale({ mode: opt.value })}
+                  >
+                    {opt.label}
+                  </SegmentButton>
+                ))}
+              </div>
                   <ToggleRow
                     label="자동 스케일"
                     checked={priceScale.autoScale}
@@ -627,9 +611,7 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
                     onChange={(checked) => setPriceScale({ invertScale: checked })}
                   />
 
-                  <div className="mt-3 mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>
-                    차트 비교(Overlay)
-                  </div>
+                  <SectionLabel className="mt-3">차트 비교(Overlay)</SectionLabel>
                   <ToggleRow
                     label="비교선 표시"
                     checked={compare.enabled}
@@ -638,15 +620,16 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
                   <div className="mb-2 grid grid-cols-2 gap-1.5">
                     <Input
                       type="text"
+                      size="sm"
                       value={compare.symbol}
                       onChange={(e) => setCompare({ symbol: e.target.value })}
-                      className="h-7 font-mono text-[10px]"
+                      className="font-mono"
                       placeholder="비교 심볼"
                     />
                     <Select
+                      size="sm"
                       value={compare.market}
                       onValueChange={(value) => setCompare({ market: value as typeof compare.market })}
-                      className="h-7 text-[10px]"
                     >
                       <SelectItem value="usStock">US</SelectItem>
                       <SelectItem value="krStock">KR</SelectItem>
@@ -660,59 +643,32 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
                     onChange={(checked) => setCompare({ normalize: checked })}
                   />
 
-                  <div className="mt-3 mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>
-                    멀티 차트 레이아웃
-                  </div>
+                  <SectionLabel className="mt-3">멀티 차트 레이아웃</SectionLabel>
                   <div className="mb-2 grid grid-cols-3 gap-1.5">
                     {([
                       { value: 1 as const, label: "1분할" },
                       { value: 2 as const, label: "2분할" },
                       { value: 4 as const, label: "4분할" },
                     ] as const).map((opt) => (
-                      <button
+                      <SegmentButton
                         key={opt.value}
                         type="button"
+                        active={multiChartLayout === opt.value}
                         onClick={() => setMultiChartLayout(opt.value)}
-                        className="rounded px-2 py-1 text-[10px] font-medium transition-colors"
-                        style={{
-                          background: multiChartLayout === opt.value ? "var(--primary)" : "var(--secondary)",
-                          color: multiChartLayout === opt.value ? "var(--primary-foreground)" : "var(--muted-foreground)",
-                          border: `1px solid ${multiChartLayout === opt.value ? "var(--primary)" : "var(--border)"}`,
-                        }}
                       >
                         {opt.label}
-                      </button>
+                      </SegmentButton>
                     ))}
                   </div>
 
-                  <div className="mt-3 mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>
-                    워크스페이스
-                  </div>
+                  <SectionLabel className="mt-3">워크스페이스</SectionLabel>
                   <div className="grid grid-cols-2 gap-1.5">
-                    <button
-                      type="button"
-                      className="rounded px-2 py-1 text-[10px] font-medium transition-colors"
-                      style={{
-                        background: "var(--secondary)",
-                        color: "var(--foreground)",
-                        border: "1px solid var(--border)",
-                      }}
-                      onClick={exportWorkspace}
-                    >
+                    <Button variant="secondary" size="sm" className="ds-type-caption font-semibold" onClick={exportWorkspace}>
                       저장(Export)
-                    </button>
-                    <button
-                      type="button"
-                      className="rounded px-2 py-1 text-[10px] font-medium transition-colors"
-                      style={{
-                        background: "var(--secondary)",
-                        color: "var(--foreground)",
-                        border: "1px solid var(--border)",
-                      }}
-                      onClick={importWorkspace}
-                    >
+                    </Button>
+                    <Button variant="secondary" size="sm" className="ds-type-caption font-semibold" onClick={importWorkspace}>
                       불러오기(Import)
-                    </button>
+                    </Button>
                   </div>
             </AccordionSection>
           )}
@@ -726,28 +682,23 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
               onOpenChange={(open) => setOpenSections((prev) => ({ ...prev, layout: open }))}
               sectionId="layout"
             >
-              <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>
-                프리셋
-              </div>
+              <SectionLabel>프리셋</SectionLabel>
                   <div className="mb-3 grid grid-cols-3 gap-1">
                     {(Object.keys(LAYOUT_PRESETS) as LayoutPresetKey[]).map((presetKey) => {
                       const preset = LAYOUT_PRESETS[presetKey];
                       const active = isPresetActive(presetKey);
                       return (
-                        <button
+                        <SegmentButton
                           key={presetKey}
                           type="button"
                           onClick={() => applyLayoutPreset(presetKey)}
-                          className="rounded px-1.5 py-1 text-[10px] font-medium transition-colors"
+                          className="px-1.5 py-1"
                           aria-label={`${preset.label} 레이아웃 프리셋 적용`}
-                          style={{
-                            background: active ? "var(--primary)" : "var(--card)",
-                            color: active ? "var(--primary-foreground)" : "var(--muted-foreground)",
-                            border: `1px solid ${active ? "var(--primary)" : "var(--border)"}`,
-                          }}
+                          active={active}
+                          inactiveSurface="card"
                         >
                           {preset.label}
-                        </button>
+                        </SegmentButton>
                       );
                     })}
                   </div>
@@ -814,18 +765,15 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
                     formatValue={(v) => `${v.toFixed(1)}x`}
                     onChange={(v) => setIndicator("layout", { atrWeight: v })}
                   />
-                  <button
+                  <Button
                     type="button"
-                    className="mt-1 w-full rounded px-2 py-1 text-[10px] font-medium transition-colors"
-                    style={{
-                      color: "var(--muted-foreground)",
-                      background: "var(--card)",
-                      border: `1px solid var(--border)`,
-                    }}
+                    variant="outline"
+                    size="sm"
+                    className="ds-type-caption mt-1 w-full font-semibold text-[var(--muted-foreground)]"
                     onClick={() => applyLayoutPreset("balanced")}
                   >
                     레이아웃 비율 초기화
-                  </button>
+                  </Button>
             </AccordionSection>
           )}
 
@@ -979,6 +927,53 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
                     max={4.0}
                     step={0.1}
                     onChange={(v) => setIndicator("keltner", { atrMultiplier: v })}
+                  />
+                </IndicatorSection>
+
+                <IndicatorSection
+                  title="SMC (스마트머니)"
+                  color={COLORS.smcBosBull}
+                  enabled={indicators.smc.enabled}
+                  onToggle={() => toggleIndicator("smc")}
+                >
+                  <SliderRow
+                    label="스윙 길이"
+                    value={indicators.smc.swingLength}
+                    min={2}
+                    max={20}
+                    step={1}
+                    onChange={(v) => setIndicator("smc", { swingLength: v })}
+                  />
+                </IndicatorSection>
+
+                <IndicatorSection
+                  title="Anchored VWAP"
+                  color={COLORS.anchoredVwap}
+                  enabled={indicators.anchoredVwap.enabled}
+                  onToggle={() => toggleIndicator("anchoredVwap")}
+                />
+
+                <IndicatorSection
+                  title="Auto Fibonacci"
+                  color={COLORS.autoFib}
+                  enabled={indicators.autoFib.enabled}
+                  onToggle={() => toggleIndicator("autoFib")}
+                >
+                  <SliderRow
+                    label="조회 기간"
+                    value={indicators.autoFib.lookback}
+                    min={20}
+                    max={500}
+                    step={10}
+                    onChange={(v) => setIndicator("autoFib", { lookback: v })}
+                  />
+                  <SliderRow
+                    label="스윙 길이"
+                    value={indicators.autoFib.swingLength}
+                    min={2}
+                    max={20}
+                    step={1}
+                    onChange={(v) => setIndicator("autoFib", { swingLength: v })}
                   />
                 </IndicatorSection>
               </AccordionSection>
@@ -1360,103 +1355,105 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
                 sectionId="alerts"
               >
                 <div className="mb-2 flex items-center gap-1.5">
-                    <Input
-                      type="number"
-                      step="any"
-                      value={alertInput}
-                      onChange={(e) => setAlertInput(e.target.value)}
-                      placeholder={`${symbol} 알림 가격`}
-                      className="h-7 flex-1 font-mono text-[10px]"
-                    />
-                    <button
-                      type="button"
-                      className="rounded px-2 py-1 text-[10px] font-medium"
-                      style={{ background: "#22C55E", color: "#052e16" }}
-                      onClick={() => submitAlert("above")}
-                    >
-                      ↑ 위로
-                    </button>
-                    <button
-                      type="button"
-                      className="rounded px-2 py-1 text-[10px] font-medium"
-                      style={{ background: "#F97316", color: "#431407" }}
-                      onClick={() => submitAlert("below")}
-                    >
-                      ↓ 아래로
-                    </button>
-                  </div>
-                  <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>
-                    현재 알림 ({priceAlerts.filter((a) => a.symbol === symbol && a.market === market).length})
-                  </div>
-                  <div className="max-h-28 overflow-y-auto space-y-1">
-                    {priceAlerts
-                      .filter((a) => a.symbol === symbol && a.market === market)
-                      .map((alert) => (
-                        <div
-                          key={alert.id}
-                          className="flex items-center justify-between rounded border px-2 py-1 text-[10px]"
-                          style={{ borderColor: "var(--border)", color: "var(--foreground)" }}
-                        >
-                          <div className="font-mono">
-                            {alert.condition === "above" ? "↑" : "↓"} {alert.price.toFixed(4)}
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <button
-                              type="button"
-                              className="rounded px-1.5 py-0.5"
-                              style={{
-                                background: alert.active ? "rgba(34,197,94,0.15)" : "rgba(148,163,184,0.15)",
-                                color: alert.active ? "#22C55E" : "var(--muted-foreground)",
-                              }}
-                              onClick={() => togglePriceAlert(alert.id)}
-                            >
-                              {alert.active ? "활성" : "중지"}
-                            </button>
-                            <button
-                              type="button"
-                              className="rounded px-1.5 py-0.5"
-                              style={{ background: "rgba(239,68,68,0.15)", color: "#EF4444" }}
-                              onClick={() => removePriceAlert(alert.id)}
-                            >
-                              삭제
-                            </button>
-                          </div>
+                  <Input
+                    type="number"
+                    size="sm"
+                    step="any"
+                    value={alertInput}
+                    onChange={(e) => setAlertInput(e.target.value)}
+                    placeholder={`${symbol} 알림 가격`}
+                    className="flex-1 font-mono"
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="ds-type-caption bg-[#22C55E] px-2 font-semibold text-[#052e16] hover:bg-[#16a34a]"
+                    onClick={() => submitAlert("above")}
+                  >
+                    ↑ 위로
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="ds-type-caption bg-[#F97316] px-2 font-semibold text-[#431407] hover:bg-[#ea580c]"
+                    onClick={() => submitAlert("below")}
+                  >
+                    ↓ 아래로
+                  </Button>
+                </div>
+                <SectionLabel className="mb-1">
+                  현재 알림 ({priceAlerts.filter((a) => a.symbol === symbol && a.market === market).length})
+                </SectionLabel>
+                <div className="max-h-28 space-y-1 overflow-y-auto">
+                  {priceAlerts
+                    .filter((a) => a.symbol === symbol && a.market === market)
+                    .map((alert) => (
+                      <div
+                        key={alert.id}
+                        className="ds-type-label flex items-center justify-between rounded border border-[var(--border)] px-2 py-1 text-[var(--foreground)]"
+                      >
+                        <div className="font-mono">
+                          {alert.condition === "above" ? "↑" : "↓"} {alert.price.toFixed(4)}
                         </div>
-                      ))}
-                    {priceAlerts.filter((a) => a.symbol === symbol && a.market === market).length === 0 && (
-                      <div className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>
-                        등록된 알림이 없습니다.
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            className={cn(
+                              "ds-type-caption rounded px-1.5 py-0.5 font-semibold",
+                              alert.active
+                                ? "bg-[rgba(34,197,94,0.15)] text-[#22C55E]"
+                                : "bg-[rgba(148,163,184,0.15)] text-[var(--muted-foreground)]",
+                            )}
+                            onClick={() => togglePriceAlert(alert.id)}
+                          >
+                            {alert.active ? "활성" : "중지"}
+                          </button>
+                          <button
+                            type="button"
+                            className="ds-type-caption rounded bg-[rgba(239,68,68,0.15)] px-1.5 py-0.5 font-semibold text-[#EF4444]"
+                            onClick={() => removePriceAlert(alert.id)}
+                          >
+                            삭제
+                          </button>
+                        </div>
                       </div>
-                    )}
-                  </div>
-
-                  <div className="mt-2 mb-1 flex items-center justify-between">
-                    <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>
-                      알림 이력 ({alertHistory.length})
+                    ))}
+                  {priceAlerts.filter((a) => a.symbol === symbol && a.market === market).length === 0 && (
+                    <div className="ds-type-label text-[var(--muted-foreground)]">
+                      등록된 알림이 없습니다.
                     </div>
-                    <button
-                      type="button"
-                      className="rounded px-1.5 py-0.5 text-[10px]"
-                      style={{ border: "1px solid var(--border)", color: "var(--muted-foreground)" }}
-                      onClick={clearAlertHistory}
-                    >
-                      이력 초기화
-                    </button>
-                  </div>
-                <div className="max-h-24 overflow-y-auto space-y-1">
+                  )}
+                </div>
+
+                <div className="mb-1 mt-2 flex items-center justify-between">
+                  <SectionLabel className="mb-0">
+                    알림 이력 ({alertHistory.length})
+                  </SectionLabel>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="ds-type-caption h-6 px-2 text-[var(--muted-foreground)]"
+                    onClick={clearAlertHistory}
+                  >
+                    이력 초기화
+                  </Button>
+                </div>
+                <div className="max-h-24 space-y-1 overflow-y-auto">
                   {alertHistory.slice(0, 20).map((item) => (
-                    <div key={item.id} className="text-[10px] font-mono" style={{ color: "var(--muted-foreground)" }}>
+                    <div key={item.id} className="ds-type-label font-mono text-[var(--muted-foreground)]">
                       {item.symbol} {item.condition === "above" ? "↑" : "↓"} {item.price.toFixed(4)} @{" "}
                       {item.triggeredPrice.toFixed(4)}
                     </div>
                   ))}
                   {alertHistory.length === 0 && (
-                    <div className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>
+                    <div className="ds-type-label text-[var(--muted-foreground)]">
                       발생 이력이 없습니다.
                     </div>
                   )}
                 </div>
               </AccordionSection>
+
             </>
           )}
           </div>

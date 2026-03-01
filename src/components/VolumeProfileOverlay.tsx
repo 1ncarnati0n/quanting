@@ -59,7 +59,7 @@ export default function VolumeProfileOverlay({ data }: VolumeProfileOverlayProps
   return (
     <div className="pointer-events-none absolute bottom-0 right-0 top-0 z-[5] w-16">
       <div
-        className="absolute right-1 top-1 rounded px-1 py-0.5 text-[9px] font-semibold"
+        className="ds-type-caption absolute right-1 top-1 rounded px-1 py-0.5 font-semibold"
         style={{
           color: "#60A5FA",
           background: "color-mix(in srgb, var(--background) 72%, transparent)",

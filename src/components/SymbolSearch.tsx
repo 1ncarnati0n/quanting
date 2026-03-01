@@ -13,6 +13,7 @@ import {
   CommandList,
   CommandSeparator,
 } from "@/components/ui/command";
+import SettingRow from "./patterns/SettingRow";
 
 type MarketFilter = "all" | MarketType;
 
@@ -241,7 +242,7 @@ export default function SymbolSearch() {
         <Button
           variant="ghost"
           size="sm"
-          className="h-8 gap-1.5 px-2 text-[11px] text-[var(--muted-foreground)]"
+          className="ds-type-label gap-1.5 px-2 text-[var(--muted-foreground)]"
           onClick={() => setIsOpen(true)}
           title="종목 검색 열기 (Ctrl/Cmd+K)"
         >
@@ -254,7 +255,6 @@ export default function SymbolSearch() {
         <Button
           variant="ghost"
           size="icon"
-          className="h-8 w-8"
           onClick={() => toggleFavorite(symbol, market)}
           title={isCurrentFavorite ? "현재 종목 즐겨찾기 해제" : "현재 종목 즐겨찾기 추가"}
         >
@@ -274,14 +274,14 @@ export default function SymbolSearch() {
                 onKeyDown={handleFilterKeyDown}
                 placeholder="심볼 검색..."
                 spellCheck={false}
-                className="h-8 rounded-sm border border-[var(--border)] bg-[var(--secondary)] text-sm"
+                className="h-[var(--control-height-md)] rounded-sm border border-[var(--border)] bg-[var(--secondary)] text-sm"
               />
-              <div className="mt-2 flex items-center gap-1.5 rounded border px-2 py-1.5" style={{ borderColor: "var(--border)", background: "var(--secondary)" }}>
-                <span className="text-[10px] font-semibold" style={{ color: "var(--muted-foreground)" }}>
+              <div className="mt-2 flex items-center gap-1.5 rounded border border-[var(--border)] bg-[var(--secondary)] px-2 py-1.5">
+                <span className="ds-type-label font-semibold text-[var(--muted-foreground)]">
                   현재
                 </span>
                 <span
-                  className="rounded px-1 py-0.5 text-[9px] font-bold"
+                  className="ds-type-caption rounded px-1 py-0.5 font-bold"
                   style={{
                     background: `color-mix(in srgb, ${marketMeta(market).color} 18%, transparent)`,
                     color: marketMeta(market).color,
@@ -289,10 +289,10 @@ export default function SymbolSearch() {
                 >
                   {marketMeta(market).text}
                 </span>
-                <span className="font-mono text-[11px]" style={{ color: "var(--foreground)" }}>
+                <span className="ds-type-body font-mono text-[var(--foreground)]">
                   {symbol}
                 </span>
-                <span className="truncate text-[10px]" style={{ color: "var(--muted-foreground)" }}>
+                <span className="ds-type-caption truncate text-[var(--muted-foreground)]">
                   {getSymbolLabel(symbol) ?? "직접 입력 심볼"}
                 </span>
               </div>
@@ -304,40 +304,42 @@ export default function SymbolSearch() {
                     onClick={() => setMarketFilter(option.value)}
                     variant={marketFilter === option.value ? "default" : "secondary"}
                     size="sm"
-                    className="h-6 px-2 text-[10px]"
+                    className="px-2"
                   >
                     {option.label}
                   </Button>
                 ))}
               </div>
-              <div className="mt-2 flex items-center justify-between">
-                <div className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>
-                  즐겨찾기 {favoriteItems.length}개 · 최근 {recentItems.length}개 · 결과 {resultItems.length}개
-                </div>
-                <Button
-                  type="button"
-                  onClick={() => setFavoriteOnly((prev) => !prev)}
-                  variant={favoriteOnly ? "default" : "secondary"}
-                  size="sm"
-                  className="h-6 px-2 text-[10px]"
-                >
-                  즐겨찾기만
-                </Button>
-              </div>
+              <SettingRow
+                className="mt-2"
+                label={(
+                  <span>
+                    즐겨찾기 {favoriteItems.length}개 · 최근 {recentItems.length}개 · 결과 {resultItems.length}개
+                  </span>
+                )}
+                right={(
+                  <Button
+                    type="button"
+                    onClick={() => setFavoriteOnly((prev) => !prev)}
+                    variant={favoriteOnly ? "default" : "secondary"}
+                    size="sm"
+                    className="px-2"
+                  >
+                    즐겨찾기만
+                  </Button>
+                )}
+              />
             </div>
 
             <CommandList className="px-1.5 py-1">
               {!favoriteOnly && recentItems.length > 0 && (
                 <section>
-                  <div
-                    className="flex items-center justify-between px-2 py-1 text-[10px] font-bold uppercase tracking-wider"
-                    style={{ color: "var(--muted-foreground)" }}
-                  >
+                  <div className="ds-type-caption flex items-center justify-between px-2 py-1 font-bold uppercase tracking-wider text-[var(--muted-foreground)]">
                     <span>최근</span>
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-5 px-1.5 text-[10px]"
+                      className="ds-type-caption px-2"
                       onClick={clearRecentSymbols}
                       title="최근 심볼 목록 비우기"
                     >
@@ -368,7 +370,7 @@ export default function SymbolSearch() {
                           }}
                         >
                           <span
-                            className="rounded px-1 py-0.5 text-[9px] font-bold"
+                            className="ds-type-caption rounded px-1 py-0.5 font-bold"
                             style={{
                               background: `color-mix(in srgb, ${badge.color} 18%, transparent)`,
                               color: badge.color,
@@ -376,8 +378,8 @@ export default function SymbolSearch() {
                           >
                             {badge.text}
                           </span>
-                          <span className="min-w-[72px] font-mono text-xs">{item.symbol}</span>
-                          <span className="truncate text-xs" style={{ color: "var(--muted-foreground)" }}>
+                          <span className="ds-type-label min-w-[72px] font-mono">{item.symbol}</span>
+                          <span className="ds-type-caption truncate text-[var(--muted-foreground)]">
                             {item.label}
                           </span>
                         </CommandItem>
@@ -385,7 +387,7 @@ export default function SymbolSearch() {
                           variant="ghost"
                           size="icon"
                           onClick={() => toggleFavorite(item.symbol, item.market)}
-                          className="h-7 w-7 text-[13px]"
+                          className="text-sm"
                           title={favoriteSet.has(key) ? "즐겨찾기 해제" : "즐겨찾기 추가"}
                           style={{
                             color: favoriteSet.has(key) ? "var(--warning)" : "var(--muted-foreground)",
@@ -401,10 +403,7 @@ export default function SymbolSearch() {
 
               {favoriteItems.length > 0 && (
                 <section>
-                  <div
-                    className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider"
-                    style={{ color: "var(--muted-foreground)" }}
-                  >
+                  <div className="ds-type-caption px-2 py-1 font-bold uppercase tracking-wider text-[var(--muted-foreground)]">
                     즐겨찾기
                   </div>
                   {favoriteItems.map((item) => {
@@ -431,7 +430,7 @@ export default function SymbolSearch() {
                           }}
                         >
                           <span
-                            className="rounded px-1 py-0.5 text-[9px] font-bold"
+                            className="ds-type-caption rounded px-1 py-0.5 font-bold"
                             style={{
                               background: `color-mix(in srgb, ${badge.color} 18%, transparent)`,
                               color: badge.color,
@@ -439,8 +438,8 @@ export default function SymbolSearch() {
                           >
                             {badge.text}
                           </span>
-                          <span className="min-w-[72px] font-mono text-xs">{item.symbol}</span>
-                          <span className="truncate text-xs" style={{ color: "var(--muted-foreground)" }}>
+                          <span className="ds-type-label min-w-[72px] font-mono">{item.symbol}</span>
+                          <span className="ds-type-caption truncate text-[var(--muted-foreground)]">
                             {item.label}
                           </span>
                         </CommandItem>
@@ -448,9 +447,8 @@ export default function SymbolSearch() {
                           variant="ghost"
                           size="icon"
                           onClick={() => toggleFavorite(item.symbol, item.market)}
-                          className="h-7 w-7 text-[13px]"
+                          className="text-sm text-[var(--warning)]"
                           title="즐겨찾기 해제"
-                          style={{ color: "var(--warning)" }}
                         >
                           ★
                         </Button>
@@ -463,10 +461,7 @@ export default function SymbolSearch() {
               {!favoriteOnly &&
                 filteredCategories.map((cat) => (
                   <section key={cat.name}>
-                    <div
-                      className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider"
-                      style={{ color: "var(--muted-foreground)" }}
-                    >
+                    <div className="ds-type-caption px-2 py-1 font-bold uppercase tracking-wider text-[var(--muted-foreground)]">
                       {cat.name}
                     </div>
                     {cat.items.map((item) => {
@@ -494,7 +489,7 @@ export default function SymbolSearch() {
                             }}
                           >
                             <span
-                              className="rounded px-1 py-0.5 text-[9px] font-bold"
+                              className="ds-type-caption rounded px-1 py-0.5 font-bold"
                               style={{
                                 background: `color-mix(in srgb, ${badge.color} 18%, transparent)`,
                                 color: badge.color,
@@ -502,8 +497,8 @@ export default function SymbolSearch() {
                             >
                               {badge.text}
                             </span>
-                            <span className="min-w-[72px] font-mono text-xs">{item.symbol}</span>
-                            <span className="truncate text-xs" style={{ color: "var(--muted-foreground)" }}>
+                            <span className="ds-type-label min-w-[72px] font-mono">{item.symbol}</span>
+                            <span className="ds-type-caption truncate text-[var(--muted-foreground)]">
                               {item.label}
                             </span>
                           </CommandItem>
@@ -511,7 +506,7 @@ export default function SymbolSearch() {
                             variant="ghost"
                             size="icon"
                             onClick={() => toggleFavorite(item.symbol, item.market)}
-                            className="h-7 w-7 text-[13px]"
+                            className="text-sm"
                             title={isFavorite ? "즐겨찾기 해제" : "즐겨찾기 추가"}
                             style={{
                               color: isFavorite ? "var(--warning)" : "var(--muted-foreground)",
@@ -531,24 +526,32 @@ export default function SymbolSearch() {
             <CommandSeparator />
 
             <div className="space-y-1.5 p-2">
-              <div className="flex gap-1.5">
-                <Input
-                  type="text"
-                  value={manualInput}
-                  onChange={(e) => setManualInput(e.target.value.toUpperCase())}
-                  onKeyDown={handleManualKeyDown}
-                  placeholder="티커 직접 입력..."
-                  spellCheck={false}
-                  className="h-7 flex-1 font-mono text-xs"
-                />
-                <Button onClick={handleManualSubmit} size="sm" className="h-7 px-2 text-xs">
-                  적용
-                </Button>
-              </div>
-              <div className="flex items-center justify-between text-[10px]" style={{ color: "var(--muted-foreground)" }}>
-                <span>↑↓ 이동 · Enter 선택 · Esc 닫기</span>
-                <span>Ctrl/Cmd+K 검색</span>
-              </div>
+              <SettingRow
+                label="직접 입력"
+                description="티커를 입력해 바로 이동"
+                hint={(
+                  <div className="flex items-center justify-between">
+                    <span>↑↓ 이동 · Enter 선택 · Esc 닫기</span>
+                    <span>Ctrl/Cmd+K 검색</span>
+                  </div>
+                )}
+              >
+                <div className="flex gap-1.5">
+                  <Input
+                    type="text"
+                    size="sm"
+                    value={manualInput}
+                    onChange={(e) => setManualInput(e.target.value.toUpperCase())}
+                    onKeyDown={handleManualKeyDown}
+                    placeholder="티커 직접 입력..."
+                    spellCheck={false}
+                    className="flex-1 font-mono"
+                  />
+                  <Button onClick={handleManualSubmit} size="sm" className="ds-type-caption px-2">
+                    적용
+                  </Button>
+                </div>
+              </SettingRow>
             </div>
           </Command>
         </DialogContent>

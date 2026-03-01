@@ -2,17 +2,25 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 
 interface SelectProps
-  extends React.SelectHTMLAttributes<HTMLSelectElement> {
+  extends Omit<React.SelectHTMLAttributes<HTMLSelectElement>, "size"> {
   onValueChange?: (value: string) => void;
+  size?: "sm" | "md" | "lg";
 }
 
+const SIZE_CLASSES: Record<NonNullable<SelectProps["size"]>, string> = {
+  sm: "h-[var(--control-height-sm)] px-2.5 text-[var(--font-size-body-sm)]",
+  md: "h-[var(--control-height-md)] px-3 text-sm",
+  lg: "h-[var(--control-height-lg)] px-3.5 text-[var(--font-size-subtitle)]",
+};
+
 const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
-  ({ className, onValueChange, onChange, children, ...props }, ref) => {
+  ({ className, onValueChange, onChange, children, size = "md", ...props }, ref) => {
     return (
       <select
         ref={ref}
         className={cn(
-          "h-8 w-full rounded border border-border bg-secondary px-2 text-xs text-foreground outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
+          "w-full rounded border border-border bg-secondary text-foreground outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
+          SIZE_CLASSES[size],
           className,
         )}
         onChange={(event) => {

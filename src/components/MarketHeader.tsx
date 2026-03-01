@@ -50,44 +50,44 @@ export default function MarketHeader({
   return (
     <div className="market-header flex flex-col">
       {/* Row 1: Symbol / Price / OHLV / Range */}
-      <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 px-3 py-2 sm:gap-x-3 sm:px-4">
+      <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1.5 px-3 py-2.5 sm:gap-x-3 sm:px-4">
         {/* Symbol + Badge + LIVE */}
         <div className="flex items-center gap-1.5 sm:gap-2">
-          <span className="text-xs font-semibold tracking-wide sm:text-sm" style={{ color: "var(--primary)" }}>
+          <span className="ds-type-title font-semibold tracking-wide text-[var(--primary)]">
             Quanting
           </span>
           <span
-            className="rounded px-1.5 py-0.5 text-[9px] font-bold leading-none"
+            className="ds-type-caption rounded px-1.5 py-1 font-bold leading-none"
             style={{ background: marketColor, color: "var(--primary-foreground)" }}
           >
             {marketBadge}
           </span>
-          <span className="hidden items-center gap-1 rounded bg-[var(--secondary)] px-1.5 py-0.5 text-[9px] text-[var(--muted-foreground)] sm:inline-flex">
+          <span className="ds-type-caption hidden items-center gap-1 rounded bg-[var(--secondary)] px-2 py-1 text-[var(--muted-foreground)] sm:inline-flex">
             <span className={`h-1.5 w-1.5 rounded-full ${isLoading ? "" : "header-live-dot"}`} style={{ background: isLoading ? "var(--warning)" : "var(--success)" }} />
             {isLoading ? "갱신중" : "LIVE"}
           </span>
         </div>
 
         {/* Divider */}
-        <div className="hidden h-4 w-px sm:block" style={{ background: "var(--border)" }} />
+        <div className="hidden h-4 w-px bg-[var(--border)] sm:block" />
 
         {/* Price + Change */}
         <div className="flex items-baseline gap-1.5 sm:gap-2">
-          <span className="price-display font-mono text-base font-bold sm:text-lg" style={{ color: "var(--foreground)" }}>
+          <span className="price-display font-mono text-lg font-bold text-[var(--foreground)] sm:text-xl">
             {lastCandle ? formatPrice(lastCandle.close, market) : "-"}
           </span>
           {lastCandle && prevCandle && (
-            <span className="font-mono text-[11px] font-semibold sm:text-xs" style={{ color: changeColor }}>
+            <span className="ds-type-label font-mono font-semibold" style={{ color: changeColor }}>
               {change >= 0 ? "+" : ""}{formatPrice(Math.abs(change), market)} ({changePct >= 0 ? "+" : ""}{changePct.toFixed(2)}%)
             </span>
           )}
         </div>
 
         {/* Divider */}
-        <div className="hidden h-4 w-px md:block" style={{ background: "var(--border)" }} />
+        <div className="hidden h-4 w-px bg-[var(--border)] md:block" />
 
         {/* H / L / Vol inline */}
-        <div className="hidden items-center gap-2 font-mono text-[11px] md:flex lg:gap-3">
+        <div className="ds-type-label hidden items-center gap-2 font-mono md:flex lg:gap-3">
           <span style={{ color: "var(--muted-foreground)" }}>
             H <span style={{ color: "var(--foreground)" }}>{high !== null ? formatPrice(high, market) : "-"}</span>
           </span>
@@ -100,11 +100,11 @@ export default function MarketHeader({
         </div>
 
         {/* Divider */}
-        {rangePct !== null && <div className="hidden h-4 w-px lg:block" style={{ background: "var(--border)" }} />}
+        {rangePct !== null && <div className="hidden h-4 w-px bg-[var(--border)] lg:block" />}
 
         {/* Range */}
         {rangePct !== null && (
-          <span className="hidden font-mono text-[11px] lg:inline" style={{ color: "var(--muted-foreground)" }}>
+          <span className="ds-type-label hidden font-mono lg:inline" style={{ color: "var(--muted-foreground)" }}>
             Range <span style={{ color: "var(--primary)" }}>{rangePct.toFixed(2)}%</span>
           </span>
         )}
@@ -113,7 +113,7 @@ export default function MarketHeader({
         {symbolLabel && (
           <>
             <div className="flex-1" />
-            <span className="hidden truncate text-[11px] xl:inline" style={{ color: "var(--muted-foreground)" }}>
+            <span className="ds-type-label hidden truncate text-[var(--muted-foreground)] xl:inline">
               {symbol} · {symbolLabel}
             </span>
           </>
@@ -121,16 +121,13 @@ export default function MarketHeader({
       </div>
 
       {/* Row 2: Controls */}
-      <div
-        className="flex min-w-0 flex-wrap items-center gap-2 px-3 py-1.5 sm:gap-2.5 sm:px-4"
-        style={{ borderTop: "1px solid var(--border)" }}
-      >
+      <div className="flex min-w-0 flex-wrap items-center gap-2.5 border-t border-[var(--border)] px-3 py-2 sm:gap-3 sm:px-4">
         <Button
           variant="ghost"
           size="icon"
           onClick={onToggleWatchlist}
-          className="h-7 w-7 shrink-0 text-[var(--muted-foreground)]"
-          title="관심종목 패널 접기/펼치기 (Ctrl/Cmd+B)"
+          className="h-8 w-8 shrink-0 text-[var(--muted-foreground)] xl:hidden"
+          title="관심종목 패널 열기/닫기 (Ctrl/Cmd+B)"
         >
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <rect x="3" y="4" width="18" height="16" rx="2" />
@@ -138,12 +135,20 @@ export default function MarketHeader({
           </svg>
         </Button>
 
-        <div className="min-w-0 shrink-0 overflow-x-auto">
-          <IntervalSelector />
+        <div className="flex min-w-0 shrink-0 items-center gap-1 rounded border border-[var(--border)] bg-[var(--muted)] px-1.5 py-1">
+          <span className="ds-type-caption hidden font-semibold text-[var(--muted-foreground)] sm:inline">
+            인터벌
+          </span>
+          <div className="min-w-0 overflow-x-auto">
+            <IntervalSelector />
+          </div>
         </div>
 
-        <div className="hidden min-w-0 shrink-0 lg:block">
-          <TimeRangeBar />
+        <div className="hidden min-w-0 shrink-0 items-center gap-1 rounded border border-[var(--border)] bg-[var(--muted)] px-1.5 py-1 lg:flex">
+          <span className="ds-type-caption font-semibold text-[var(--muted-foreground)]">기간</span>
+          <div className="min-w-0 overflow-x-auto">
+            <TimeRangeBar />
+          </div>
         </div>
 
         <div className="min-w-0 flex-1" />
@@ -153,7 +158,7 @@ export default function MarketHeader({
             variant="ghost"
             size="icon"
             onClick={toggleTheme}
-            className="h-7 w-7 text-[var(--muted-foreground)]"
+            className="h-8 w-8 text-[var(--muted-foreground)]"
             title={theme === "dark" ? "라이트 모드로 전환" : "다크 모드로 전환"}
           >
             {theme === "dark" ? (
@@ -179,8 +184,8 @@ export default function MarketHeader({
             variant="ghost"
             size="icon"
             onClick={onToggleSettings}
-            className="h-7 w-7 text-[var(--muted-foreground)]"
-            title="설정 패널 접기/펼치기 (Ctrl/Cmd+,)"
+            className="h-8 w-8 text-[var(--muted-foreground)] xl:hidden"
+            title="설정 패널 열기/닫기 (Ctrl/Cmd+,)"
           >
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <rect x="3" y="4" width="18" height="16" rx="2" />

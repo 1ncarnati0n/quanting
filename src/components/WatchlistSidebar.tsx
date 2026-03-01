@@ -10,6 +10,9 @@ import {
 } from "../utils/constants";
 import type { MarketType } from "../types";
 import { formatPrice } from "../utils/formatters";
+import PanelHeader from "./patterns/PanelHeader";
+import SegmentButton from "./patterns/SegmentButton";
+import SettingRow from "./patterns/SettingRow";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -215,12 +218,7 @@ function Sparkline({
   color: string;
 }) {
   if (!values || values.length < 2) {
-    return (
-      <div
-        className="h-7 w-full rounded border border-dashed"
-        style={{ borderColor: "var(--border)", opacity: 0.5 }}
-      />
-    );
+    return <div className="h-8 w-full rounded border border-dashed border-[var(--border)] opacity-50" />;
   }
 
   const width = 112;
@@ -516,73 +514,61 @@ export default function WatchlistSidebar({
     <aside
       className={`flex h-full min-w-0 flex-col ${
         embedded ? "w-full rounded border" : "w-[min(22rem,calc(100vw-1rem))] border-l"
-      }`}
-      style={{
-        background: "var(--card)",
-        borderColor: "var(--border)",
-        boxShadow: "var(--shadow-elevated)",
-      }}
+      } border-[var(--border)] bg-[var(--card)] shadow-[var(--shadow-elevated)]`}
     >
-      <div
-        className="flex items-center justify-between border-b px-3 py-2.5"
-        style={{ borderColor: "var(--border)" }}
-      >
-        <div>
-          <p className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>
-            관심종목
-          </p>
-          <p className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>
-            {activeLabel ? `${symbol} · ${activeLabel}` : symbol} ·{" "}
-            {isLoadingSnapshots ? "스냅샷 갱신중" : `${interval} 기준 스냅샷`}
-          </p>
-        </div>
-        <div className="flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 text-[var(--muted-foreground)]"
-            onClick={() => toggleFavorite(symbol, market)}
-            title={isCurrentFavorite ? "현재 종목 즐겨찾기 해제" : "현재 종목 즐겨찾기 추가"}
-          >
-            {isCurrentFavorite ? "★" : "☆"}
-          </Button>
-          {onClose && (
+      <PanelHeader
+        title="관심종목"
+        subtitle={`${activeLabel ? `${symbol} · ${activeLabel}` : symbol} · ${
+          isLoadingSnapshots ? "스냅샷 갱신중" : `${interval} 기준 스냅샷`
+        }`}
+        className="px-3 py-2.5"
+        density="compact"
+        actionAlign="start"
+        actions={(
+          <>
             <Button
               variant="ghost"
               size="icon"
-              onClick={onClose}
-              className="h-8 w-8 text-[var(--muted-foreground)]"
-              title="관심종목 닫기"
+              className="text-[var(--muted-foreground)]"
+              onClick={() => toggleFavorite(symbol, market)}
+              title={isCurrentFavorite ? "현재 종목 즐겨찾기 해제" : "현재 종목 즐겨찾기 추가"}
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M18 6L6 18M6 6l12 12" />
-              </svg>
+              {isCurrentFavorite ? "★" : "☆"}
             </Button>
-          )}
-        </div>
-      </div>
+            {onClose && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onClose}
+                className="text-[var(--muted-foreground)]"
+                title="관심종목 닫기"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M18 6L6 18M6 6l12 12" />
+                </svg>
+              </Button>
+            )}
+          </>
+        )}
+      />
 
       <div className="p-3">
         <Input
           type="text"
+          size="md"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="심볼 검색..."
           spellCheck={false}
-          className="h-8 text-sm"
+          className="ds-type-label"
         />
         <div className="mt-2 flex gap-1">
           {(["all", "usStock", "krStock", "crypto", "forex"] as const).map((mf) => (
-            <button
+            <SegmentButton
               key={mf}
               type="button"
+              active={marketFilter === mf}
               onClick={() => setMarketFilter(mf)}
-              className="rounded px-2 py-1 text-[10px] font-medium"
-              style={{
-                background: marketFilter === mf ? "var(--primary)" : "var(--secondary)",
-                color: marketFilter === mf ? "var(--primary-foreground)" : "var(--muted-foreground)",
-                border: `1px solid ${marketFilter === mf ? "var(--primary)" : "var(--border)"}`,
-              }}
             >
               {mf === "all"
                 ? "전체"
@@ -593,29 +579,25 @@ export default function WatchlistSidebar({
                 : mf === "crypto"
                 ? "코인"
                 : "FX"}
-            </button>
+            </SegmentButton>
           ))}
-          <button
+          <SegmentButton
             type="button"
+            active={favoriteOnly}
+            activeTone="warning"
             onClick={() => setFavoriteOnly((prev) => !prev)}
-            className="rounded px-2 py-1 text-[10px] font-medium"
-            style={{
-              background: favoriteOnly ? "var(--warning)" : "var(--secondary)",
-              color: favoriteOnly ? "#111827" : "var(--muted-foreground)",
-              border: `1px solid ${favoriteOnly ? "var(--warning)" : "var(--border)"}`,
-            }}
             title="즐겨찾기 종목만 보기"
           >
             ★ 즐겨찾기
-          </button>
+          </SegmentButton>
         </div>
-        <div className="mt-1 text-[10px]" style={{ color: "var(--muted-foreground)" }}>
+        <div className="ds-type-caption mt-1 text-[var(--muted-foreground)]">
           표시 {visibleItems.length}개 · 즐겨찾기 {favorites.length}개
         </div>
 
         {recentSymbols.length > 0 && (
           <div className="mt-2">
-            <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>
+            <div className="ds-type-caption mb-1 font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
               최근 심볼
             </div>
             <div className="flex flex-wrap gap-1">
@@ -627,12 +609,7 @@ export default function WatchlistSidebar({
                     setSymbol(item.symbol, item.market);
                     onSelectSymbol?.();
                   }}
-                  className="rounded px-1.5 py-0.5 text-[10px] font-mono"
-                  style={{
-                    border: "1px solid var(--border)",
-                    background: "var(--secondary)",
-                    color: "var(--foreground)",
-                  }}
+                  className="ds-type-caption rounded border border-[var(--border)] bg-[var(--secondary)] px-1.5 py-0.5 font-mono text-[var(--foreground)]"
                 >
                   {item.symbol}
                 </button>
@@ -641,22 +618,14 @@ export default function WatchlistSidebar({
           </div>
         )}
 
-        <div
-          className="mt-2 rounded border p-2"
-          style={{ borderColor: "var(--border)", background: "var(--muted)" }}
-        >
+        <div className="mt-2 rounded border border-[var(--border)] bg-[var(--muted)] p-2.5">
           <div className="mb-1.5 flex items-center justify-between">
-            <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>
+            <span className="ds-type-caption font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
               기술 스크리너
             </span>
             <button
               type="button"
-              className="rounded px-2 py-1 text-[10px] font-semibold"
-              style={{
-                background: "var(--accent)",
-                color: "var(--primary)",
-                border: "1px solid var(--border)",
-              }}
+              className="ds-type-caption rounded border border-[var(--border)] bg-[var(--accent)] px-2 py-1.5 font-semibold text-[var(--primary)]"
               onClick={runScreener}
               disabled={isScanning}
             >
@@ -667,19 +636,14 @@ export default function WatchlistSidebar({
             {SCREENER_CONDITION_ITEMS.map((rule) => {
               const active = screenerConditions.includes(rule.value);
               return (
-                <button
+                <SegmentButton
                   key={rule.value}
                   type="button"
+                  active={active}
                   onClick={() => toggleScreenerCondition(rule.value)}
-                  className="rounded px-2 py-1 text-[10px] font-medium"
-                  style={{
-                    background: active ? "var(--primary)" : "var(--secondary)",
-                    color: active ? "var(--primary-foreground)" : "var(--muted-foreground)",
-                    border: `1px solid ${active ? "var(--primary)" : "var(--border)"}`,
-                  }}
                 >
                   {rule.label}
-                </button>
+                </SegmentButton>
               );
             })}
           </div>
@@ -688,29 +652,15 @@ export default function WatchlistSidebar({
               { value: "any" as const, label: "ANY(OR)" },
               { value: "all" as const, label: "ALL(AND)" },
             ] as const).map((modeOption) => (
-              <button
+              <SegmentButton
                 key={modeOption.value}
                 type="button"
+                active={screenerMode === modeOption.value}
+                activeTone="warning"
                 onClick={() => setScreenerMode(modeOption.value)}
-                className="rounded px-2 py-1 text-[10px] font-medium"
-                style={{
-                  background:
-                    screenerMode === modeOption.value
-                      ? "color-mix(in srgb, var(--warning) 22%, transparent)"
-                      : "var(--secondary)",
-                  color:
-                    screenerMode === modeOption.value
-                      ? "var(--warning)"
-                      : "var(--muted-foreground)",
-                  border: `1px solid ${
-                    screenerMode === modeOption.value
-                      ? "var(--warning)"
-                      : "var(--border)"
-                  }`,
-                }}
               >
                 {modeOption.label}
-              </button>
+              </SegmentButton>
             ))}
           </div>
           <div className="mb-2 flex flex-wrap gap-1">
@@ -720,60 +670,52 @@ export default function WatchlistSidebar({
               { value: "priceAsc" as const, label: "가격↑" },
               { value: "symbolAsc" as const, label: "심볼" },
             ] as const).map((sortOption) => (
-              <button
+              <SegmentButton
                 key={sortOption.value}
                 type="button"
+                active={screenerSort === sortOption.value}
+                activeTone="accent"
+                size="sm"
                 onClick={() => setScreenerSort(sortOption.value)}
-                className="rounded px-2 py-0.5 text-[10px]"
-                style={{
-                  background:
-                    screenerSort === sortOption.value ? "var(--accent)" : "var(--secondary)",
-                  color:
-                    screenerSort === sortOption.value ? "var(--primary)" : "var(--muted-foreground)",
-                  border: `1px solid ${
-                    screenerSort === sortOption.value ? "var(--primary)" : "var(--border)"
-                  }`,
-                }}
               >
                 {sortOption.label}
-              </button>
+              </SegmentButton>
             ))}
           </div>
-          <div className="mb-1.5 flex gap-1">
+          <SettingRow
+            className="mb-1.5"
+            label="프리셋 저장"
+            description="현재 조건 조합을 이름으로 저장"
+            right={(
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                className="ds-type-caption font-semibold"
+                onClick={saveCurrentPreset}
+                disabled={!presetName.trim() || screenerConditions.length === 0}
+              >
+                저장
+              </Button>
+            )}
+          >
             <Input
+              size="sm"
               value={presetName}
               onChange={(e) => setPresetName(e.target.value)}
-              className="h-6 text-[10px]"
+              className="ds-type-label"
               placeholder="프리셋 이름"
             />
-            <button
-              type="button"
-              className="rounded px-2 py-1 text-[10px] font-semibold"
-              style={{
-                background: "var(--secondary)",
-                color: "var(--foreground)",
-                border: "1px solid var(--border)",
-              }}
-              onClick={saveCurrentPreset}
-              disabled={!presetName.trim() || screenerConditions.length === 0}
-            >
-              저장
-            </button>
-          </div>
+          </SettingRow>
           <ScrollArea className="mb-2 max-h-14" viewportClassName="space-y-1 pr-1">
             {screenerPresets.map((preset) => (
               <div
                 key={preset.id}
-                className="flex items-center justify-between gap-1 rounded border px-1.5 py-1"
-                style={{
-                  borderColor: "var(--border)",
-                  background: "var(--secondary)",
-                }}
+                className="flex items-center justify-between gap-1 rounded border border-[var(--border)] bg-[var(--secondary)] px-1.5 py-1"
               >
                 <button
                   type="button"
-                  className="min-w-0 flex-1 truncate text-left text-[10px]"
-                  style={{ color: "var(--foreground)" }}
+                  className="ds-type-label min-w-0 flex-1 truncate text-left text-[var(--foreground)]"
                   onClick={() => applyPreset(preset)}
                   title={`${preset.name} 적용`}
                 >
@@ -781,8 +723,7 @@ export default function WatchlistSidebar({
                 </button>
                 <button
                   type="button"
-                  className="rounded px-1 text-[10px]"
-                  style={{ color: "var(--muted-foreground)" }}
+                  className="ds-type-caption rounded px-1 text-[var(--muted-foreground)]"
                   onClick={() => removePreset(preset.id)}
                   title="프리셋 삭제"
                 >
@@ -796,12 +737,7 @@ export default function WatchlistSidebar({
               <button
                 key={`hit-${hit.market}-${hit.symbol}`}
                 type="button"
-                className="w-full rounded border px-2 py-1 text-left text-[10px]"
-                style={{
-                  borderColor: "var(--border)",
-                  background: "var(--secondary)",
-                  color: "var(--foreground)",
-                }}
+                className="ds-type-label w-full rounded border border-[var(--border)] bg-[var(--secondary)] px-2 py-1.5 text-left text-[var(--foreground)]"
                 onClick={() => {
                   setSymbol(hit.symbol, hit.market);
                   onSelectSymbol?.();
@@ -811,16 +747,16 @@ export default function WatchlistSidebar({
                   <span>{hit.symbol}</span>
                   <span>{formatPrice(hit.close, hit.market)}</span>
                 </div>
-                <div style={{ color: "var(--muted-foreground)" }}>
+                <div className="text-[var(--muted-foreground)]">
                   {hit.reasons.join(" · ")}
                 </div>
-                <div className="font-mono text-[9px]" style={{ color: "var(--primary)" }}>
+                <div className="ds-type-caption font-mono text-[var(--primary)]">
                   score {hit.score.toFixed(1)}
                 </div>
               </button>
             ))}
             {screenerHits.length === 0 && (
-              <div className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>
+              <div className="ds-type-label text-[var(--muted-foreground)]">
                 {lastScannedAt ? "조건 일치 종목이 없습니다." : "조건 선택 후 스캔 실행"}
               </div>
             )}
@@ -829,7 +765,7 @@ export default function WatchlistSidebar({
       </div>
 
       <ScrollArea className="min-h-0 flex-1" viewportClassName="px-2 pb-3">
-        <div className="space-y-1">
+        <div className="space-y-1.5">
           {visibleItems.map((item) => {
             const badge = marketBadge(item.market);
             const active = symbol === item.symbol && market === item.market;
@@ -847,7 +783,7 @@ export default function WatchlistSidebar({
                     selectSymbolFromWatch(item);
                   }
                 }}
-                className="w-full rounded border px-2.5 py-2 text-left transition-colors"
+                className="w-full rounded border px-3 py-2.5 text-left transition-colors"
                 style={{
                   background: active
                     ? "color-mix(in srgb, var(--primary) 10%, var(--secondary))"
@@ -859,14 +795,11 @@ export default function WatchlistSidebar({
                 <div className="flex min-w-0 items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
                     <div className="flex min-w-0 items-center gap-2">
-                      <p
-                        className="truncate text-xs font-semibold font-mono"
-                        style={{ color: "var(--foreground)" }}
-                      >
+                      <p className="truncate font-mono text-sm font-semibold text-[var(--foreground)]">
                         {item.symbol}
                       </p>
                       <span
-                        className="rounded px-1.5 py-0.5 text-[9px] font-bold"
+                        className="ds-type-caption rounded px-1.5 py-0.5 font-bold"
                         style={{
                           background: `color-mix(in srgb, ${badge.color} 18%, transparent)`,
                           color: badge.color,
@@ -875,7 +808,7 @@ export default function WatchlistSidebar({
                         {badge.text}
                       </span>
                     </div>
-                    <p className="truncate text-[10px]" style={{ color: "var(--muted-foreground)" }}>
+                    <p className="ds-type-caption truncate text-[var(--muted-foreground)]">
                       {item.label}
                     </p>
                   </div>
@@ -895,10 +828,10 @@ export default function WatchlistSidebar({
                           : "로딩중";
                         return (
                           <>
-                            <div className="font-mono text-[11px] font-semibold" style={{ color: priceColor }}>
+                            <div className="font-mono text-sm font-semibold" style={{ color: priceColor }}>
                               {snapshot ? formatPrice(snapshot.lastPrice, item.market) : "-"}
                             </div>
-                            <div className="text-[10px]" style={{ color: priceColor }}>
+                            <div className="ds-type-label" style={{ color: priceColor }}>
                               {changeLabel}
                             </div>
                           </>
@@ -911,7 +844,7 @@ export default function WatchlistSidebar({
                         e.stopPropagation();
                         toggleFavorite(item.symbol, item.market);
                       }}
-                      className="rounded px-1 py-0.5 text-sm leading-none"
+                      className="rounded px-1.5 py-1 text-sm leading-none"
                       title={isFavorite ? "즐겨찾기 해제" : "즐겨찾기 추가"}
                       style={{
                         color: isFavorite ? "var(--warning)" : "var(--muted-foreground)",
@@ -933,10 +866,7 @@ export default function WatchlistSidebar({
                     <div className="mt-1.5">
                       <Sparkline values={snapshot?.sparkline ?? []} color={trendColor} />
                       {snapshot && (
-                        <p
-                          className="mt-0.5 text-[10px]"
-                          style={{ color: "var(--muted-foreground)" }}
-                        >
+                        <p className="ds-type-caption mt-0.5 text-[var(--muted-foreground)]">
                           H {formatPrice(snapshot.high, item.market)} · L{" "}
                           {formatPrice(snapshot.low, item.market)}
                         </p>
@@ -948,7 +878,7 @@ export default function WatchlistSidebar({
             );
           })}
           {visibleItems.length === 0 && (
-            <div className="rounded border px-3 py-4 text-center text-xs" style={{ borderColor: "var(--border)", color: "var(--muted-foreground)" }}>
+            <div className="ds-type-caption rounded border border-[var(--border)] px-3 py-4 text-center text-[var(--muted-foreground)]">
               {favoriteOnly ? "즐겨찾기 종목이 없습니다" : "심볼이 없습니다"}
             </div>
           )}

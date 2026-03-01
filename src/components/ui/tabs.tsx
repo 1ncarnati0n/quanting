@@ -61,7 +61,7 @@ const TabsTrigger = React.forwardRef<HTMLButtonElement, TabsTriggerProps>(
         aria-selected={active}
         data-state={active ? "active" : "inactive"}
         className={cn(
-          "inline-flex items-center justify-center rounded px-2 py-1 text-xs font-medium transition-colors",
+          "ds-type-label inline-flex items-center justify-center rounded px-2 py-1 font-medium transition-colors",
           active
             ? "bg-primary text-primary-foreground"
             : "text-muted-foreground hover:text-foreground",

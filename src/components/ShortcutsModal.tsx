@@ -27,8 +27,8 @@ const SHORTCUT_GROUPS = [
   {
     title: "패널",
     items: [
-      { keys: ["Ctrl/⌘", "B"], desc: "관심종목 패널" },
-      { keys: ["Ctrl/⌘", ","], desc: "설정 패널" },
+      { keys: ["Ctrl/⌘", "B"], desc: "관심종목 패널 (좁은 화면)" },
+      { keys: ["Ctrl/⌘", ","], desc: "설정 패널 (좁은 화면)" },
       { keys: ["Ctrl/⌘", "K"], desc: "심볼 검색" },
     ],
   },
@@ -81,7 +81,7 @@ export default function ShortcutsModal() {
           {SHORTCUT_GROUPS.map((group, idx) => (
             <div key={group.title}>
               <div
-                className="mb-2 text-[10px] font-semibold uppercase tracking-wider"
+                className="ds-type-caption mb-2 font-semibold uppercase tracking-wider"
                 style={{ color: "var(--muted-foreground)" }}
               >
                 {group.title}
@@ -89,14 +89,14 @@ export default function ShortcutsModal() {
               <div className="space-y-1">
                 {group.items.map((item) => (
                   <div key={item.desc} className="flex items-center justify-between py-1">
-                    <span className="text-xs" style={{ color: "var(--foreground)" }}>
+                    <span className="ds-type-label" style={{ color: "var(--foreground)" }}>
                       {item.desc}
                     </span>
                     <div className="flex items-center gap-1">
                       {item.keys.map((key, i) => (
                         <span key={i}>
                           <kbd
-                            className="inline-block rounded px-1.5 py-0.5 font-mono text-[10px]"
+                            className="ds-type-caption inline-block rounded px-1.5 py-0.5 font-mono"
                             style={{
                               background: "var(--secondary)",
                               border: "1px solid var(--border)",

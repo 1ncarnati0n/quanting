@@ -83,7 +83,7 @@ function TooltipContent({ children, className }: TooltipContentProps) {
   return (
     <span
       className={cn(
-        "pointer-events-none absolute z-[70] whitespace-nowrap rounded border border-border bg-card px-2 py-1 text-[10px] text-foreground shadow",
+        "ds-type-caption pointer-events-none absolute z-[70] whitespace-nowrap rounded border border-border bg-card px-2 py-1 text-foreground shadow",
         positionClasses[ctx.side],
         className,
       )}

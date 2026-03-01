@@ -57,7 +57,7 @@ export default function ReplayControls() {
       <div className="mb-1 flex items-center gap-1.5">
         <button
           type="button"
-          className="rounded px-1.5 py-0.5 text-[10px] font-semibold"
+          className="ds-type-caption rounded px-1.5 py-0.5 font-semibold"
           style={{
             background: enabled ? "rgba(239,68,68,0.16)" : "var(--accent)",
             color: enabled ? "#fca5a5" : "var(--primary)",
@@ -78,7 +78,7 @@ export default function ReplayControls() {
           <>
             <button
               type="button"
-              className="rounded px-1.5 py-0.5 text-[10px]"
+              className="ds-type-caption rounded px-1.5 py-0.5"
               style={{ border: "1px solid var(--border)", color: "var(--foreground)" }}
               onClick={() => step(-1, totalBars)}
               title="이전 바"
@@ -87,7 +87,7 @@ export default function ReplayControls() {
             </button>
             <button
               type="button"
-              className="rounded px-1.5 py-0.5 text-[10px]"
+              className="ds-type-caption rounded px-1.5 py-0.5"
               style={{ border: "1px solid var(--border)", color: "var(--foreground)" }}
               onClick={togglePlaying}
               title={playing ? "일시정지" : "재생"}
@@ -96,7 +96,7 @@ export default function ReplayControls() {
             </button>
             <button
               type="button"
-              className="rounded px-1.5 py-0.5 text-[10px]"
+              className="ds-type-caption rounded px-1.5 py-0.5"
               style={{ border: "1px solid var(--border)", color: "var(--foreground)" }}
               onClick={() => step(1, totalBars)}
               title="다음 바"
@@ -121,13 +121,13 @@ export default function ReplayControls() {
               aria-label="리플레이 진행"
               style={{ accentColor: "var(--primary)" }}
             />
-            <span className="text-[10px] font-mono" style={{ color: "var(--muted-foreground)" }}>
+            <span className="ds-type-caption font-mono" style={{ color: "var(--muted-foreground)" }}>
               {progress.toFixed(0)}%
             </span>
           </div>
 
           <div className="flex items-center justify-between gap-2">
-            <span className="text-[10px] font-mono" style={{ color: "var(--muted-foreground)" }}>
+            <span className="ds-type-caption font-mono" style={{ color: "var(--muted-foreground)" }}>
               {cappedIndex + 1}/{totalBars} · {formatReplayTime(replayTime)}
             </span>
             <div className="flex items-center gap-1">
@@ -135,7 +135,7 @@ export default function ReplayControls() {
                 <button
                   key={option}
                   type="button"
-                  className="rounded px-1 py-0.5 text-[10px]"
+                  className="ds-type-caption rounded px-1 py-0.5"
                   style={{
                     background: speed === option ? "var(--accent)" : "transparent",
                     color: speed === option ? "var(--primary)" : "var(--muted-foreground)",

@@ -152,6 +152,28 @@ pub struct StcParams {
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct SmcParams {
+    #[serde(default = "default_smc_swing_length")]
+    pub swing_length: usize,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AnchoredVwapParams {
+    pub anchor_time: i64,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AutoFibParams {
+    #[serde(default = "default_auto_fib_lookback")]
+    pub lookback: usize,
+    #[serde(default = "default_auto_fib_swing_length")]
+    pub swing_length: usize,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AnalysisParams {
     pub symbol: String,
     pub interval: String,
@@ -196,6 +218,12 @@ pub struct AnalysisParams {
     pub adx: Option<AdxParams>,
     #[serde(default)]
     pub stc: Option<StcParams>,
+    #[serde(default)]
+    pub smc: Option<SmcParams>,
+    #[serde(default)]
+    pub anchored_vwap: Option<AnchoredVwapParams>,
+    #[serde(default)]
+    pub auto_fib: Option<AutoFibParams>,
     #[serde(default)]
     pub signal_filter: SignalFilterParams,
 }
@@ -304,4 +332,13 @@ fn default_stc_fast_ma() -> usize {
 }
 fn default_stc_slow_ma() -> usize {
     50
+}
+fn default_smc_swing_length() -> usize {
+    5
+}
+fn default_auto_fib_lookback() -> usize {
+    120
+}
+fn default_auto_fib_swing_length() -> usize {
+    5
 }

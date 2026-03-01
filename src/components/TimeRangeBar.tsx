@@ -2,37 +2,44 @@ import { useEffect, useState } from "react";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 const TIME_RANGES = [
-  { label: "1D", days: 1 },
-  { label: "5D", days: 5 },
-  { label: "1M", days: 30 },
-  { label: "3M", days: 90 },
-  { label: "6M", days: 180 },
-  { label: "YTD", days: -1 },
-  { label: "1Y", days: 365 },
-  { label: "5Y", days: 1825 },
-  { label: "전체", days: 0 },
+  { id: "1d", label: "1일", days: 1, legacyValues: ["1D"] },
+  { id: "5d", label: "5일", days: 5, legacyValues: ["5D"] },
+  { id: "1m", label: "1개월", days: 30, legacyValues: ["1M"] },
+  { id: "3m", label: "3개월", days: 90, legacyValues: ["3M"] },
+  { id: "6m", label: "6개월", days: 180, legacyValues: ["6M"] },
+  { id: "ytd", label: "연초대비", days: -1, legacyValues: ["YTD"] },
+  { id: "1y", label: "1년", days: 365, legacyValues: ["1Y"] },
+  { id: "5y", label: "5년", days: 1825, legacyValues: ["5Y"] },
+  { id: "all", label: "전체", days: 0, legacyValues: ["전체"] },
 ] as const;
 
 const TIME_RANGE_STORAGE_KEY = "quanting-time-range";
+const DEFAULT_TIME_RANGE_ID = "all";
+type TimeRangeOption = (typeof TIME_RANGES)[number];
 
-function getSavedTimeRangeLabel(): string {
+function getSavedTimeRangeId(): string {
   try {
     const raw = localStorage.getItem(TIME_RANGE_STORAGE_KEY);
-    if (!raw) return "전체";
-    const exists = TIME_RANGES.some((item) => item.label === raw);
-    return exists ? raw : "전체";
+    if (!raw) return DEFAULT_TIME_RANGE_ID;
+    const matched = TIME_RANGES.find(
+      (item) =>
+        item.id === raw ||
+        item.label === raw ||
+        item.legacyValues.some((legacy) => legacy === raw),
+    );
+    return matched?.id ?? DEFAULT_TIME_RANGE_ID;
   } catch {
-    return "전체";
+    return DEFAULT_TIME_RANGE_ID;
   }
 }
 
 export default function TimeRangeBar() {
-  const [active, setActive] = useState<string>(() => getSavedTimeRangeLabel());
+  const [activeId, setActiveId] = useState<string>(() => getSavedTimeRangeId());
 
-  const handleClick = (range: typeof TIME_RANGES[number]) => {
-    setActive(range.label);
+  const handleClick = (range: TimeRangeOption) => {
+    setActiveId(range.id);
     try {
-      localStorage.setItem(TIME_RANGE_STORAGE_KEY, range.label);
+      localStorage.setItem(TIME_RANGE_STORAGE_KEY, range.id);
     } catch {}
 
     if (range.days === 0) {
@@ -57,7 +64,7 @@ export default function TimeRangeBar() {
   };
 
   useEffect(() => {
-    const initial = TIME_RANGES.find((item) => item.label === active);
+    const initial = TIME_RANGES.find((item) => item.id === activeId);
     if (!initial) return;
     const timer = window.setTimeout(() => {
       handleClick(initial);
@@ -70,19 +77,19 @@ export default function TimeRangeBar() {
   return (
     <ToggleGroup
       type="single"
-      value={active}
+      size="md"
+      value={activeId}
       onValueChange={(value) => {
         if (!value) return;
-        const range = TIME_RANGES.find((item) => item.label === value);
+        const range = TIME_RANGES.find((item) => item.id === value);
         if (range) handleClick(range);
       }}
-      className="gap-0.5 p-0.5"
     >
       {TIME_RANGES.map((range) => (
         <ToggleGroupItem
-          key={range.label}
-          value={range.label}
-          className="px-1.5 py-0.5 text-[10px]"
+          key={range.id}
+          value={range.id}
+          className="font-semibold whitespace-nowrap"
         >
           {range.label}
         </ToggleGroupItem>

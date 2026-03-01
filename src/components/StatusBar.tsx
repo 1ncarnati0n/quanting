@@ -86,7 +86,7 @@ export default function StatusBar() {
 
   return (
     <div
-      className="flex min-w-0 flex-wrap items-center gap-2 border-t px-3 py-1.5 text-xs md:flex-nowrap"
+      className="ds-type-label flex min-w-0 flex-wrap items-center gap-2 border-t px-3 py-1.5 md:flex-nowrap"
       style={{
         background: "var(--card)",
         borderColor: "var(--border)",
@@ -97,30 +97,30 @@ export default function StatusBar() {
         {lastSignal ? (
           <div className="flex min-w-0 items-center gap-2">
             <SignalBadge signalType={lastSignal.signalType} source={lastSignal.source} />
-            <span className="truncate text-[11px]" style={{ color: "var(--muted-foreground)" }}>
+            <span className="ds-type-label truncate" style={{ color: "var(--muted-foreground)" }}>
               {formatTime(lastSignal.time)} · 진입 {formatPrice(lastSignal.price, market)}
               {lastRsi ? ` · RSI ${lastRsi.value.toFixed(1)}` : ""}
             </span>
           </div>
         ) : (
-          <span className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
+          <span className="ds-type-label" style={{ color: "var(--muted-foreground)" }}>
             최근 신호 없음
           </span>
         )}
-        <div className="mt-0.5 text-[10px]" style={{ color: "var(--muted-foreground)" }}>
+        <div className="ds-type-caption mt-0.5" style={{ color: "var(--muted-foreground)" }}>
           {interval} 차트
           {lastCandle ? ` · 종가 ${formatPrice(lastCandle.close, market)}` : ""}
         </div>
       </div>
 
       <div className="hidden items-center gap-1 md:flex">
-        <span className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>
+        <span className="ds-type-caption" style={{ color: "var(--muted-foreground)" }}>
           {enabledIndicators.length}개 활성
         </span>
         {enabledIndicators.map(({ key, label, color }) => (
           <span
             key={key}
-            className="rounded px-1 py-0.5 text-[9px] font-medium"
+            className="ds-type-caption rounded px-1 py-0.5 font-medium"
             style={{
               background: `color-mix(in srgb, ${color} 18%, transparent)`,
               color,
@@ -135,7 +135,7 @@ export default function StatusBar() {
       <div className="hidden text-right lg:block">
         {lastCandle && (
           <div
-            className="font-mono text-[12px]"
+            className="ds-type-label font-mono"
             style={{
               color: lastCandle.close >= lastCandle.open ? "var(--success)" : "var(--destructive)",
             }}
@@ -144,12 +144,12 @@ export default function StatusBar() {
           </div>
         )}
         {lastCandle && (
-          <div className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>
+          <div className="ds-type-caption" style={{ color: "var(--muted-foreground)" }}>
             {formatTime(lastCandle.time)}
           </div>
         )}
         {performance.trades > 0 && (
-          <div className="mt-0.5 text-[10px] font-mono" style={{ color: "var(--muted-foreground)" }}>
+          <div className="ds-type-caption mt-0.5 font-mono" style={{ color: "var(--muted-foreground)" }}>
             성과 {performance.winRate.toFixed(1)}% · {performance.avgReturn >= 0 ? "+" : ""}
             {performance.avgReturn.toFixed(2)}%
           </div>

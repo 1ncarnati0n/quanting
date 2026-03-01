@@ -245,6 +245,34 @@ export interface StcResult {
   data: StcPoint[];
 }
 
+// SMC (Smart Money Concepts)
+export interface SmcEvent {
+  time: number;
+  eventType: string; // "bos_bull" | "bos_bear" | "choch_bull" | "choch_bear"
+  price: number;
+  swingTime: number;
+  swingPrice: number;
+}
+
+export interface SmcResult {
+  data: SmcEvent[];
+}
+
+// Auto Fibonacci
+export interface AutoFibLevel {
+  ratio: number;
+  price: number;
+}
+
+export interface AutoFibResult {
+  highTime: number;
+  highPrice: number;
+  lowTime: number;
+  lowPrice: number;
+  isUptrend: boolean;
+  levels: AutoFibLevel[];
+}
+
 export interface AnalysisResponse {
   candles: Candle[];
   bollingerBands: BollingerBandsPoint[];
@@ -270,6 +298,9 @@ export interface AnalysisResponse {
   adx: AdxResult | null;
   cvd: CvdResult | null;
   stc: StcResult | null;
+  smc: SmcResult | null;
+  anchoredVwap: VwapResult | null;
+  autoFib: AutoFibResult | null;
   symbol: string;
   interval: string;
 }
@@ -369,6 +400,19 @@ export interface StcParams {
   slowMa: number;
 }
 
+export interface SmcParams {
+  swingLength: number;
+}
+
+export interface AnchoredVwapParams {
+  anchorTime: number;
+}
+
+export interface AutoFibParams {
+  lookback: number;
+  swingLength: number;
+}
+
 export interface AnalysisParams {
   symbol: string;
   interval: string;
@@ -392,6 +436,9 @@ export interface AnalysisParams {
   williamsR?: WillrParams | null;
   adx?: AdxParams | null;
   stc?: StcParams | null;
+  smc?: SmcParams | null;
+  anchoredVwap?: AnchoredVwapParams | null;
+  autoFib?: AutoFibParams | null;
   signalFilter: SignalFilterParams;
 }
 

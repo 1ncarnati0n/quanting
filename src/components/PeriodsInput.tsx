@@ -39,7 +39,7 @@ export default function PeriodsInput({ periods, onChange, max = 7 }: PeriodsInpu
         {periods.map((p) => (
           <span
             key={p}
-            className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium"
+            className="ds-type-caption inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium"
             style={{
               background: "var(--secondary)",
               color: "var(--foreground)",
@@ -69,14 +69,14 @@ export default function PeriodsInput({ periods, onChange, max = 7 }: PeriodsInpu
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="기간 추가"
-            className="h-7 w-20 px-1.5 py-0.5 text-xs"
+            className="ds-type-label h-7 w-20 px-1.5 py-0.5"
           />
           <Button
             onClick={addPeriod}
             title="기간 추가"
             variant="secondary"
             size="sm"
-            className="h-7 px-2 py-0.5 text-xs"
+            className="ds-type-label h-7 px-2 py-0.5"
           >
             +
           </Button>

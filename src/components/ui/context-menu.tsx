@@ -137,7 +137,7 @@ const ContextMenuItem = React.forwardRef<HTMLButtonElement, ContextMenuItemProps
         type="button"
         role="menuitem"
         className={cn(
-          "flex w-full items-center gap-2 rounded px-2.5 py-1.5 text-left text-xs text-foreground transition-colors hover:bg-secondary disabled:pointer-events-none disabled:opacity-50",
+          "ds-type-label flex w-full items-center gap-2 rounded px-2.5 py-1.5 text-left text-foreground transition-colors hover:bg-secondary disabled:pointer-events-none disabled:opacity-50",
           className,
         )}
         onClick={(event) => {

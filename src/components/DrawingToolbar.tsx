@@ -81,7 +81,7 @@ export default function DrawingToolbar() {
             color: activeTool === tool.key ? "var(--primary)" : "var(--foreground)",
           }}
         >
-          <span className="font-bold text-[10px]">{tool.icon}</span>
+          <span className="ds-type-caption font-bold leading-none">{tool.icon}</span>
         </button>
       ))}
 
@@ -154,7 +154,7 @@ export default function DrawingToolbar() {
       {showList && (
         <div className="chart-toolbar-dropdown" style={{ left: 0, minWidth: 220, top: "calc(100% + 4px)" }}>
           <div
-            className="px-2 pb-1 text-[10px] font-semibold uppercase tracking-wider"
+            className="ds-type-caption px-2 pb-1 font-semibold uppercase tracking-wider"
             style={{ color: "var(--muted-foreground)" }}
           >
             드로잉 {drawings.length}개
@@ -172,20 +172,20 @@ export default function DrawingToolbar() {
               onClick={() => setSelectedDrawing(item.id)}
             >
               <span
-                className="min-w-0 truncate text-[11px]"
+                className="ds-type-label min-w-0 truncate"
                 title={drawingTypeLabel(item)}
               >
                 {drawingTypeLabel(item)}
               </span>
               <div className="flex items-center gap-1">
                 {selectedDrawingId === item.id && (
-                  <span className="text-[9px]" style={{ color: "var(--primary)" }}>
+                  <span className="ds-type-caption" style={{ color: "var(--primary)" }}>
                     선택
                   </span>
                 )}
                 <button
                   type="button"
-                  className="rounded px-1 py-0.5 text-[10px]"
+                  className="ds-type-caption rounded px-1 py-0.5"
                   style={{
                     border: "1px solid var(--border)",
                     color: "var(--destructive)",
@@ -202,7 +202,7 @@ export default function DrawingToolbar() {
             </div>
           ))}
           {recentDrawings.length === 0 && (
-            <div className="px-2 py-1 text-[10px]" style={{ color: "var(--muted-foreground)" }}>
+            <div className="ds-type-caption px-2 py-1" style={{ color: "var(--muted-foreground)" }}>
               표시할 드로잉이 없습니다.
             </div>
           )}

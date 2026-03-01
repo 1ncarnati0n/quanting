@@ -164,7 +164,7 @@ export default function ChartContainer() {
           <p className="mb-2 text-sm" style={{ color: "var(--destructive)" }}>
             {error}
           </p>
-          <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>
+          <p className="ds-type-label" style={{ color: "var(--muted-foreground)" }}>
             심볼명 또는 네트워크 연결을 확인해 주세요
           </p>
         </div>

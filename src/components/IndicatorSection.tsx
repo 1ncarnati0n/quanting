@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from "react";
+import { INDICATOR_GUIDE } from "../utils/indicatorGuide";
 
 interface IndicatorSectionProps {
   title: string;
@@ -16,6 +17,8 @@ export default function IndicatorSection({
   children,
 }: IndicatorSectionProps) {
   const [open, setOpen] = useState(false);
+  const guide = INDICATOR_GUIDE[title];
+  const hasContent = !!(children || guide);
 
   return (
     <div className="mb-2">
@@ -33,7 +36,7 @@ export default function IndicatorSection({
 
         {/* Title */}
         <span
-          className="flex-1 text-xs font-medium"
+          className="ds-type-label flex-1 font-medium"
           style={{
             color: enabled ? "var(--foreground)" : "var(--muted-foreground)",
           }}
@@ -79,7 +82,7 @@ export default function IndicatorSection({
       </div>
 
       {/* Content — smooth grid-rows animation */}
-      {children && (
+      {hasContent && (
         <div
           style={{
             display: "grid",
@@ -92,6 +95,19 @@ export default function IndicatorSection({
               className="mt-1 px-2 pb-1"
               style={{ opacity: enabled ? 1 : 0.5 }}
             >
+              {guide && (
+                <div
+                  className="mb-1.5 rounded-sm border-l-2 py-1 pl-2"
+                  style={{ borderColor: color }}
+                >
+                  <div className="ds-type-caption leading-relaxed" style={{ color: "var(--muted-foreground)" }}>
+                    {guide.summary}
+                  </div>
+                  <div className="ds-type-caption mt-0.5 leading-relaxed" style={{ color: "var(--foreground)", opacity: 0.8 }}>
+                    {guide.tip}
+                  </div>
+                </div>
+              )}
               {children}
             </div>
           </div>

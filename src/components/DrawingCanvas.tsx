@@ -897,7 +897,7 @@ export default function DrawingCanvas({ chart, mainSeries }: DrawingCanvasProps)
     >
       {guideMessage && (
         <div
-          className="pointer-events-none absolute left-1/2 top-3 z-[9] -translate-x-1/2 rounded px-2 py-1 text-[10px] font-medium"
+          className="ds-type-caption pointer-events-none absolute left-1/2 top-3 z-[9] -translate-x-1/2 rounded px-2 py-1 font-medium"
           style={{
             background: "color-mix(in srgb, var(--background) 84%, transparent)",
             border: "1px solid var(--border)",

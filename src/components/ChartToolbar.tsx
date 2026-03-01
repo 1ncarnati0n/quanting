@@ -58,7 +58,7 @@ export default function ChartToolbar() {
         <div className="relative">
           <DropdownMenuTrigger asChild>
             <button type="button" className="chart-toolbar-btn" title="차트 타입">
-              <span className="font-bold text-[10px]">{currentTypeLabel}</span>
+              <span className="ds-type-caption font-bold leading-none">{currentTypeLabel}</span>
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="min-w-[120px]">

@@ -103,6 +103,15 @@ export const COLORS = {
   cvdLine: "#818CF8",
   // STC
   stcLine: "#E879F9",
+  // SMC
+  smcBosBull: "#22C55E",
+  smcBosBear: "#EF4444",
+  smcChochBull: "#06B6D4",
+  smcChochBear: "#F97316",
+  // Anchored VWAP
+  anchoredVwap: "#A855F7",
+  // Auto Fibonacci
+  autoFib: "#FBBF24",
 } as const;
 
 // MA dynamic color palette (up to 7 lines)
@@ -126,6 +135,8 @@ export const INDICATOR_DEFAULTS = {
   williamsR: { period: 14 },
   adx: { period: 14 },
   stc: { tcLen: 10, fastMa: 23, slowMa: 50 },
+  smc: { swingLength: 5 },
+  autoFib: { lookback: 120, swingLength: 5 },
   signalFilter: {
     enabled: true,
     applyRegimeFilter: true,

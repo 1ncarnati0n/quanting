@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 
 interface ToggleGroupContextValue {
   value: string;
+  size: "sm" | "md" | "lg";
   onValueChange?: (value: string) => void;
 }
 
@@ -13,21 +14,36 @@ const ToggleGroupContext = React.createContext<ToggleGroupContextValue | null>(
 interface ToggleGroupProps extends React.HTMLAttributes<HTMLDivElement> {
   type?: "single";
   value?: string;
+  size?: "sm" | "md" | "lg";
   onValueChange?: (value: string) => void;
 }
+
+const GROUP_SIZE_CLASSES: Record<NonNullable<ToggleGroupProps["size"]>, string> = {
+  sm: "gap-1 p-1",
+  md: "gap-1 p-1",
+  lg: "gap-1.5 p-1.5",
+};
+
+const ITEM_SIZE_CLASSES: Record<NonNullable<ToggleGroupProps["size"]>, string> = {
+  sm: "h-[var(--control-height-sm)] px-2.5 text-[var(--font-size-body-sm)]",
+  md: "h-[var(--control-height-md)] px-3 text-sm",
+  lg: "h-[var(--control-height-lg)] px-3.5 text-[var(--font-size-subtitle)]",
+};
 
 function ToggleGroup({
   className,
   value = "",
+  size = "md",
   onValueChange,
   children,
   ...props
 }: ToggleGroupProps) {
   return (
-    <ToggleGroupContext.Provider value={{ value, onValueChange }}>
+    <ToggleGroupContext.Provider value={{ value, size, onValueChange }}>
       <div
         className={cn(
-          "inline-flex items-center gap-1 rounded border border-border bg-secondary p-1",
+          "inline-flex items-center rounded border border-border bg-secondary",
+          GROUP_SIZE_CLASSES[size],
           className,
         )}
         {...props}
@@ -61,7 +77,8 @@ function ToggleGroupItem({
         onClick?.(e);
       }}
       className={cn(
-        "rounded px-2 py-1 text-xs font-semibold transition-colors",
+        "rounded font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-ring",
+        ITEM_SIZE_CLASSES[group?.size ?? "md"],
         active
           ? "bg-primary text-primary-foreground"
           : "text-muted-foreground hover:bg-muted",

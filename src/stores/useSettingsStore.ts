@@ -99,6 +99,9 @@ export interface IndicatorConfig {
   adx: { enabled: boolean; period: number };
   cvd: { enabled: boolean };
   stc: { enabled: boolean; tcLen: number; fastMa: number; slowMa: number };
+  smc: { enabled: boolean; swingLength: number };
+  anchoredVwap: { enabled: boolean; anchorTime: number | null };
+  autoFib: { enabled: boolean; lookback: number; swingLength: number };
   layout: {
     priceAreaRatio: number;
     volumeWeight: number;
@@ -163,6 +166,9 @@ const DEFAULT_INDICATORS: IndicatorConfig = {
   adx: { enabled: false, ...INDICATOR_DEFAULTS.adx },
   cvd: { enabled: false },
   stc: { enabled: false, ...INDICATOR_DEFAULTS.stc },
+  smc: { enabled: false, ...INDICATOR_DEFAULTS.smc },
+  anchoredVwap: { enabled: false, anchorTime: null },
+  autoFib: { enabled: false, ...INDICATOR_DEFAULTS.autoFib },
   layout: {
     priceAreaRatio: 0.62,
     volumeWeight: 1.2,
@@ -293,6 +299,9 @@ function getSavedIndicators(): IndicatorConfig {
         adx: { ...DEFAULT_INDICATORS.adx, ...parsed.adx },
         cvd: { ...DEFAULT_INDICATORS.cvd, ...parsed.cvd },
         stc: { ...DEFAULT_INDICATORS.stc, ...parsed.stc },
+        smc: { ...DEFAULT_INDICATORS.smc, ...parsed.smc },
+        anchoredVwap: { ...DEFAULT_INDICATORS.anchoredVwap, ...parsed.anchoredVwap },
+        autoFib: { ...DEFAULT_INDICATORS.autoFib, ...parsed.autoFib },
         layout: { ...DEFAULT_INDICATORS.layout, ...parsed.layout },
         signalFilter: {
           ...DEFAULT_INDICATORS.signalFilter,

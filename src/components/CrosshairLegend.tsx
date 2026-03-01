@@ -30,7 +30,7 @@ export default function CrosshairLegend() {
         backdropFilter: "blur(4px)",
       }}
     >
-      <div className="flex items-center gap-2 text-[10px]">
+      <div className="ds-type-caption flex items-center gap-2">
         <span className="font-semibold" style={{ color: "var(--primary)" }}>
           {symbol}
         </span>
@@ -40,7 +40,7 @@ export default function CrosshairLegend() {
       </div>
 
       {hasData && (
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-0 font-mono text-[10px]">
+        <div className="ds-type-caption flex flex-wrap items-center gap-x-2 gap-y-0 font-mono">
           {!isLineType && (
             <>
               <span style={{ color: "var(--muted-foreground)" }}>O</span>
@@ -63,7 +63,7 @@ export default function CrosshairLegend() {
       )}
 
       {Object.keys(indicators).length > 0 && (
-        <div className="flex flex-wrap gap-x-2 text-[9px]" style={{ color: "var(--muted-foreground)" }}>
+        <div className="ds-type-caption flex flex-wrap gap-x-2" style={{ color: "var(--muted-foreground)" }}>
           {Object.entries(indicators).map(([key, val]) => (
             <span key={key}>
               <span className="font-medium uppercase">{key.replace(/-\d+$/, "").replace("-line", "")}</span>{" "}

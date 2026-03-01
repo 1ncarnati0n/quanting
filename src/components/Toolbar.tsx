@@ -70,21 +70,21 @@ export default function Toolbar({ onToggleWatchlist, onToggleSettings }: Toolbar
               Quanting
             </span>
             <span
-              className="rounded px-1.5 py-0.5 text-[9px] font-bold"
+              className="ds-type-caption rounded px-1.5 py-0.5 font-bold"
               style={{ background: marketColor, color: "var(--primary-foreground)" }}
             >
               {marketBadge}
             </span>
-            <span className="truncate text-xs font-semibold" style={{ color: "var(--foreground)" }}>
+            <span className="ds-type-label truncate font-semibold" style={{ color: "var(--foreground)" }}>
               {symbolLabel ? `${symbol} · ${symbolLabel}` : symbol}
             </span>
             {isLoading && (
-              <span className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>
+              <span className="ds-type-caption" style={{ color: "var(--muted-foreground)" }}>
                 업데이트 중...
               </span>
             )}
           </div>
-          <div className="mt-0.5 flex items-center gap-2 text-[11px]">
+          <div className="ds-type-label mt-0.5 flex items-center gap-2">
             <span className="font-mono font-semibold" style={{ color: "var(--foreground)" }}>
               {lastCandle ? formatPrice(lastCandle.close, market) : "-"}
             </span>
@@ -95,13 +95,13 @@ export default function Toolbar({ onToggleWatchlist, onToggleSettings }: Toolbar
                 {changePct.toFixed(2)}%)
               </span>
             )}
-            <span className="hidden sm:inline text-[10px]" style={{ color: "var(--muted-foreground)" }}>
+            <span className="ds-type-caption hidden sm:inline" style={{ color: "var(--muted-foreground)" }}>
               {lastCandle ? `갱신 ${formatShortTime(lastCandle.time)}` : "데이터 없음"}
             </span>
           </div>
         </div>
 
-        <div className="hidden items-center gap-2 text-[10px] xl:flex">
+        <div className="ds-type-caption hidden items-center gap-2 xl:flex">
           <span style={{ color: "var(--muted-foreground)" }}>H</span>
           <span className="font-mono" style={{ color: "var(--foreground)" }}>
             {high !== null ? formatPrice(high, market) : "-"}

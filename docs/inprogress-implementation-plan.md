@@ -7,7 +7,7 @@
 - Phase 1 기능을 우선 완성하여 실사용 체감 개선
 - Phase 2~4는 아키텍처를 유지하며 순차 확장
 
-## 진행 현황 (2026-02-28)
+## 진행 현황 (2026-03-01)
 
 ### Phase 1 — 핵심 분석 도구 강화
 
@@ -44,6 +44,37 @@
 - [ ] 선물/옵션 (요청 범위에서 보류)
 - [x] 재무제표 오버레이(기본형)
 - [x] 커스텀 인터벌 리샘플링
+
+### 추가 구현 — 지표 대량 확장 (Phase 1~2 이후 강화)
+
+- [x] HMA (Hull Moving Average)
+- [x] Donchian Channels
+- [x] Keltner Channels
+- [x] MFI (Money Flow Index)
+- [x] CMF (Chaikin Money Flow)
+- [x] Choppiness Index
+- [x] Williams %R
+- [x] ADX / DI+/ DI-
+- [x] CVD (Cumulative Volume Delta)
+- [x] STC (Schaff Trend Cycle)
+- [x] SMC (Smart Money Concepts — BOS/CHoCH)
+- [x] Anchored VWAP
+- [x] Auto Fibonacci Retracement
+
+### 추가 구현 — UX 개선
+
+- [x] 지표 가이드: 각 지표 설정 펼침 영역에 한줄 설명 + 해석 팁 인라인 표시
+  - `src/utils/indicatorGuide.ts` — title 기반 가이드 맵 (27개 지표)
+  - `src/components/IndicatorSection.tsx` — 자동 조회 + 색상 좌측 보더 렌더링
+
+## 현재 지표 현황 (29개)
+
+| 카테고리 | 지표 | 수량 |
+|----------|------|:----:|
+| 오버레이 | BB, SMA, EMA, HMA, VWAP, Ichimoku, Supertrend, PSAR, Donchian, Keltner, SMC, Anchored VWAP, Auto Fibonacci | 13 |
+| 오실레이터 | RSI, MACD, Stochastic, ATR, MFI, CMF, Choppiness, Williams %R, ADX, STC | 10 |
+| 거래량 | Volume, OBV, CVD, Volume Profile | 4 |
+| 기타 | 재무 오버레이, 신호 필터(Quanting) | 2 |
 
 ## 구현 원칙
 

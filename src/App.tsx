@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useState, type CSSProperties } from "react";
+import { useEffect, useLayoutEffect, useMemo, useState, type CSSProperties } from "react";
 import MarketHeader from "./components/MarketHeader";
 import ChartContainer from "./components/ChartContainer";
 import StatusBar from "./components/StatusBar";
@@ -66,64 +66,101 @@ function App() {
     root.style.colorScheme = theme;
   }, [theme]);
 
-  // Data fetching
+  // Build fetch params — only values that the backend actually uses.
+  // Indicator enabled states that don't affect backend params (e.g. RSI toggle,
+  // BB toggle) are excluded so toggling display-only indicators won't trigger
+  // an unnecessary refetch that replaces WebSocket-updated candle data.
+  const fetchParams = useMemo(() => ({
+    symbol,
+    interval,
+    market,
+    bbPeriod: indicators.bb.period,
+    bbMultiplier: indicators.bb.multiplier,
+    rsiPeriod: indicators.rsi.period,
+    smaPeriods: indicators.sma.enabled ? indicators.sma.periods : [],
+    emaPeriods: indicators.ema.enabled ? indicators.ema.periods : [],
+    hmaPeriods: indicators.hma.enabled ? indicators.hma.periods : [],
+    macd: indicators.macd.enabled
+      ? {
+          fastPeriod: indicators.macd.fastPeriod,
+          slowPeriod: indicators.macd.slowPeriod,
+          signalPeriod: indicators.macd.signalPeriod,
+        }
+      : null,
+    stochastic: indicators.stochastic.enabled
+      ? {
+          kPeriod: indicators.stochastic.kPeriod,
+          dPeriod: indicators.stochastic.dPeriod,
+          smooth: indicators.stochastic.smooth,
+        }
+      : null,
+    showVolume: indicators.volume.enabled,
+    showObv: indicators.obv.enabled,
+    showCvd: indicators.cvd.enabled,
+    donchian: indicators.donchian.enabled
+      ? { period: indicators.donchian.period }
+      : null,
+    keltner: indicators.keltner.enabled
+      ? {
+          emaPeriod: indicators.keltner.emaPeriod,
+          atrPeriod: indicators.keltner.atrPeriod,
+          atrMultiplier: indicators.keltner.atrMultiplier,
+        }
+      : null,
+    mfi: indicators.mfi.enabled ? { period: indicators.mfi.period } : null,
+    cmf: indicators.cmf.enabled ? { period: indicators.cmf.period } : null,
+    choppiness: indicators.choppiness.enabled
+      ? { period: indicators.choppiness.period }
+      : null,
+    williamsR: indicators.williamsR.enabled
+      ? { period: indicators.williamsR.period }
+      : null,
+    adx: indicators.adx.enabled ? { period: indicators.adx.period } : null,
+    stc: indicators.stc.enabled
+      ? {
+          tcLen: indicators.stc.tcLen,
+          fastMa: indicators.stc.fastMa,
+          slowMa: indicators.stc.slowMa,
+        }
+      : null,
+    smc: indicators.smc.enabled
+      ? { swingLength: indicators.smc.swingLength }
+      : null,
+    anchoredVwap: indicators.anchoredVwap.enabled && indicators.anchoredVwap.anchorTime
+      ? { anchorTime: indicators.anchoredVwap.anchorTime }
+      : null,
+    autoFib: indicators.autoFib.enabled
+      ? { lookback: indicators.autoFib.lookback, swingLength: indicators.autoFib.swingLength }
+      : null,
+    signalFilter: indicators.signalFilter,
+  }), [
+    symbol, interval, market,
+    indicators.bb.period, indicators.bb.multiplier,
+    indicators.rsi.period,
+    indicators.sma.enabled, indicators.sma.periods,
+    indicators.ema.enabled, indicators.ema.periods,
+    indicators.hma.enabled, indicators.hma.periods,
+    indicators.macd.enabled, indicators.macd.fastPeriod, indicators.macd.slowPeriod, indicators.macd.signalPeriod,
+    indicators.stochastic.enabled, indicators.stochastic.kPeriod, indicators.stochastic.dPeriod, indicators.stochastic.smooth,
+    indicators.volume.enabled, indicators.obv.enabled, indicators.cvd.enabled,
+    indicators.donchian.enabled, indicators.donchian.period,
+    indicators.keltner.enabled, indicators.keltner.emaPeriod, indicators.keltner.atrPeriod, indicators.keltner.atrMultiplier,
+    indicators.mfi.enabled, indicators.mfi.period,
+    indicators.cmf.enabled, indicators.cmf.period,
+    indicators.choppiness.enabled, indicators.choppiness.period,
+    indicators.williamsR.enabled, indicators.williamsR.period,
+    indicators.adx.enabled, indicators.adx.period,
+    indicators.stc.enabled, indicators.stc.tcLen, indicators.stc.fastMa, indicators.stc.slowMa,
+    indicators.smc.enabled, indicators.smc.swingLength,
+    indicators.anchoredVwap.enabled, indicators.anchoredVwap.anchorTime,
+    indicators.autoFib.enabled, indicators.autoFib.lookback, indicators.autoFib.swingLength,
+    indicators.signalFilter,
+  ]);
+
+  // Data fetching — only triggers when actual backend params change
   useEffect(() => {
-    fetchData({
-      symbol,
-      interval,
-      bbPeriod: indicators.bb.period,
-      bbMultiplier: indicators.bb.multiplier,
-      rsiPeriod: indicators.rsi.period,
-      market,
-      smaPeriods: indicators.sma.enabled ? indicators.sma.periods : [],
-      emaPeriods: indicators.ema.enabled ? indicators.ema.periods : [],
-      hmaPeriods: indicators.hma.enabled ? indicators.hma.periods : [],
-      macd: indicators.macd.enabled
-        ? {
-            fastPeriod: indicators.macd.fastPeriod,
-            slowPeriod: indicators.macd.slowPeriod,
-            signalPeriod: indicators.macd.signalPeriod,
-          }
-        : null,
-      stochastic: indicators.stochastic.enabled
-        ? {
-            kPeriod: indicators.stochastic.kPeriod,
-            dPeriod: indicators.stochastic.dPeriod,
-            smooth: indicators.stochastic.smooth,
-          }
-        : null,
-      showVolume: indicators.volume.enabled,
-      showObv: indicators.obv.enabled,
-      showCvd: indicators.cvd.enabled,
-      donchian: indicators.donchian.enabled
-        ? { period: indicators.donchian.period }
-        : null,
-      keltner: indicators.keltner.enabled
-        ? {
-            emaPeriod: indicators.keltner.emaPeriod,
-            atrPeriod: indicators.keltner.atrPeriod,
-            atrMultiplier: indicators.keltner.atrMultiplier,
-          }
-        : null,
-      mfi: indicators.mfi.enabled ? { period: indicators.mfi.period } : null,
-      cmf: indicators.cmf.enabled ? { period: indicators.cmf.period } : null,
-      choppiness: indicators.choppiness.enabled
-        ? { period: indicators.choppiness.period }
-        : null,
-      williamsR: indicators.williamsR.enabled
-        ? { period: indicators.williamsR.period }
-        : null,
-      adx: indicators.adx.enabled ? { period: indicators.adx.period } : null,
-      stc: indicators.stc.enabled
-        ? {
-            tcLen: indicators.stc.tcLen,
-            fastMa: indicators.stc.fastMa,
-            slowMa: indicators.stc.slowMa,
-          }
-        : null,
-      signalFilter: indicators.signalFilter,
-    });
-  }, [symbol, interval, market, indicators, fetchData]);
+    fetchData(fetchParams);
+  }, [fetchParams, fetchData]);
 
   // Bar replay tick
   useEffect(() => {
@@ -197,6 +234,15 @@ function App() {
               fastMa: state.indicators.stc.fastMa,
               slowMa: state.indicators.stc.slowMa,
             }
+          : null,
+        smc: state.indicators.smc.enabled
+          ? { swingLength: state.indicators.smc.swingLength }
+          : null,
+        anchoredVwap: state.indicators.anchoredVwap.enabled && state.indicators.anchoredVwap.anchorTime
+          ? { anchorTime: state.indicators.anchoredVwap.anchorTime }
+          : null,
+        autoFib: state.indicators.autoFib.enabled
+          ? { lookback: state.indicators.autoFib.lookback, swingLength: state.indicators.autoFib.swingLength }
           : null,
         signalFilter: state.indicators.signalFilter,
       });
@@ -413,30 +459,21 @@ function App() {
       const keyLower = key.toLowerCase();
       if (isMod && keyLower === "b") {
         e.preventDefault();
-        if (window.matchMedia("(min-width: 1536px)").matches) {
-          window.dispatchEvent(new CustomEvent("quanting:toggle-left-sidebar"));
-        } else {
-          setShowWatchlist((prev) => !prev);
-          if (showSettings) setShowSettings(false);
-        }
+        if (window.matchMedia("(min-width: 1280px)").matches) return;
+        setShowWatchlist((prev) => !prev);
+        if (showSettings) setShowSettings(false);
       }
       if (isMod && keyLower === ",") {
         e.preventDefault();
-        if (window.matchMedia("(min-width: 1536px)").matches) {
-          window.dispatchEvent(new CustomEvent("quanting:toggle-right-sidebar"));
-        } else {
-          setShowSettings(!showSettings);
-          setShowWatchlist(false);
-        }
+        if (window.matchMedia("(min-width: 1280px)").matches) return;
+        setShowSettings(!showSettings);
+        setShowWatchlist(false);
       }
       if (isMod && keyLower === "k") {
         e.preventDefault();
-        if (window.matchMedia("(min-width: 1536px)").matches) {
-          window.dispatchEvent(new CustomEvent("quanting:open-left-sidebar"));
-        } else {
-          setShowSettings(false);
-          setShowWatchlist(true);
-        }
+        if (window.matchMedia("(min-width: 1280px)").matches) return;
+        setShowSettings(false);
+        setShowWatchlist(true);
       }
     };
 
@@ -460,19 +497,13 @@ function App() {
   }
 
   const handleToggleWatchlistPanel = () => {
-    if (window.matchMedia("(min-width: 1536px)").matches) {
-      window.dispatchEvent(new CustomEvent("quanting:toggle-left-sidebar"));
-      return;
-    }
+    if (window.matchMedia("(min-width: 1280px)").matches) return;
     setShowSettings(false);
     setShowWatchlist((prev) => !prev);
   };
 
   const handleToggleSettingsPanel = () => {
-    if (window.matchMedia("(min-width: 1536px)").matches) {
-      window.dispatchEvent(new CustomEvent("quanting:toggle-right-sidebar"));
-      return;
-    }
+    if (window.matchMedia("(min-width: 1280px)").matches) return;
     setShowWatchlist(false);
     setShowSettings(!showSettings);
   };

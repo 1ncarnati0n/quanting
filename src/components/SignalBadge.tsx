@@ -32,7 +32,7 @@ export default function SignalBadge({ signalType, source }: SignalBadgeProps) {
   return (
     <Badge
       variant="outline"
-      className="text-xs font-semibold"
+      className="ds-type-label font-semibold"
       style={{
         background: `${config.color}22`,
         color: config.color,

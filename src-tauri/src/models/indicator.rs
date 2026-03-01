@@ -299,3 +299,39 @@ pub struct StcResult {
     pub slow_ma: usize,
     pub data: Vec<StcPoint>,
 }
+
+// SMC (Smart Money Concepts — BOS/CHoCH)
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SmcEvent {
+    pub time: i64,
+    pub event_type: String, // "bos_bull", "bos_bear", "choch_bull", "choch_bear"
+    pub price: f64,
+    pub swing_time: i64,
+    pub swing_price: f64,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SmcResult {
+    pub data: Vec<SmcEvent>,
+}
+
+// Auto Fibonacci Retracement
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AutoFibLevel {
+    pub ratio: f64,
+    pub price: f64,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AutoFibResult {
+    pub high_time: i64,
+    pub high_price: f64,
+    pub low_time: i64,
+    pub low_price: f64,
+    pub is_uptrend: bool,
+    pub levels: Vec<AutoFibLevel>,
+}

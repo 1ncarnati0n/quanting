@@ -51,7 +51,7 @@ const CommandGroup = React.forwardRef<HTMLDivElement, CommandGroupProps>(
   ({ className, heading, children, ...props }, ref) => (
     <div ref={ref} className={cn("py-1", className)} {...props}>
       {heading ? (
-        <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+        <div className="ds-type-caption px-3 py-1 font-bold uppercase tracking-wider text-muted-foreground">
           {heading}
         </div>
       ) : null}
@@ -66,7 +66,7 @@ const CommandEmpty = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLD
   ({ className, ...props }, ref) => (
     <div
       ref={ref}
-      className={cn("px-3 py-6 text-center text-xs text-muted-foreground", className)}
+      className={cn("ds-type-label px-3 py-6 text-center text-muted-foreground", className)}
       {...props}
     />
   ),

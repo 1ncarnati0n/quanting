@@ -42,10 +42,10 @@ function Metric({
         background: "color-mix(in srgb, var(--secondary) 74%, transparent)",
       }}
     >
-      <div className="text-[9px] uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>
+      <div className="ds-type-caption uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>
         {label}
       </div>
-      <div className="mt-0.5 font-mono text-[11px] font-semibold" style={{ color: "var(--foreground)" }}>
+      <div className="ds-type-label mt-0.5 font-mono font-semibold" style={{ color: "var(--foreground)" }}>
         {value}
       </div>
     </div>
@@ -87,16 +87,16 @@ export default function FundamentalsOverlay() {
     >
       <div className="mb-2 flex items-center justify-between gap-2">
         <div className="min-w-0">
-          <div className="truncate text-[11px] font-semibold" style={{ color: "var(--foreground)" }}>
+          <div className="ds-type-label truncate font-semibold" style={{ color: "var(--foreground)" }}>
             {currentData?.shortName || symbol}
           </div>
-          <div className="text-[10px] font-mono" style={{ color: "var(--muted-foreground)" }}>
+          <div className="ds-type-caption font-mono" style={{ color: "var(--muted-foreground)" }}>
             {symbol}
             {currentData?.currency ? ` · ${currentData.currency}` : ""}
           </div>
         </div>
         <span
-          className="rounded px-1.5 py-0.5 text-[9px] font-semibold"
+          className="ds-type-caption rounded px-1.5 py-0.5 font-semibold"
           style={{
             background: "var(--accent)",
             color: "var(--primary)",
@@ -107,19 +107,19 @@ export default function FundamentalsOverlay() {
       </div>
 
       {market === "crypto" && (
-        <div className="rounded border px-2 py-2 text-[10px]" style={{ borderColor: "var(--border)", color: "var(--muted-foreground)" }}>
+        <div className="ds-type-caption rounded border px-2 py-2" style={{ borderColor: "var(--border)", color: "var(--muted-foreground)" }}>
           암호화폐 심볼은 재무 지표를 제공하지 않습니다.
         </div>
       )}
 
       {market !== "crypto" && fundamentalsLoading && !currentData && (
-        <div className="rounded border px-2 py-2 text-[10px]" style={{ borderColor: "var(--border)", color: "var(--muted-foreground)" }}>
+        <div className="ds-type-caption rounded border px-2 py-2" style={{ borderColor: "var(--border)", color: "var(--muted-foreground)" }}>
           재무 데이터 조회 중...
         </div>
       )}
 
       {market !== "crypto" && !fundamentalsLoading && fundamentalsError && !currentData && (
-        <div className="rounded border px-2 py-2 text-[10px]" style={{ borderColor: "var(--border)", color: "var(--destructive)" }}>
+        <div className="ds-type-caption rounded border px-2 py-2" style={{ borderColor: "var(--border)", color: "var(--destructive)" }}>
           {fundamentalsError}
         </div>
       )}

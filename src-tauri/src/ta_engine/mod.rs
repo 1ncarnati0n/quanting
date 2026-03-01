@@ -21,6 +21,9 @@ pub mod vwap;
 pub mod williams_r;
 pub mod adx;
 pub mod cvd;
+pub mod smc;
+pub mod anchored_vwap;
+pub mod auto_fib;
 pub mod stc;
 pub mod wma;
 
@@ -136,6 +139,24 @@ pub fn analyze(candles: &[Candle], params: &AnalysisParams) -> AnalysisResponse 
         .as_ref()
         .map(|sp| stc::calculate(candles, sp.tc_len, sp.fast_ma, sp.slow_ma));
 
+    // SMC (Smart Money Concepts)
+    let smc_result = params
+        .smc
+        .as_ref()
+        .map(|sp| smc::calculate(candles, sp.swing_length));
+
+    // Anchored VWAP
+    let anchored_vwap_result = params
+        .anchored_vwap
+        .as_ref()
+        .map(|ap| anchored_vwap::calculate(candles, ap.anchor_time));
+
+    // Auto Fibonacci
+    let auto_fib_result = params
+        .auto_fib
+        .as_ref()
+        .map(|fp| auto_fib::calculate(candles, fp.lookback, fp.swing_length));
+
     // Sort all signals by time
     signals.sort_by_key(|s| s.time);
 
@@ -164,6 +185,9 @@ pub fn analyze(candles: &[Candle], params: &AnalysisParams) -> AnalysisResponse 
         adx: adx_result,
         cvd: cvd_result,
         stc: stc_result,
+        smc: smc_result,
+        anchored_vwap: anchored_vwap_result,
+        auto_fib: auto_fib_result,
         symbol: params.symbol.clone(),
         interval: params.interval.clone(),
     }

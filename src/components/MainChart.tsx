@@ -300,6 +300,13 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
     indicators.stc.enabled,
   ]);
 
+  // Stable refs to break dependency chains — prevents chart recreation on indicator changes
+  const applyLayoutRef = useRef(applyIndicatorScaleLayout);
+  applyLayoutRef.current = applyIndicatorScaleLayout;
+
+  const dataRef = useRef(data);
+  dataRef.current = data;
+
   const initChart = useCallback(() => {
     if (!containerRef.current) return;
 
@@ -469,9 +476,9 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
       });
     });
 
-    applyIndicatorScaleLayout();
+    applyLayoutRef.current();
     onChartReady?.(chart);
-  }, [applyIndicatorScaleLayout, onChartReady, onMainSeriesReady, chartType]);
+  }, [onChartReady, onMainSeriesReady, chartType]);
 
   // Chart lifecycle
   useEffect(() => {
@@ -554,14 +561,14 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
       });
     };
     const onSetTimeRange = (e: Event) => {
-      if (!chartRef.current || !data) return;
+      if (!chartRef.current || !dataRef.current) return;
       const detail = (e as CustomEvent).detail as { from: number; to: number } | null;
       if (!detail) {
         chartRef.current.timeScale().fitContent();
         return;
       }
       const ts = chartRef.current.timeScale();
-      const candles = data.candles;
+      const candles = dataRef.current.candles;
       if (candles.length === 0) return;
 
       // requested range보다 이전에만 데이터가 있으면 최근 데이터로 앵커링
@@ -631,7 +638,7 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
       }
       onMainSeriesReady?.(null);
     };
-  }, [initChart, data, onMainSeriesReady]);
+  }, [initChart, onMainSeriesReady]);
 
   // Theme update
   useEffect(() => {
@@ -748,6 +755,12 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
       : null;
     const filteredStc = data.stc
       ? { ...data.stc, data: clipByTime(data.stc.data, replayTime) }
+      : null;
+    const filteredSmc = data.smc
+      ? { ...data.smc, data: clipByTime(data.smc.data, replayTime) }
+      : null;
+    const filteredAnchoredVwap = data.anchoredVwap
+      ? { ...data.anchoredVwap, data: clipByTime(data.anchoredVwap.data, replayTime) }
       : null;
 
     // Set main series data based on chart type
@@ -1395,6 +1408,75 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
       dynamicSeriesRef.current.set("stc-lo", stcLow as ISeriesApi<SeriesType>);
     }
 
+    // --- SMC: BOS/CHoCH line segments ---
+    if (indicators.smc.enabled && filteredSmc?.data.length) {
+      filteredSmc.data.forEach((event, idx) => {
+        const isBull = event.eventType.includes("bull");
+        const isBos = event.eventType.startsWith("bos");
+        const color = isBos
+          ? (isBull ? COLORS.smcBosBull : COLORS.smcBosBear)
+          : (isBull ? COLORS.smcChochBull : COLORS.smcChochBear);
+        const line = chart.addSeries(LineSeries, {
+          color,
+          lineWidth: 2,
+          lineStyle: isBos ? 0 : 2,
+          priceLineVisible: false,
+          crosshairMarkerVisible: false,
+          lastValueVisible: false,
+          title: idx === 0 ? (isBos ? "BOS" : "CHoCH") : "",
+        });
+        line.setData([
+          { time: event.swingTime as Time, value: event.swingPrice },
+          { time: event.time as Time, value: event.swingPrice },
+        ]);
+        dynamicSeriesRef.current.set(`smc-${idx}`, line as ISeriesApi<SeriesType>);
+      });
+    }
+
+    // --- Anchored VWAP (Overlay line) ---
+    if (indicators.anchoredVwap.enabled && filteredAnchoredVwap?.data.length) {
+      const avwapLine = chart.addSeries(LineSeries, {
+        color: COLORS.anchoredVwap,
+        lineWidth: 2,
+        lineStyle: 0,
+        priceLineVisible: false,
+        crosshairMarkerVisible: false,
+        title: "AVWAP",
+      });
+      avwapLine.setData(
+        filteredAnchoredVwap.data.map((p) => ({ time: p.time as Time, value: p.value })),
+      );
+      dynamicSeriesRef.current.set("avwap", avwapLine as ISeriesApi<SeriesType>);
+    }
+
+    // --- Auto Fibonacci (price lines on mainSeries) ---
+    if (indicators.autoFib.enabled && data.autoFib && data.autoFib.levels.length > 0) {
+      const fib = data.autoFib;
+      // Draw fib levels as horizontal line series spanning from low_time to high_time
+      const startTime = Math.min(fib.lowTime, fib.highTime);
+      const endTime = Math.max(fib.lowTime, fib.highTime);
+      const lastCandleTime = data.candles[data.candles.length - 1]?.time ?? endTime;
+      const fibEnd = Math.max(endTime, lastCandleTime);
+
+      fib.levels.forEach((level, idx) => {
+        const alpha = level.ratio === 0 || level.ratio === 1 ? "CC" : "88";
+        const fibLine = chart.addSeries(LineSeries, {
+          color: COLORS.autoFib + alpha,
+          lineWidth: level.ratio === 0.5 || level.ratio === 0.618 ? 2 : 1,
+          lineStyle: 2,
+          priceLineVisible: false,
+          crosshairMarkerVisible: false,
+          lastValueVisible: false,
+          title: idx === 0 ? `Fib ${(level.ratio * 100).toFixed(1)}%` : `${(level.ratio * 100).toFixed(1)}%`,
+        });
+        fibLine.setData([
+          { time: startTime as Time, value: level.price },
+          { time: fibEnd as Time, value: level.price },
+        ]);
+        dynamicSeriesRef.current.set(`fib-${idx}`, fibLine as ISeriesApi<SeriesType>);
+      });
+    }
+
     applyIndicatorScaleLayout();
 
     if (markersPluginRef.current) {
@@ -1486,6 +1568,9 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
     indicators.adx.enabled,
     indicators.cvd.enabled,
     indicators.stc.enabled,
+    indicators.smc.enabled,
+    indicators.anchoredVwap.enabled,
+    indicators.autoFib.enabled,
     replayEnabled,
     replayIndex,
   ]);

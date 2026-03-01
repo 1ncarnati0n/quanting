@@ -21,6 +21,7 @@ const SHORTCUT_GROUPS = [
     title: "화면",
     items: [
       { keys: ["F"], desc: "전체화면 전환" },
+      { keys: ["Ctrl/⌘", "Shift", "S"], desc: "설정 패널 전략 탭 열기" },
       { keys: ["Esc"], desc: "전체화면/패널 닫기" },
     ],
   },

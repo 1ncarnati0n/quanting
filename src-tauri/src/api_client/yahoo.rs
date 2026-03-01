@@ -1,4 +1,4 @@
-use crate::models::{Candle, FundamentalsResponse, MarketType};
+use crate::models::{Candle, FundamentalsResponse, MarketType, PremarketSnapshot};
 use serde_json::Value;
 
 pub struct YahooClient {
@@ -148,6 +148,45 @@ impl YahooClient {
                     &["price", "averageDailyVolume10Day"],
                 ],
             ),
+        })
+    }
+
+    pub async fn fetch_premarket(&self, symbol: &str) -> Result<PremarketSnapshot, String> {
+        let url = format!(
+            "https://query1.finance.yahoo.com/v10/finance/quoteSummary/{}?modules=price",
+            symbol
+        );
+
+        let resp = self
+            .client
+            .get(&url)
+            .send()
+            .await
+            .map_err(|e| format!("Network error: {}", e))?;
+
+        if !resp.status().is_success() {
+            return Err(format!("Yahoo API error: {}", resp.status()));
+        }
+
+        let json: Value = resp
+            .json()
+            .await
+            .map_err(|e| format!("Parse error: {}", e))?;
+
+        let result = json
+            .get("quoteSummary")
+            .and_then(|s| s.get("result"))
+            .and_then(|r| r.get(0))
+            .and_then(|r| r.get("price"))
+            .ok_or("Invalid premarket response")?;
+
+        Ok(PremarketSnapshot {
+            symbol: symbol.to_string(),
+            pre_market_price: Self::read_number(result, &["preMarketPrice"]),
+            pre_market_change: Self::read_number(result, &["preMarketChangePercent"]),
+            pre_market_volume: Self::read_number(result, &["preMarketVolume"]),
+            regular_market_price: Self::read_number(result, &["regularMarketPrice"]),
+            regular_market_volume: Self::read_number(result, &["regularMarketVolume"]),
         })
     }
 

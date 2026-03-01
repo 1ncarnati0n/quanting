@@ -57,10 +57,10 @@ export function getMarketBadgeMeta(market: MarketType): MarketBadgeMeta {
     return { label: "코인", color: "var(--warning)" };
   }
   if (market === "krStock") {
-    return { label: "KR", color: "#EC4899" };
+    return { label: "KR", color: "var(--brand-kr)" };
   }
   if (market === "forex") {
-    return { label: "FX", color: "#14B8A6" };
+    return { label: "FX", color: "var(--brand-fx)" };
   }
   return { label: "US", color: "var(--primary)" };
 }

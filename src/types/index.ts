@@ -127,7 +127,27 @@ export type SignalType =
   | "macdBullish"
   | "macdBearish"
   | "stochOversold"
-  | "stochOverbought";
+  | "stochOverbought"
+  | "supertrendBuy"
+  | "supertrendSell"
+  | "emaCrossoverBuy"
+  | "emaCrossoverSell"
+  | "stochRsiBuy"
+  | "stochRsiSell"
+  | "cmfObvBuy"
+  | "cmfObvSell"
+  | "ttmSqueezeBuy"
+  | "ttmSqueezeSell"
+  | "vwapBreakoutBuy"
+  | "vwapBreakoutSell"
+  | "parabolicSarBuy"
+  | "parabolicSarSell"
+  | "macdHistReversalBuy"
+  | "macdHistReversalSell"
+  | "ibsMeanRevBuy"
+  | "ibsMeanRevSell"
+  | "rsiDivergenceBuy"
+  | "rsiDivergenceSell";
 
 export interface SignalPoint {
   time: number;
@@ -413,6 +433,22 @@ export interface AutoFibParams {
   swingLength: number;
 }
 
+export interface SignalStrategyParams {
+  supertrendAdx: boolean;
+  emaCrossover: boolean;
+  stochRsiCombined: boolean;
+  cmfObv: boolean;
+  ttmSqueeze: boolean;
+  vwapBreakout: boolean;
+  parabolicSar: boolean;
+  macdHistReversal: boolean;
+  ibsMeanReversion: boolean;
+  rsiDivergence: boolean;
+  emaFastPeriod: number;
+  emaSlowPeriod: number;
+  divergenceSwingLength: number;
+}
+
 export interface AnalysisParams {
   symbol: string;
   interval: string;
@@ -439,7 +475,36 @@ export interface AnalysisParams {
   anchoredVwap?: AnchoredVwapParams | null;
   autoFib?: AutoFibParams | null;
   signalFilter: SignalFilterParams;
+  signalStrategies: SignalStrategyParams;
 }
+
+// --- Strategy types ---
+
+export interface MultiSymbolCandlesParams {
+  symbols: string[];
+  interval: string;
+  limit: number;
+}
+
+export interface MultiSymbolCandlesResponse {
+  data: Record<string, Candle[]>;
+  errors: Record<string, string>;
+}
+
+export interface PremarketSnapshotParams {
+  symbols: string[];
+}
+
+export interface PremarketSnapshot {
+  symbol: string;
+  preMarketPrice: number | null;
+  preMarketChange: number | null;
+  preMarketVolume: number | null;
+  regularMarketPrice: number | null;
+  regularMarketVolume: number | null;
+}
+
+// --- Watchlist types ---
 
 export interface WatchlistItemRequest {
   symbol: string;

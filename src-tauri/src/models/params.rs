@@ -172,6 +172,37 @@ pub struct AutoFibParams {
     pub swing_length: usize,
 }
 
+#[derive(Debug, Clone, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct SignalStrategyParams {
+    #[serde(default)]
+    pub supertrend_adx: bool,
+    #[serde(default)]
+    pub ema_crossover: bool,
+    #[serde(default)]
+    pub stoch_rsi_combined: bool,
+    #[serde(default)]
+    pub cmf_obv: bool,
+    #[serde(default)]
+    pub ttm_squeeze: bool,
+    #[serde(default)]
+    pub vwap_breakout: bool,
+    #[serde(default)]
+    pub parabolic_sar: bool,
+    #[serde(default)]
+    pub macd_hist_reversal: bool,
+    #[serde(default)]
+    pub ibs_mean_reversion: bool,
+    #[serde(default)]
+    pub rsi_divergence: bool,
+    #[serde(default = "default_ema_fast")]
+    pub ema_fast_period: usize,
+    #[serde(default = "default_ema_slow")]
+    pub ema_slow_period: usize,
+    #[serde(default = "default_divergence_swing")]
+    pub divergence_swing_length: usize,
+}
+
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AnalysisParams {
@@ -223,6 +254,8 @@ pub struct AnalysisParams {
     pub auto_fib: Option<AutoFibParams>,
     #[serde(default)]
     pub signal_filter: SignalFilterParams,
+    #[serde(default)]
+    pub signal_strategies: SignalStrategyParams,
 }
 
 fn default_bb_period() -> usize {
@@ -337,5 +370,14 @@ fn default_auto_fib_lookback() -> usize {
     120
 }
 fn default_auto_fib_swing_length() -> usize {
+    5
+}
+fn default_ema_fast() -> usize {
+    9
+}
+fn default_ema_slow() -> usize {
+    21
+}
+fn default_divergence_swing() -> usize {
     5
 }

@@ -24,14 +24,16 @@ export default function SegmentButton({
   return (
     <button
       className={cn(
-        "rounded border font-semibold transition-colors",
-        size === "md" ? "ds-type-label px-2 py-1.5" : "ds-type-caption px-2 py-1",
+        "rounded-[var(--radius-sm)] border font-semibold leading-none transition-colors",
+        size === "md"
+          ? "ds-type-label h-[var(--control-height-md)] px-3"
+          : "ds-type-caption h-[var(--control-height-sm)] px-2.5",
         active &&
           activeTone === "primary" &&
           "border-[var(--primary)] bg-[var(--primary)] text-[var(--primary-foreground)]",
         active &&
           activeTone === "warning" &&
-          "border-[var(--warning)] bg-[var(--warning)] text-[#111827]",
+          "border-[var(--warning)] bg-[var(--warning)] text-[var(--warning-foreground)]",
         active &&
           activeTone === "accent" &&
           "border-[var(--primary)] bg-[var(--accent)] text-[var(--primary)]",

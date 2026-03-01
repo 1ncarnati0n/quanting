@@ -35,11 +35,11 @@ export default function PeriodsInput({ periods, onChange, max = 7 }: PeriodsInpu
 
   return (
     <div>
-      <div className="mb-1.5 flex flex-wrap gap-1">
+      <div className="mb-2 flex flex-wrap gap-1.5">
         {periods.map((p) => (
           <span
             key={p}
-            className="ds-type-caption inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium"
+            className="ds-type-caption inline-flex items-center gap-1 rounded-full px-2 py-1 font-medium leading-none"
             style={{
               background: "var(--secondary)",
               color: "var(--foreground)",
@@ -60,7 +60,7 @@ export default function PeriodsInput({ periods, onChange, max = 7 }: PeriodsInpu
         ))}
       </div>
       {periods.length < max && (
-        <div className="flex gap-1">
+        <div className="flex gap-1.5">
           <Input
             type="number"
             min={1}
@@ -69,14 +69,15 @@ export default function PeriodsInput({ periods, onChange, max = 7 }: PeriodsInpu
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="기간 추가"
-            className="ds-type-label h-7 w-20 px-1.5 py-0.5"
+            size="sm"
+            className="w-20"
           />
           <Button
             onClick={addPeriod}
             title="기간 추가"
             variant="secondary"
             size="sm"
-            className="ds-type-label h-7 px-2 py-0.5"
+            className="ds-type-label px-2.5"
           >
             +
           </Button>

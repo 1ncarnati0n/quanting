@@ -140,8 +140,8 @@ function snapshotKey(symbol: string, market: MarketType): string {
 
 function marketBadge(market: MarketType) {
   if (market === "crypto") return { text: "코인", color: "var(--warning)" };
-  if (market === "krStock") return { text: "KR", color: "#EC4899" };
-  if (market === "forex") return { text: "FX", color: "#14B8A6" };
+  if (market === "krStock") return { text: "KR", color: "var(--brand-kr)" };
+  if (market === "forex") return { text: "FX", color: "var(--brand-fx)" };
   return { text: "US", color: "var(--primary)" };
 }
 
@@ -447,6 +447,7 @@ export default function WatchlistSidebar({
               stochastic: null,
               showObv: false,
               signalFilter: settings.indicators.signalFilter,
+              signalStrategies: settings.indicators.signalStrategies,
             });
             return evaluateScreenerHit(
               screenerConditions,
@@ -513,18 +514,31 @@ export default function WatchlistSidebar({
     };
   }, [interval, snapshotTargets]);
 
+  const marketFilterLabel =
+    marketFilter === "all"
+      ? "전체"
+      : marketFilter === "usStock"
+        ? "US"
+        : marketFilter === "krStock"
+          ? "KR"
+          : marketFilter === "crypto"
+            ? "코인"
+            : "FX";
+
   return (
     <aside
-      className={`flex h-full min-w-0 flex-col ${
-        embedded ? "w-full rounded border" : "w-[min(22rem,calc(100vw-1rem))] border-l"
-      } border-[var(--border)] bg-[var(--card)] shadow-[var(--shadow-elevated)]`}
+      className={`panel-readable side-panel-shell flex h-full min-w-0 flex-col bg-[var(--card)] ${
+        embedded
+          ? "w-full"
+          : "w-[min(22rem,calc(100vw-1rem))] border-l border-[var(--border)] shadow-[var(--shadow-elevated)]"
+      }`}
     >
       <PanelHeader
         title="관심종목"
         subtitle={`${instrumentLine} · ${
           isLoadingSnapshots ? "스냅샷 갱신중" : `${getIntervalLabel(interval as Interval)} 기준 스냅샷`
         }`}
-        className="px-3 py-2.5"
+        className="px-4 py-3"
         density="compact"
         actionAlign="start"
         actions={(
@@ -553,76 +567,105 @@ export default function WatchlistSidebar({
             )}
           </>
         )}
-      />
-
-      <div className="p-3">
-        <Input
-          type="text"
-          size="md"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="심볼 검색..."
-          spellCheck={false}
-          className="ds-type-label"
-        />
-        <div className="mt-2 flex gap-1">
-          {(["all", "usStock", "krStock", "crypto", "forex"] as const).map((mf) => (
-            <SegmentButton
-              key={mf}
-              type="button"
-              active={marketFilter === mf}
-              onClick={() => setMarketFilter(mf)}
-            >
-              {mf === "all"
-                ? "전체"
-                : mf === "usStock"
-                ? "US"
-                : mf === "krStock"
-                ? "KR"
-                : mf === "crypto"
-                ? "코인"
-                : "FX"}
-            </SegmentButton>
-          ))}
-          <SegmentButton
-            type="button"
-            active={favoriteOnly}
-            activeTone="warning"
-            onClick={() => setFavoriteOnly((prev) => !prev)}
-            title="즐겨찾기 종목만 보기"
-          >
-            ★ 즐겨찾기
-          </SegmentButton>
-        </div>
-        <div className="ds-type-caption mt-1 text-[var(--muted-foreground)]">
-          표시 {visibleItems.length}개 · 즐겨찾기 {favorites.length}개
-        </div>
-
-        {recentSymbols.length > 0 && (
-          <div className="mt-2">
-            <div className="ds-type-caption mb-1 font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
-              최근 심볼
+      >
+        <div className="grid grid-cols-3 gap-2">
+          <div className="ui-stat-tile">
+            <div className="ds-type-caption uppercase tracking-wider text-[var(--muted-foreground)]">
+              필터
             </div>
-            <div className="flex flex-wrap gap-1">
-              {recentSymbols.slice(0, 6).map((item) => (
-                <button
-                  key={`recent-chip-${item.market}-${item.symbol}`}
-                  type="button"
-                  onClick={() => {
-                    setSymbol(item.symbol, item.market);
-                    onSelectSymbol?.();
-                  }}
-                  className="ds-type-caption rounded border border-[var(--border)] bg-[var(--secondary)] px-1.5 py-0.5 font-mono text-[var(--foreground)]"
-                >
-                  {item.symbol}
-                </button>
-              ))}
+            <div className="ds-type-title mt-1 font-semibold text-[var(--foreground)]">
+              {marketFilterLabel}
             </div>
           </div>
-        )}
+          <div className="ui-stat-tile">
+            <div className="ds-type-caption uppercase tracking-wider text-[var(--muted-foreground)]">
+              표시
+            </div>
+            <div className="ds-type-title mt-1 font-semibold text-[var(--foreground)]">
+              {visibleItems.length}개
+            </div>
+          </div>
+          <div className="ui-stat-tile">
+            <div className="ds-type-caption uppercase tracking-wider text-[var(--muted-foreground)]">
+              즐겨찾기
+            </div>
+            <div className="ds-type-title mt-1 font-semibold text-[var(--foreground)]">
+              {favorites.length}개
+            </div>
+          </div>
+        </div>
+      </PanelHeader>
 
-        <div className="mt-2 rounded border border-[var(--border)] bg-[var(--muted)] p-2.5">
-          <div className="mb-1.5 flex items-center justify-between">
+      <div className="space-y-2.5 px-3 pb-2 pt-3">
+        <section className="side-panel-section">
+          <Input
+            type="text"
+            size="md"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="심볼 검색..."
+            spellCheck={false}
+            className="ds-type-label"
+          />
+          <div className="mt-2 flex flex-wrap gap-1">
+            {(["all", "usStock", "krStock", "crypto", "forex"] as const).map((mf) => (
+              <SegmentButton
+                key={mf}
+                type="button"
+                active={marketFilter === mf}
+                onClick={() => setMarketFilter(mf)}
+              >
+                {mf === "all"
+                  ? "전체"
+                  : mf === "usStock"
+                    ? "US"
+                    : mf === "krStock"
+                      ? "KR"
+                      : mf === "crypto"
+                        ? "코인"
+                        : "FX"}
+              </SegmentButton>
+            ))}
+            <SegmentButton
+              type="button"
+              active={favoriteOnly}
+              activeTone="warning"
+              onClick={() => setFavoriteOnly((prev) => !prev)}
+              title="즐겨찾기 종목만 보기"
+            >
+              ★ 즐겨찾기
+            </SegmentButton>
+          </div>
+          <div className="ds-type-caption mt-1.5 text-[var(--muted-foreground)]">
+            표시 {visibleItems.length}개 · 즐겨찾기 {favorites.length}개
+          </div>
+
+          {recentSymbols.length > 0 && (
+            <div className="mt-2">
+              <div className="ds-type-caption mb-1 font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
+                최근 심볼
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {recentSymbols.slice(0, 6).map((item) => (
+                  <button
+                    key={`recent-chip-${item.market}-${item.symbol}`}
+                    type="button"
+                    onClick={() => {
+                      setSymbol(item.symbol, item.market);
+                      onSelectSymbol?.();
+                    }}
+                    className="ds-type-caption rounded border border-[var(--border)] bg-[var(--secondary)] px-1.5 py-0.5 font-mono text-[var(--foreground)]"
+                  >
+                    {item.symbol}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </section>
+
+        <section className="side-panel-section">
+          <div className="mb-2 flex items-center justify-between">
             <span className="ds-type-caption font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
               기술 스크리너
             </span>
@@ -764,11 +807,11 @@ export default function WatchlistSidebar({
               </div>
             )}
           </ScrollArea>
-        </div>
+        </section>
       </div>
 
-      <ScrollArea className="min-h-0 flex-1" viewportClassName="px-2 pb-3">
-        <div className="space-y-1.5">
+      <ScrollArea className="side-panel-scroll min-h-0 flex-1 border-t border-[var(--border)]" viewportClassName="px-3 pb-3 pt-2">
+        <div className="space-y-2">
           {visibleItems.map((item) => {
             const badge = marketBadge(item.market);
             const active = symbol === item.symbol && market === item.market;
@@ -787,11 +830,11 @@ export default function WatchlistSidebar({
                     selectSymbolFromWatch(item);
                   }
                 }}
-                className="w-full rounded border px-2.5 py-2 text-left transition-colors"
+                className="w-full rounded-[var(--radius-sm)] border px-3 py-2.5 text-left transition-colors"
                 style={{
                   background: active
                     ? "color-mix(in srgb, var(--primary) 10%, var(--secondary))"
-                    : "transparent",
+                    : "color-mix(in srgb, var(--muted) 56%, var(--card))",
                   borderColor: active ? "var(--primary)" : "var(--border)",
                   cursor: "pointer",
                 }}

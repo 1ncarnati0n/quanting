@@ -102,6 +102,7 @@ function App() {
       indicators.anchoredVwap.enabled, indicators.anchoredVwap.anchorTime,
       indicators.autoFib.enabled, indicators.autoFib.lookback, indicators.autoFib.swingLength,
       indicators.signalFilter,
+      indicators.signalStrategies,
     ],
   );
 
@@ -378,6 +379,17 @@ function App() {
         setShowWatchlist(false);
         window.dispatchEvent(new CustomEvent("quanting:open-symbol-search"));
       }
+      if (isMod && e.shiftKey && keyLower === "s") {
+        e.preventDefault();
+        const store = useSettingsStore.getState();
+        if (store.settingsTab === "backtest" && showSettings) {
+          setShowSettings(false);
+        } else {
+          store.setSettingsTab("backtest");
+          setShowSettings(true);
+          setShowWatchlist(false);
+        }
+      }
     };
 
     window.addEventListener("keydown", onKeyDown);
@@ -419,7 +431,10 @@ function App() {
           side="left"
           label="WATCH"
           storageKey="quanting-sidebar-left"
-          expandedWidth={240}
+          expandedWidth={280}
+          resizable
+          minWidth={236}
+          maxWidth={460}
           defaultOpen
         >
           <WatchlistSidebar embedded />
@@ -446,7 +461,10 @@ function App() {
           side="right"
           label="SET"
           storageKey="quanting-sidebar-right"
-          expandedWidth={300}
+          expandedWidth={340}
+          resizable
+          minWidth={300}
+          maxWidth={620}
         >
           <SettingsPanel onClose={() => setShowSettings(false)} embedded />
         </CollapsibleSidebar>

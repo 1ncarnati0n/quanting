@@ -80,5 +80,6 @@ export function buildAnalysisParams({
         }
       : null,
     signalFilter: indicators.signalFilter,
+    signalStrategies: indicators.signalStrategies,
   };
 }

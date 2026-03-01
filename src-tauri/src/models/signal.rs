@@ -11,6 +11,27 @@ pub enum SignalType {
     MacdBearish,
     StochOversold,
     StochOverbought,
+    // Quant signal strategies
+    SupertrendBuy,
+    SupertrendSell,
+    EmaCrossoverBuy,
+    EmaCrossoverSell,
+    StochRsiBuy,
+    StochRsiSell,
+    CmfObvBuy,
+    CmfObvSell,
+    TtmSqueezeBuy,
+    TtmSqueezeSell,
+    VwapBreakoutBuy,
+    VwapBreakoutSell,
+    ParabolicSarBuy,
+    ParabolicSarSell,
+    MacdHistReversalBuy,
+    MacdHistReversalSell,
+    IbsMeanRevBuy,
+    IbsMeanRevSell,
+    RsiDivergenceBuy,
+    RsiDivergenceSell,
 }
 
 #[derive(Debug, Clone, Serialize)]

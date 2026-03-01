@@ -19,15 +19,15 @@ interface ToggleGroupProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 const GROUP_SIZE_CLASSES: Record<NonNullable<ToggleGroupProps["size"]>, string> = {
-  sm: "gap-1 p-1",
-  md: "gap-1.5 p-1.5",
-  lg: "gap-2 p-2",
+  sm: "gap-0.5 p-0.5",
+  md: "gap-1 p-1",
+  lg: "gap-1.5 p-1.5",
 };
 
 const ITEM_SIZE_CLASSES: Record<NonNullable<ToggleGroupProps["size"]>, string> = {
-  sm: "h-[var(--control-height-sm)] px-2 text-[var(--font-size-body-sm)]",
-  md: "h-[var(--control-height-md)] px-3 text-sm",
-  lg: "h-[var(--control-height-lg)] px-4 text-[var(--font-size-subtitle)]",
+  sm: "h-[var(--control-height-sm)] px-2.5 text-[var(--font-size-body-sm)]",
+  md: "h-[var(--control-height-md)] px-3 text-[var(--font-size-body-sm)]",
+  lg: "h-[var(--control-height-lg)] px-3.5 text-[var(--font-size-body)]",
 };
 
 function ToggleGroup({
@@ -77,7 +77,7 @@ function ToggleGroupItem({
         onClick?.(e);
       }}
       className={cn(
-        "rounded font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-ring",
+        "rounded-[var(--radius-sm)] font-semibold leading-none transition-colors focus-visible:ring-2 focus-visible:ring-ring",
         ITEM_SIZE_CLASSES[group?.size ?? "md"],
         active
           ? "bg-primary text-primary-foreground"

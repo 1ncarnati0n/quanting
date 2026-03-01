@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, type CSSProperties } from "react";
 import IntervalSelector from "./IntervalSelector";
 import TimeRangeBar from "./TimeRangeBar";
 import { useSettingsStore } from "../stores/useSettingsStore";
@@ -34,36 +34,38 @@ export default function MarketHeader({
   const changeColor = change >= 0 ? "var(--success)" : "var(--destructive)";
   const { label: marketBadge, color: marketColor } = getMarketBadgeMeta(market);
   const instrument = getInstrumentDisplay(symbol, symbolLabel, market);
+  const headerStyle: CSSProperties = {
+    "--market-badge-bg": marketColor,
+    "--market-live-dot": isLoading ? "var(--warning)" : "var(--success)",
+    "--market-trend-color": changeColor,
+  } as CSSProperties;
 
   const rangePct = high !== null && low !== null && low > 0 ? ((high - low) / low) * 100 : null;
 
   return (
-    <div className="market-header flex flex-col">
+    <div className="market-header flex flex-col" style={headerStyle}>
       {/* Row 1: Symbol / Price / OHLV / Range */}
       <div className="flex min-w-0 flex-wrap items-end gap-x-3 gap-y-2 px-4 py-3 sm:gap-x-4 sm:px-5 sm:py-3.5">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5 sm:gap-2">
             <QuantingLogo size={16} color="var(--primary)" />
-            <span className="ds-type-caption font-semibold tracking-wide text-[var(--primary)]">
+            <span className="ds-type-caption text-token-primary font-semibold tracking-wide">
               Quanting
             </span>
-            <span
-              className="ds-type-caption rounded px-1.5 py-1 font-bold leading-none"
-              style={{ background: marketColor, color: "var(--primary-foreground)" }}
-            >
+            <span className="ds-market-badge ds-type-caption rounded px-1.5 py-1 font-bold leading-none">
               {marketBadge}
             </span>
-            <span className="ds-type-caption hidden items-center gap-1 rounded bg-[var(--secondary)] px-2 py-1 text-[var(--muted-foreground)] sm:inline-flex">
-              <span className={`h-1.5 w-1.5 rounded-full ${isLoading ? "" : "header-live-dot"}`} style={{ background: isLoading ? "var(--warning)" : "var(--success)" }} />
+            <span className="ds-live-pill ds-type-caption hidden items-center gap-1 rounded px-2 py-1 sm:inline-flex">
+              <span className={`ds-live-dot h-1.5 w-1.5 rounded-full ${isLoading ? "" : "header-live-dot"}`} />
               {isLoading ? "갱신중" : "LIVE"}
             </span>
           </div>
           <div className="mt-1 min-w-0">
-            <h1 className="truncate text-[18px] font-bold leading-tight text-[var(--foreground)] sm:text-[22px]">
+            <h1 className="text-token-foreground truncate text-[18px] font-bold leading-tight sm:text-[22px]">
               {instrument.primary}
             </h1>
             {instrument.secondary && (
-              <p className="ds-type-label mt-0.5 truncate font-mono text-[var(--muted-foreground)]">
+              <p className="ds-type-label text-token-muted mt-0.5 truncate font-mono">
                 {instrument.secondary}
               </p>
             )}
@@ -72,11 +74,11 @@ export default function MarketHeader({
 
         {/* Price + Change */}
         <div className="flex items-baseline gap-1.5 sm:gap-2">
-          <span className="price-display font-mono text-lg font-bold text-[var(--foreground)] sm:text-xl">
+          <span className="price-display text-token-foreground font-mono text-lg font-bold sm:text-xl">
             {lastCandle ? formatPrice(lastCandle.close, market) : "-"}
           </span>
           {lastCandle && prevCandle && (
-            <span className="ds-type-label font-mono font-semibold" style={{ color: changeColor }}>
+            <span className="ds-market-delta ds-type-label font-mono font-semibold">
               {change >= 0 ? "+" : ""}{formatPrice(Math.abs(change), market)} ({changePct >= 0 ? "+" : ""}{changePct.toFixed(2)}%)
             </span>
           )}
@@ -87,14 +89,14 @@ export default function MarketHeader({
 
         {/* H / L / Vol inline */}
         <div className="ds-type-label hidden items-center gap-2 font-mono md:flex lg:gap-3">
-          <span style={{ color: "var(--muted-foreground)" }}>
-            H <span style={{ color: "var(--foreground)" }}>{high !== null ? formatPrice(high, market) : "-"}</span>
+          <span className="ds-market-stat">
+            H <strong>{high !== null ? formatPrice(high, market) : "-"}</strong>
           </span>
-          <span style={{ color: "var(--muted-foreground)" }}>
-            L <span style={{ color: "var(--foreground)" }}>{low !== null ? formatPrice(low, market) : "-"}</span>
+          <span className="ds-market-stat">
+            L <strong>{low !== null ? formatPrice(low, market) : "-"}</strong>
           </span>
-          <span style={{ color: "var(--muted-foreground)" }}>
-            V <span style={{ color: changeColor }}>{formatCompactNumber(lastCandle?.volume ?? null)}</span>
+          <span className="ds-market-stat ds-market-stat--trend">
+            V <strong>{formatCompactNumber(lastCandle?.volume ?? null)}</strong>
           </span>
         </div>
 
@@ -103,19 +105,19 @@ export default function MarketHeader({
 
         {/* Range */}
         {rangePct !== null && (
-          <span className="ds-type-label hidden font-mono lg:inline" style={{ color: "var(--muted-foreground)" }}>
-            Range <span style={{ color: "var(--primary)" }}>{rangePct.toFixed(2)}%</span>
+          <span className="ds-market-stat ds-market-range ds-type-label hidden font-mono lg:inline">
+            Range <strong>{rangePct.toFixed(2)}%</strong>
           </span>
         )}
       </div>
 
       {/* Row 2: Controls */}
-      <div className="flex min-w-0 flex-wrap items-center gap-2 border-t border-[var(--border)] px-4 py-2 sm:px-5">
+      <div className="flex min-w-0 flex-wrap items-center gap-2.5 border-t border-[var(--border)] px-4 py-2.5 sm:px-5">
         <Button
           variant="ghost"
           size="icon"
           onClick={onToggleWatchlist}
-          className="h-7 w-7 shrink-0 text-[var(--muted-foreground)] xl:hidden"
+          className="text-token-muted h-8 w-8 shrink-0 xl:hidden"
           title="관심종목 패널 열기/닫기 (Ctrl/Cmd+B)"
           aria-label="관심종목 패널 열기/닫기"
         >
@@ -125,8 +127,8 @@ export default function MarketHeader({
           </svg>
         </Button>
 
-        <div className="flex min-w-0 shrink-0 items-center gap-1 rounded-md border border-[var(--border)] bg-[var(--muted)] px-1.5 py-0.5">
-          <span className="ds-type-caption hidden font-medium text-[var(--muted-foreground)] sm:inline">
+        <div className="ui-control-cluster flex min-w-0 shrink-0">
+          <span className="ds-type-caption text-token-muted hidden font-medium sm:inline">
             인터벌
           </span>
           <div className="min-w-0 overflow-visible">
@@ -134,8 +136,8 @@ export default function MarketHeader({
           </div>
         </div>
 
-        <div className="hidden min-w-0 shrink-0 items-center gap-1 rounded-md border border-[var(--border)] bg-[var(--muted)] px-1.5 py-0.5 lg:flex">
-          <span className="ds-type-caption font-medium text-[var(--muted-foreground)]">기간</span>
+        <div className="ui-control-cluster hidden min-w-0 shrink-0 lg:flex">
+          <span className="ds-type-caption text-token-muted font-medium">기간</span>
           <div className="min-w-0 overflow-visible">
             <TimeRangeBar />
           </div>
@@ -148,7 +150,7 @@ export default function MarketHeader({
             variant="ghost"
             size="icon"
             onClick={toggleTheme}
-            className="h-7 w-7 text-[var(--muted-foreground)]"
+            className="text-token-muted h-8 w-8"
             title={theme === "dark" ? "라이트 모드로 전환" : "다크 모드로 전환"}
             aria-label={theme === "dark" ? "라이트 모드로 전환" : "다크 모드로 전환"}
           >
@@ -175,7 +177,7 @@ export default function MarketHeader({
             variant="ghost"
             size="icon"
             onClick={onToggleSettings}
-            className="h-7 w-7 text-[var(--muted-foreground)] xl:hidden"
+            className="text-token-muted h-8 w-8 xl:hidden"
             title="설정 패널 열기/닫기 (Ctrl/Cmd+,)"
             aria-label="설정 패널 열기/닫기"
           >

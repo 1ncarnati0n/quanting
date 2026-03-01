@@ -11,10 +11,11 @@ import VolumeProfileOverlay from "./VolumeProfileOverlay";
 import FundamentalsOverlay from "./FundamentalsOverlay";
 import { useChartStore } from "../stores/useChartStore";
 import { useSettingsStore } from "../stores/useSettingsStore";
+import { calculateRvol } from "../utils/rvol";
 import type { IChartApi, ISeriesApi, SeriesType } from "lightweight-charts";
 
 type OverlayBand = {
-  id: "volume" | "rsi" | "macd" | "stoch" | "obv" | "atr";
+  id: "volume" | "rsi" | "macd" | "stoch" | "obv" | "atr" | "rvol";
   label: string;
   color: string;
   weight: number;
@@ -113,6 +114,19 @@ export default function ChartContainer() {
         color: "#38BDF8",
         weight: Math.max(0.2, indicators.layout.atrWeight),
         value: lastAtr ? lastAtr.value.toFixed(2) : "-",
+      });
+    }
+
+    if (indicators.rvol.enabled) {
+      const candles = data?.candles ?? [];
+      const rvolData = calculateRvol(candles, indicators.rvol.period);
+      const lastRvol = rvolData[rvolData.length - 1];
+      next.push({
+        id: "rvol",
+        label: "RVOL",
+        color: "#F59E0B",
+        weight: Math.max(0.2, indicators.layout.rvolWeight),
+        value: lastRvol ? `${lastRvol.value.toFixed(2)}x` : "-",
       });
     }
 

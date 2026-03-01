@@ -3,6 +3,7 @@ mod fundamental;
 mod indicator;
 mod params;
 mod signal;
+mod strategy;
 mod watchlist;
 
 pub use candle::Candle;
@@ -18,6 +19,10 @@ pub use indicator::{
 };
 pub use params::{AnalysisParams, MarketType, SignalFilterParams};
 pub use signal::{SignalPoint, SignalType};
+pub use strategy::{
+    MultiSymbolCandlesParams, MultiSymbolCandlesResponse, PremarketSnapshot,
+    PremarketSnapshotParams,
+};
 pub use watchlist::{WatchlistSnapshot, WatchlistSnapshotParams};
 
 use serde::Serialize;

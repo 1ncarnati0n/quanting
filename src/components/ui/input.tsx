@@ -8,8 +8,8 @@ export interface InputProps
 
 const SIZE_CLASSES: Record<NonNullable<InputProps["size"]>, string> = {
   sm: "h-[var(--control-height-sm)] px-2.5 text-[var(--font-size-body-sm)]",
-  md: "h-[var(--control-height-md)] px-3 text-sm",
-  lg: "h-[var(--control-height-lg)] px-3.5 text-[var(--font-size-subtitle)]",
+  md: "h-[var(--control-height-md)] px-3 text-[var(--font-size-body-sm)]",
+  lg: "h-[var(--control-height-lg)] px-3.5 text-[var(--font-size-body)]",
 };
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(
@@ -19,7 +19,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
         ref={ref}
         type={type}
         className={cn(
-          "w-full rounded border border-border bg-secondary text-foreground outline-none transition-colors placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
+          "ds-type-label w-full rounded-[var(--radius-sm)] border border-border bg-secondary text-foreground leading-none outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
           SIZE_CLASSES[size],
           className,
         )}

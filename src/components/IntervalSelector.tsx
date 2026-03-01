@@ -1,3 +1,4 @@
+import { useEffect, useMemo, useState } from "react";
 import {
   getIntervalLabel,
   getIntervalsForMarket,
@@ -24,9 +25,45 @@ export default function IntervalSelector() {
   const coreIntervals = CORE_INTERVALS.filter((iv) => intervals.includes(iv));
   const intradayIntervals = intervals.filter((iv) => !coreIntervals.includes(iv));
   const currentIntradayInterval = intradayIntervals.includes(interval) ? interval : null;
-  const intradayLabel = currentIntradayInterval
-    ? getIntervalLabel(currentIntradayInterval)
-    : "분/시간";
+  const fallbackIntradayInterval = useMemo(() => {
+    if (intradayIntervals.length === 0) return null;
+    if (intradayIntervals.includes("1h")) return "1h";
+    return intradayIntervals[0];
+  }, [intradayIntervals]);
+  const [lastIntradayInterval, setLastIntradayInterval] = useState<Interval | null>(
+    fallbackIntradayInterval,
+  );
+  const primaryIntradayInterval = lastIntradayInterval ?? fallbackIntradayInterval;
+  const intradayLabel = primaryIntradayInterval
+    ? getIntervalLabel(primaryIntradayInterval)
+    : "분";
+  const intradayActive = Boolean(currentIntradayInterval);
+
+  useEffect(() => {
+    if (currentIntradayInterval) {
+      setLastIntradayInterval(currentIntradayInterval);
+      return;
+    }
+    if (
+      !lastIntradayInterval ||
+      !intradayIntervals.includes(lastIntradayInterval)
+    ) {
+      setLastIntradayInterval(fallbackIntradayInterval);
+    }
+  }, [
+    currentIntradayInterval,
+    fallbackIntradayInterval,
+    intradayIntervals,
+    lastIntradayInterval,
+  ]);
+
+  const handlePrimaryIntradayClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    if (!primaryIntradayInterval) return;
+    if (interval !== primaryIntradayInterval) {
+      event.preventDefault();
+      setInterval(primaryIntradayInterval);
+    }
+  };
 
   return (
     <div className="flex items-center gap-1">
@@ -36,23 +73,16 @@ export default function IntervalSelector() {
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                className={`${CONTROL_CHIP_BUTTON_CLASS} inline-flex h-[var(--control-height-sm)] min-w-[74px] items-center justify-center gap-1.5 border border-[var(--border)] bg-[var(--secondary)] text-[var(--foreground)]`}
-                aria-label="분/시간 인터벌 선택"
-                title="분/시간 인터벌 선택"
+                className={`${CONTROL_CHIP_BUTTON_CLASS} inline-flex items-center justify-center gap-1.5 border ${
+                  intradayActive
+                    ? "border-[var(--primary)] bg-[var(--primary)] text-[var(--primary-foreground)]"
+                    : "border-[var(--border)] bg-[var(--secondary)] text-[var(--foreground)]"
+                }`}
+                onClick={handlePrimaryIntradayClick}
+                aria-label="분 인터벌 선택"
+                title="분 인터벌 선택"
               >
                 <span>{intradayLabel}</span>
-                <svg
-                  width="10"
-                  height="10"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <polyline points="6 9 12 15 18 9" />
-                </svg>
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="z-[90] max-h-64 min-w-[7.25rem] overflow-y-auto">
@@ -66,12 +96,6 @@ export default function IntervalSelector() {
                     data-dropdown-active={active ? "true" : undefined}
                     onSelect={() => setInterval(iv)}
                     className="justify-between"
-                    style={{
-                      background: active
-                        ? "color-mix(in srgb, var(--primary) 14%, transparent)"
-                        : undefined,
-                      color: active ? "var(--primary)" : undefined,
-                    }}
                   >
                     <span>{getIntervalLabel(iv)}</span>
                     {active && <span>✓</span>}

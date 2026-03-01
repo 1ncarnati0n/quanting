@@ -38,6 +38,7 @@ import {
 import { useCrosshairStore } from "../stores/useCrosshairStore";
 import { useReplayStore } from "../stores/useReplayStore";
 import { fetchAnalysis } from "../services/tauriApi";
+import { calculateRvol } from "../utils/rvol";
 
 const SIGNAL_MARKERS: Record<
   SignalType,
@@ -51,6 +52,27 @@ const SIGNAL_MARKERS: Record<
   macdBearish: { position: "aboveBar", color: COLORS.macdBearish, shape: "arrowDown", text: "MACD 하락" },
   stochOversold: { position: "belowBar", color: COLORS.stochOversold, shape: "arrowUp", text: "스토캐스틱 과매도" },
   stochOverbought: { position: "aboveBar", color: COLORS.stochOverbought, shape: "arrowDown", text: "스토캐스틱 과매수" },
+  // Quant Signal Strategies
+  supertrendBuy: { position: "belowBar", color: COLORS.supertrendBuy, shape: "arrowUp", text: "ST" },
+  supertrendSell: { position: "aboveBar", color: COLORS.supertrendSell, shape: "arrowDown", text: "ST" },
+  emaCrossoverBuy: { position: "belowBar", color: COLORS.emaCrossoverBuy, shape: "arrowUp", text: "EMA" },
+  emaCrossoverSell: { position: "aboveBar", color: COLORS.emaCrossoverSell, shape: "arrowDown", text: "EMA" },
+  stochRsiBuy: { position: "belowBar", color: COLORS.stochRsiBuy, shape: "arrowUp", text: "S+R" },
+  stochRsiSell: { position: "aboveBar", color: COLORS.stochRsiSell, shape: "arrowDown", text: "S+R" },
+  cmfObvBuy: { position: "belowBar", color: COLORS.cmfObvBuy, shape: "arrowUp", text: "CMF" },
+  cmfObvSell: { position: "aboveBar", color: COLORS.cmfObvSell, shape: "arrowDown", text: "CMF" },
+  ttmSqueezeBuy: { position: "belowBar", color: COLORS.ttmSqueezeBuy, shape: "arrowUp", text: "TTM" },
+  ttmSqueezeSell: { position: "aboveBar", color: COLORS.ttmSqueezeSell, shape: "arrowDown", text: "TTM" },
+  vwapBreakoutBuy: { position: "belowBar", color: COLORS.vwapBreakoutBuy, shape: "arrowUp", text: "VWAP" },
+  vwapBreakoutSell: { position: "aboveBar", color: COLORS.vwapBreakoutSell, shape: "arrowDown", text: "VWAP" },
+  parabolicSarBuy: { position: "belowBar", color: COLORS.parabolicSarBuy, shape: "arrowUp", text: "SAR" },
+  parabolicSarSell: { position: "aboveBar", color: COLORS.parabolicSarSell, shape: "arrowDown", text: "SAR" },
+  macdHistReversalBuy: { position: "belowBar", color: COLORS.macdHistReversalBuy, shape: "arrowUp", text: "MH" },
+  macdHistReversalSell: { position: "aboveBar", color: COLORS.macdHistReversalSell, shape: "arrowDown", text: "MH" },
+  ibsMeanRevBuy: { position: "belowBar", color: COLORS.ibsMeanRevBuy, shape: "arrowUp", text: "IBS" },
+  ibsMeanRevSell: { position: "aboveBar", color: COLORS.ibsMeanRevSell, shape: "arrowDown", text: "IBS" },
+  rsiDivergenceBuy: { position: "belowBar", color: COLORS.rsiDivergenceBuy, shape: "arrowUp", text: "DIV" },
+  rsiDivergenceSell: { position: "aboveBar", color: COLORS.rsiDivergenceSell, shape: "arrowDown", text: "DIV" },
 };
 
 interface MainChartProps {
@@ -287,6 +309,9 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
     if (indicators.cvd.enabled) {
       bandConfigs.push({ id: "cvd", weight: Math.max(0.2, indicators.layout.cvdWeight) });
     }
+    if (indicators.rvol.enabled) {
+      bandConfigs.push({ id: "rvol", weight: Math.max(0.2, indicators.layout.rvolWeight) });
+    }
     if (indicators.stc.enabled) {
       bandConfigs.push({ id: "stc", weight: Math.max(0.2, indicators.layout.stcWeight) });
     }
@@ -336,6 +361,7 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
     indicators.layout.willrWeight,
     indicators.layout.adxWeight,
     indicators.layout.cvdWeight,
+    indicators.layout.rvolWeight,
     indicators.layout.stcWeight,
     indicators.atr.enabled,
     indicators.macd.enabled,
@@ -349,6 +375,7 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
     indicators.williamsR.enabled,
     indicators.adx.enabled,
     indicators.cvd.enabled,
+    indicators.rvol.enabled,
     indicators.stc.enabled,
   ]);
 
@@ -897,6 +924,39 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
         })),
       );
       dynamicSeriesRef.current.set("volume", series as ISeriesApi<SeriesType>);
+    }
+
+    // --- RVOL (Relative Volume) ---
+    if (indicators.rvol.enabled && displayCandles.length > 0) {
+      const rvolData = calculateRvol(displayCandles, indicators.rvol.period);
+      if (rvolData.length > 0) {
+        const series = chart.addSeries(HistogramSeries, {
+          priceScaleId: "rvol",
+          priceLineVisible: false,
+          lastValueVisible: false,
+        });
+        series.setData(
+          rvolData.map((p) => ({
+            time: p.time as Time,
+            value: p.value,
+            color:
+              p.value >= 1.5
+                ? COLORS.rvolHigh
+                : p.value < 0.5
+                  ? COLORS.rvolLow
+                  : COLORS.rvolNeutral,
+          })),
+        );
+        // baseline at 1.0
+        series.createPriceLine({
+          price: 1,
+          color: "rgba(148,163,184,0.3)",
+          lineWidth: 1,
+          lineStyle: 2,
+          axisLabelVisible: false,
+        });
+        dynamicSeriesRef.current.set("rvol", series as ISeriesApi<SeriesType>);
+      }
     }
 
     if (indicators.rsi.enabled && filteredRsi.length > 0) {
@@ -1632,6 +1692,8 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
     indicators.williamsR.enabled,
     indicators.adx.enabled,
     indicators.cvd.enabled,
+    indicators.rvol.enabled,
+    indicators.rvol.period,
     indicators.stc.enabled,
     indicators.smc.enabled,
     indicators.anchoredVwap.enabled,
@@ -1709,6 +1771,7 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
       stochastic: null,
       showObv: false,
       signalFilter: indicators.signalFilter,
+      signalStrategies: indicators.signalStrategies,
     })
       .then((resp) => {
         if (cancelled || !chartRef.current) return;

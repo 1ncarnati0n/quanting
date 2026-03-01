@@ -1,5 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useDrawingStore, type DrawingItem, type DrawingTool } from "../stores/useDrawingStore";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const TOOLS: { key: DrawingTool; label: string; icon: string }[] = [
   { key: "none", label: "선택", icon: "↖" },
@@ -58,34 +64,43 @@ export default function DrawingToolbar() {
   const recentDrawings = useMemo(() => {
     return [...drawings].slice(-8).reverse();
   }, [drawings]);
+  const currentTool = useMemo(() => {
+    return TOOLS.find((tool) => tool.key === activeTool) ?? TOOLS[0];
+  }, [activeTool]);
 
   return (
     <div
       ref={menuRef}
-      className="pointer-events-auto absolute left-3 top-2.5 z-10 flex items-center gap-0.5 rounded-md px-1 py-1"
-      style={{
-        background: "color-mix(in srgb, var(--background) 85%, transparent)",
-        backdropFilter: "blur(6px)",
-        border: "1px solid var(--border)",
-      }}
+      className="floating-toolbar pointer-events-auto absolute left-3 top-2.5 z-10 flex items-center gap-0.5 rounded-md px-1 py-1"
     >
-      {TOOLS.map((tool) => (
-        <button
-          key={tool.key}
-          type="button"
-          className="chart-toolbar-btn"
-          title={`${tool.label} 도구`}
-          onClick={() => setActiveTool(tool.key)}
-          style={{
-            background: activeTool === tool.key ? "var(--accent)" : undefined,
-            color: activeTool === tool.key ? "var(--primary)" : "var(--foreground)",
-          }}
-        >
-          <span className="ds-type-caption font-bold leading-none">{tool.icon}</span>
-        </button>
-      ))}
+      <DropdownMenu>
+        <div className="relative">
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              className={`chart-toolbar-btn ${activeTool !== "none" ? "is-active" : ""}`}
+              title={`드로잉 도구: ${currentTool.label}`}
+            >
+              <span className="ds-type-caption font-bold leading-none">{currentTool.icon}</span>
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="min-w-[160px]">
+            {TOOLS.map((tool) => (
+              <DropdownMenuItem
+                key={tool.key}
+                className="gap-2.5"
+                data-dropdown-active={activeTool === tool.key ? "true" : undefined}
+                onSelect={() => setActiveTool(tool.key)}
+              >
+                <span className="w-4 text-center font-bold">{tool.icon}</span>
+                <span>{tool.label}</span>
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </div>
+      </DropdownMenu>
 
-      <div className="mx-0.5 h-5 w-px" style={{ background: "var(--border)" }} />
+      <div className="floating-toolbar-divider" />
 
       <button
         type="button"
@@ -93,7 +108,6 @@ export default function DrawingToolbar() {
         title="최근 1개 실행취소"
         onClick={undoLastDrawing}
         disabled={drawings.length === 0}
-        style={{ opacity: drawings.length === 0 ? 0.45 : 1 }}
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <polyline points="9 14 4 9 9 4" />
@@ -107,7 +121,6 @@ export default function DrawingToolbar() {
         title="선택 드로잉 삭제"
         onClick={() => selectedDrawingId && removeDrawing(selectedDrawingId)}
         disabled={!selectedDrawingId}
-        style={{ opacity: selectedDrawingId ? 1 : 0.45 }}
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <path d="M3 6h18" />
@@ -119,12 +132,9 @@ export default function DrawingToolbar() {
 
       <button
         type="button"
-        className="chart-toolbar-btn"
+        className={`chart-toolbar-btn ${showList ? "is-active" : ""}`}
         title={`드로잉 목록 (${drawings.length})`}
         onClick={() => setShowList((prev) => !prev)}
-        style={{
-          color: showList ? "var(--primary)" : "var(--foreground)",
-        }}
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <line x1="8" y1="6" x2="21" y2="6" />
@@ -142,7 +152,6 @@ export default function DrawingToolbar() {
         title="드로잉 전체 삭제"
         onClick={clearDrawings}
         disabled={drawings.length === 0}
-        style={{ opacity: drawings.length === 0 ? 0.45 : 1 }}
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <polyline points="3 6 5 6 21 6" />
@@ -152,23 +161,16 @@ export default function DrawingToolbar() {
       </button>
 
       {showList && (
-        <div className="chart-toolbar-dropdown" style={{ left: 0, minWidth: 220, top: "calc(100% + 4px)" }}>
-          <div
-            className="ds-type-caption px-2 pb-1 font-semibold uppercase tracking-wider"
-            style={{ color: "var(--muted-foreground)" }}
-          >
+        <div className="chart-toolbar-dropdown left-0 min-w-[220px]">
+          <div className="ds-type-caption text-token-muted px-2 pb-1 font-semibold uppercase tracking-wider">
             드로잉 {drawings.length}개
           </div>
           {recentDrawings.map((item) => (
             <div
               key={item.id}
-              className="chart-toolbar-dropdown-item justify-between gap-2"
-              style={{
-                background:
-                  selectedDrawingId === item.id
-                    ? "color-mix(in srgb, var(--primary) 16%, transparent)"
-                    : undefined,
-              }}
+              className={`chart-toolbar-dropdown-item justify-between gap-2 ${
+                selectedDrawingId === item.id ? "is-active" : ""
+              }`}
               onClick={() => setSelectedDrawing(item.id)}
             >
               <span
@@ -179,17 +181,13 @@ export default function DrawingToolbar() {
               </span>
               <div className="flex items-center gap-1">
                 {selectedDrawingId === item.id && (
-                  <span className="ds-type-caption" style={{ color: "var(--primary)" }}>
+                  <span className="ds-type-caption text-token-primary">
                     선택
                   </span>
                 )}
                 <button
                   type="button"
-                  className="ds-type-caption rounded px-1 py-0.5"
-                  style={{
-                    border: "1px solid var(--border)",
-                    color: "var(--destructive)",
-                  }}
+                  className="ds-type-caption text-token-destructive rounded border border-[var(--border)] px-1 py-0.5"
                   onClick={(event) => {
                     event.stopPropagation();
                     removeDrawing(item.id);
@@ -202,7 +200,7 @@ export default function DrawingToolbar() {
             </div>
           ))}
           {recentDrawings.length === 0 && (
-            <div className="ds-type-caption px-2 py-1" style={{ color: "var(--muted-foreground)" }}>
+            <div className="ds-type-caption text-token-muted px-2 py-1">
               표시할 드로잉이 없습니다.
             </div>
           )}

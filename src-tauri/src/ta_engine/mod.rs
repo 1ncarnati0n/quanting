@@ -157,6 +157,111 @@ pub fn analyze(candles: &[Candle], params: &AnalysisParams) -> AnalysisResponse 
         .as_ref()
         .map(|fp| auto_fib::calculate(candles, fp.lookback, fp.swing_length));
 
+    // ─── Quant Signal Strategies ───
+
+    let ss = &params.signal_strategies;
+
+    // Compute fallback indicators only when needed by strategies but not already computed
+    let adx_fallback;
+    let cmf_fallback;
+    let obv_fallback;
+    let kelt_fallback;
+
+    // 1. Supertrend + ADX
+    if ss.supertrend_adx {
+        let st = supertrend_result.as_ref().unwrap();
+        let adx_ref = match adx_result.as_ref() {
+            Some(r) => r,
+            None => {
+                adx_fallback = adx::calculate(candles, 14);
+                &adx_fallback
+            }
+        };
+        signals.extend(signal::detect_supertrend_adx(st, adx_ref, candles));
+    }
+
+    // 2. EMA Crossover (needs dedicated fast/slow EMA)
+    if ss.ema_crossover {
+        let ema_fast = ema::calculate(candles, ss.ema_fast_period);
+        let ema_slow = ema::calculate(candles, ss.ema_slow_period);
+        signals.extend(signal::detect_ema_crossover(&ema_fast, &ema_slow, candles));
+    }
+
+    // 3. Stochastic + RSI combined
+    if ss.stoch_rsi_combined {
+        if let Some(ref stoch) = stoch_result {
+            signals.extend(signal::detect_stoch_rsi_combined(stoch, &rsi_data, candles));
+        }
+    }
+
+    // 4. CMF + OBV
+    if ss.cmf_obv {
+        let cmf_ref = match cmf_result.as_ref() {
+            Some(r) => r,
+            None => {
+                cmf_fallback = cmf::calculate(candles, 20);
+                &cmf_fallback
+            }
+        };
+        let obv_ref = match obv_result.as_ref() {
+            Some(r) => r,
+            None => {
+                obv_fallback = obv::calculate(candles);
+                &obv_fallback
+            }
+        };
+        signals.extend(signal::detect_cmf_obv(cmf_ref, obv_ref, candles));
+    }
+
+    // 5. TTM Squeeze (needs BB, Keltner, MACD)
+    if ss.ttm_squeeze {
+        if let Some(ref macd_r) = macd_result {
+            let kelt_ref = match keltner_result.as_ref() {
+                Some(r) => r,
+                None => {
+                    kelt_fallback = keltner::calculate(candles, 20, 10, 2.0);
+                    &kelt_fallback
+                }
+            };
+            signals.extend(signal::detect_ttm_squeeze(&bb, kelt_ref, macd_r, candles));
+        }
+    }
+
+    // 6. VWAP Breakout
+    if ss.vwap_breakout {
+        if let Some(ref vwap_r) = vwap_result {
+            signals.extend(signal::detect_vwap_breakout(vwap_r, candles));
+        }
+    }
+
+    // 7. Parabolic SAR reversal
+    if ss.parabolic_sar {
+        if let Some(ref sar) = parabolic_sar_result {
+            signals.extend(signal::detect_parabolic_sar_reversal(sar, candles));
+        }
+    }
+
+    // 8. MACD Histogram reversal
+    if ss.macd_hist_reversal {
+        if let Some(ref macd_r) = macd_result {
+            signals.extend(signal::detect_macd_hist_reversal(macd_r, candles));
+        }
+    }
+
+    // 9. IBS Mean Reversion
+    if ss.ibs_mean_reversion {
+        signals.extend(signal::detect_ibs_mean_reversion(&rsi_data, candles));
+    }
+
+    // 10. RSI Divergence
+    if ss.rsi_divergence {
+        signals.extend(signal::detect_rsi_divergence(
+            &rsi_data,
+            candles,
+            ss.divergence_swing_length,
+        ));
+    }
+
     // Sort all signals by time
     signals.sort_by_key(|s| s.time);
 

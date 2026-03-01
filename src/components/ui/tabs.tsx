@@ -69,7 +69,7 @@ function TabsList({ className, ...props }: React.HTMLAttributes<HTMLDivElement>)
       aria-orientation="horizontal"
       onKeyDown={onKeyDown}
       className={cn(
-        "inline-flex items-center rounded border border-border bg-secondary p-1",
+        "inline-flex items-center rounded-[var(--radius-md)] border border-border bg-secondary p-0.5",
         className,
       )}
       {...props}
@@ -98,7 +98,7 @@ const TabsTrigger = React.forwardRef<HTMLButtonElement, TabsTriggerProps>(
         aria-selected={active}
         data-state={active ? "active" : "inactive"}
         className={cn(
-          "ds-type-label inline-flex items-center justify-center rounded px-2 py-1 font-medium transition-colors",
+          "ds-type-label inline-flex h-[var(--control-height-sm)] items-center justify-center rounded-[var(--radius-sm)] px-3 font-medium leading-none transition-colors",
           active
             ? "bg-primary text-primary-foreground"
             : "text-muted-foreground hover:text-foreground",

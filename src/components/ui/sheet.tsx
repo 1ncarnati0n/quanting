@@ -72,7 +72,7 @@ const SheetContent = React.forwardRef<HTMLDivElement, SheetContentProps>(
 
     if (typeof document === "undefined") return null;
 
-    const sideOffset = side === "left" ? { left: "calc(env(safe-area-inset-left, 0px) + 0.5rem)" } : { right: "calc(env(safe-area-inset-right, 0px) + 0.5rem)" };
+    const sideOffset = side === "left" ? { left: "calc(env(safe-area-inset-left, 0px) + 0.75rem)" } : { right: "calc(env(safe-area-inset-right, 0px) + 0.75rem)" };
     const transform = open
       ? "translateX(0)"
       : side === "left"
@@ -98,7 +98,7 @@ const SheetContent = React.forwardRef<HTMLDivElement, SheetContentProps>(
             assignRef(ref, node);
           }}
           className={cn(
-            "fixed z-30 flex flex-col overflow-hidden rounded border border-border bg-card shadow-[var(--shadow-elevated)] transition-transform duration-200 2xl:hidden",
+            "fixed z-30 flex flex-col overflow-hidden rounded-[var(--radius-panel)] border border-border bg-card shadow-[var(--shadow-elevated)] transition-transform duration-200 2xl:hidden",
             className,
           )}
           role="dialog"
@@ -110,8 +110,8 @@ const SheetContent = React.forwardRef<HTMLDivElement, SheetContentProps>(
             trapFocusOnTab(event, node);
           }}
           style={{
-            top: "calc(env(safe-area-inset-top, 0px) + 0.5rem)",
-            bottom: "calc(env(safe-area-inset-bottom, 0px) + 0.5rem)",
+            top: "calc(env(safe-area-inset-top, 0px) + 0.75rem)",
+            bottom: "calc(env(safe-area-inset-bottom, 0px) + 0.75rem)",
             transform,
             pointerEvents: open ? "auto" : "none",
             ...sideOffset,

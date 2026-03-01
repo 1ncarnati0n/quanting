@@ -21,7 +21,7 @@ const CommandInput = React.forwardRef<HTMLInputElement, React.InputHTMLAttribute
     <input
       ref={ref}
       className={cn(
-        "h-9 w-full border-0 border-b border-border bg-transparent px-3 text-sm text-foreground outline-none placeholder:text-muted-foreground",
+        "ds-type-label h-[var(--control-height-md)] w-full border-0 border-b border-border bg-transparent px-3 text-foreground leading-none outline-none placeholder:text-muted-foreground",
         className,
       )}
       {...props}
@@ -49,7 +49,7 @@ interface CommandGroupProps extends React.HTMLAttributes<HTMLDivElement> {
 
 const CommandGroup = React.forwardRef<HTMLDivElement, CommandGroupProps>(
   ({ className, heading, children, ...props }, ref) => (
-    <div ref={ref} className={cn("py-1", className)} {...props}>
+    <div ref={ref} className={cn("py-1.5", className)} {...props}>
       {heading ? (
         <div className="ds-type-caption px-3 py-1 font-bold uppercase tracking-wider text-muted-foreground">
           {heading}
@@ -84,7 +84,7 @@ const CommandItem = React.forwardRef<HTMLButtonElement, CommandItemProps>(
       ref={ref}
       type="button"
       className={cn(
-        "flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm text-foreground transition-colors hover:bg-secondary",
+        "ds-type-label flex w-full items-center gap-2 rounded-[var(--radius-sm)] px-2.5 py-1.5 text-left text-foreground transition-colors hover:bg-secondary",
         active && "bg-accent",
         className,
       )}

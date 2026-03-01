@@ -17,7 +17,9 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::analysis::fetch_analysis,
             commands::analysis::fetch_watchlist_snapshots,
-            commands::analysis::fetch_fundamentals
+            commands::analysis::fetch_fundamentals,
+            commands::strategy::fetch_multi_symbol_candles,
+            commands::strategy::fetch_premarket_snapshots
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

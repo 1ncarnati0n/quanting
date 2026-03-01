@@ -87,7 +87,7 @@ function DialogContent({
           trapFocusOnTab(event, node);
         }}
         className={cn(
-          "relative z-[201] max-h-[calc(100vh-4rem)] w-[min(100%-2rem,480px)] overflow-y-auto rounded border border-border bg-card p-6 shadow-[var(--shadow-elevated)]",
+          "relative z-[201] max-h-[calc(100vh-4rem)] w-[min(100%-2rem,480px)] overflow-y-auto rounded-[var(--radius-panel)] border border-border bg-card p-[var(--panel-padding)] shadow-[var(--shadow-elevated)]",
           className,
         )}
         {...props}
@@ -103,7 +103,7 @@ function DialogContent({
 function DialogHeader({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={cn("mb-4 flex items-center justify-between", className)}
+      className={cn("mb-5 flex items-center justify-between", className)}
       {...props}
     />
   );

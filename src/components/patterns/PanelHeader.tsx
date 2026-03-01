@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 type PanelHeaderDensity = "comfortable" | "compact";
@@ -27,26 +27,27 @@ export default function PanelHeader({
   density = "comfortable",
   actionAlign = "center",
 }: PanelHeaderProps) {
+  const badgeStyle = badgeText
+    ? ({ "--badge-color": badgeColor } as CSSProperties)
+    : undefined;
+
   return (
     <div className={cn("border-b border-token", className)}>
       <div
         className={cn(
           "flex justify-between",
-          density === "compact" ? "items-start gap-1.5" : "items-center gap-2",
+          density === "compact" ? "items-start gap-2" : "items-center gap-2.5",
         )}
       >
         <div className="min-w-0">
-          <div className={cn("flex items-center", density === "compact" ? "gap-1" : "gap-1.5")}>
+          <div className={cn("flex items-center", density === "compact" ? "gap-1.5" : "gap-2")}>
             <span className="ds-type-title text-token-foreground font-semibold">
               {title}
             </span>
             {badgeText && (
               <span
-                className="ds-type-caption rounded px-1 py-0.5 font-bold"
-                style={{
-                  background: `color-mix(in srgb, ${badgeColor} 18%, transparent)`,
-                  color: badgeColor,
-                }}
+                className="ds-inline-badge ds-type-caption rounded-[var(--radius-sm)] px-1.5 py-0.5 font-bold"
+                style={badgeStyle}
               >
                 {badgeText}
               </span>
@@ -56,7 +57,7 @@ export default function PanelHeader({
             <p
               className={cn(
                 "ds-type-label text-token-muted truncate",
-                density === "compact" ? "mt-0" : "mt-0.5",
+                density === "compact" ? "mt-0.5" : "mt-1",
               )}
             >
               {subtitle}
@@ -74,7 +75,7 @@ export default function PanelHeader({
           </div>
         ) : null}
       </div>
-      {children ? <div className={cn(density === "compact" ? "mt-1.5" : "mt-2")}>{children}</div> : null}
+      {children ? <div className={cn(density === "compact" ? "mt-2" : "mt-2.5")}>{children}</div> : null}
     </div>
   );
 }

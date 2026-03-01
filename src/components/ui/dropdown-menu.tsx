@@ -276,7 +276,7 @@ const DropdownMenuContent = React.forwardRef<HTMLDivElement, DropdownMenuContent
           }
         }}
         className={cn(
-          "absolute top-full z-50 min-w-[8rem] overflow-hidden rounded border border-border bg-card p-1 shadow-[var(--shadow-elevated)]",
+          "absolute top-full z-50 min-w-[8rem] overflow-hidden rounded-[var(--radius-md)] border border-border bg-card p-1 shadow-[var(--shadow-elevated)]",
           alignClass,
           className,
         )}
@@ -305,7 +305,7 @@ const DropdownMenuItem = React.forwardRef<HTMLButtonElement, DropdownMenuItemPro
         type="button"
         role="menuitem"
         className={cn(
-          "ds-type-label flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-foreground transition-colors hover:bg-secondary disabled:pointer-events-none disabled:opacity-50",
+          "dropdown-menu-item ds-type-label flex w-full items-center gap-2 rounded-[var(--radius-sm)] px-2.5 py-1.5 text-left text-foreground transition-colors hover:bg-secondary disabled:pointer-events-none disabled:opacity-50",
           inset && "pl-7",
           className,
         )}

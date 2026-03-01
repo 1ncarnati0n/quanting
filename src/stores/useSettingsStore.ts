@@ -12,6 +12,7 @@ import {
 import type { Interval, Theme } from "../utils/constants";
 import type { MarketType } from "../types";
 
+export type SettingsTab = "indicators" | "layout" | "appearance" | "backtest";
 export type ChartType = "candlestick" | "heikinAshi" | "line" | "area" | "bar";
 export type PriceScaleMode = "normal" | "logarithmic" | "percentage";
 export type AlertCondition = "above" | "below";
@@ -98,6 +99,7 @@ export interface IndicatorConfig {
   williamsR: { enabled: boolean; period: number };
   adx: { enabled: boolean; period: number };
   cvd: { enabled: boolean };
+  rvol: { enabled: boolean; period: number };
   stc: { enabled: boolean; tcLen: number; fastMa: number; slowMa: number };
   smc: { enabled: boolean; swingLength: number };
   anchoredVwap: { enabled: boolean; anchorTime: number | null };
@@ -116,6 +118,7 @@ export interface IndicatorConfig {
     willrWeight: number;
     adxWeight: number;
     cvdWeight: number;
+    rvolWeight: number;
     stcWeight: number;
   };
   signalFilter: {
@@ -134,10 +137,25 @@ export interface IndicatorConfig {
     keepStrongCounterTrend: boolean;
     keepStrongInHighVol: boolean;
   };
+  signalStrategies: {
+    supertrendAdx: boolean;
+    emaCrossover: boolean;
+    stochRsiCombined: boolean;
+    cmfObv: boolean;
+    ttmSqueeze: boolean;
+    vwapBreakout: boolean;
+    parabolicSar: boolean;
+    macdHistReversal: boolean;
+    ibsMeanReversion: boolean;
+    rsiDivergence: boolean;
+    emaFastPeriod: number;
+    emaSlowPeriod: number;
+    divergenceSwingLength: number;
+  };
 }
 
 type IndicatorKey = keyof IndicatorConfig;
-type ToggleableIndicatorKey = Exclude<IndicatorKey, "layout">;
+type ToggleableIndicatorKey = Exclude<IndicatorKey, "layout" | "signalStrategies">;
 
 const DEFAULT_INDICATORS: IndicatorConfig = {
   bb: { enabled: true, period: DEFAULTS.bbPeriod, multiplier: DEFAULTS.bbMultiplier },
@@ -165,6 +183,7 @@ const DEFAULT_INDICATORS: IndicatorConfig = {
   williamsR: { enabled: false, ...INDICATOR_DEFAULTS.williamsR },
   adx: { enabled: false, ...INDICATOR_DEFAULTS.adx },
   cvd: { enabled: false },
+  rvol: { enabled: false, ...INDICATOR_DEFAULTS.rvol },
   stc: { enabled: false, ...INDICATOR_DEFAULTS.stc },
   smc: { enabled: false, ...INDICATOR_DEFAULTS.smc },
   anchoredVwap: { enabled: false, anchorTime: null },
@@ -183,9 +202,11 @@ const DEFAULT_INDICATORS: IndicatorConfig = {
     willrWeight: 1,
     adxWeight: 1,
     cvdWeight: 1,
+    rvolWeight: 1,
     stcWeight: 1,
   },
   signalFilter: { ...INDICATOR_DEFAULTS.signalFilter },
+  signalStrategies: { ...INDICATOR_DEFAULTS.signalStrategies },
 };
 
 const DEFAULT_PRICE_SCALE: PriceScaleSettings = {
@@ -215,8 +236,10 @@ interface SettingsState {
   compare: CompareSettings;
   priceAlerts: PriceAlert[];
   alertHistory: AlertHistoryItem[];
+  settingsTab: SettingsTab;
   showSettings: boolean;
   isFullscreen: boolean;
+  setSettingsTab: (tab: SettingsTab) => void;
   setSymbol: (symbol: string, market?: MarketType) => void;
   setInterval: (interval: Interval) => void;
   setMarket: (market: MarketType) => void;
@@ -298,6 +321,7 @@ function getSavedIndicators(): IndicatorConfig {
         williamsR: { ...DEFAULT_INDICATORS.williamsR, ...parsed.williamsR },
         adx: { ...DEFAULT_INDICATORS.adx, ...parsed.adx },
         cvd: { ...DEFAULT_INDICATORS.cvd, ...parsed.cvd },
+        rvol: { ...DEFAULT_INDICATORS.rvol, ...parsed.rvol },
         stc: { ...DEFAULT_INDICATORS.stc, ...parsed.stc },
         smc: { ...DEFAULT_INDICATORS.smc, ...parsed.smc },
         anchoredVwap: { ...DEFAULT_INDICATORS.anchoredVwap, ...parsed.anchoredVwap },
@@ -306,6 +330,10 @@ function getSavedIndicators(): IndicatorConfig {
         signalFilter: {
           ...DEFAULT_INDICATORS.signalFilter,
           ...parsed.signalFilter,
+        },
+        signalStrategies: {
+          ...DEFAULT_INDICATORS.signalStrategies,
+          ...parsed.signalStrategies,
         },
       };
     }
@@ -644,6 +672,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   compare: getSavedCompare(),
   priceAlerts: getSavedPriceAlerts(),
   alertHistory: getSavedAlertHistory(),
+  settingsTab: "indicators" as SettingsTab,
   showSettings: false,
   isFullscreen: false,
   setSymbol: (symbol, market) =>
@@ -890,6 +919,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       saveIndicators(updated.indicators);
       return updated;
     }),
+  setSettingsTab: (settingsTab) => set({ settingsTab }),
   setShowSettings: (showSettings) => set({ showSettings }),
   toggleFullscreen: () => set((state) => ({ isFullscreen: !state.isFullscreen })),
 }));

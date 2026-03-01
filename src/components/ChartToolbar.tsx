@@ -7,7 +7,6 @@ import {
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
@@ -43,12 +42,7 @@ export default function ChartToolbar() {
 
   return (
     <div
-      className="pointer-events-auto absolute right-20 top-2.5 z-10 flex items-center gap-0.5 rounded-md px-1 py-1"
-      style={{
-        background: "color-mix(in srgb, var(--background) 85%, transparent)",
-        backdropFilter: "blur(6px)",
-        border: "1px solid var(--border)",
-      }}
+      className="floating-toolbar pointer-events-auto absolute right-20 top-2.5 z-10 flex items-center gap-0.5 rounded-md px-1 py-1"
     >
       {/* Chart Type Dropdown */}
       <DropdownMenu
@@ -66,10 +60,7 @@ export default function ChartToolbar() {
               <DropdownMenuItem
                 key={opt.value}
                 className="gap-2.5"
-                style={{
-                  background: chartType === opt.value ? "var(--accent)" : undefined,
-                  color: chartType === opt.value ? "var(--primary)" : "var(--foreground)",
-                }}
+                data-dropdown-active={chartType === opt.value ? "true" : undefined}
                 onSelect={() => setChartType(opt.value)}
               >
                 <span className="w-4 text-center font-bold">{opt.icon}</span>
@@ -106,18 +97,14 @@ export default function ChartToolbar() {
         </div>
       </DropdownMenu>
 
-      <div className="mx-0.5 h-5 w-px" style={{ background: "var(--border)" }} />
+      <div className="floating-toolbar-divider" />
 
       {/* Bar Replay */}
       <button
         type="button"
         onClick={toggleReplay}
-        className="chart-toolbar-btn"
+        className={`chart-toolbar-btn ${replayEnabled ? "is-warning" : ""}`}
         title="바 리플레이 (R)"
-        style={{
-          color: replayEnabled ? "var(--warning)" : undefined,
-          background: replayEnabled ? "color-mix(in srgb, var(--warning) 16%, transparent)" : undefined,
-        }}
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <polygon points="5 3 19 12 5 21 5 3" />
@@ -139,7 +126,7 @@ export default function ChartToolbar() {
         </svg>
       </button>
 
-      <DropdownMenuSeparator className="mx-0.5 h-5 w-px self-stretch bg-[var(--border)]" />
+      <div className="floating-toolbar-divider self-stretch" />
 
       {/* Zoom controls */}
       <button
@@ -177,7 +164,7 @@ export default function ChartToolbar() {
         </svg>
       </button>
 
-      <DropdownMenuSeparator className="mx-0.5 h-5 w-px self-stretch bg-[var(--border)]" />
+      <div className="floating-toolbar-divider self-stretch" />
 
       {/* Fullscreen */}
       <button

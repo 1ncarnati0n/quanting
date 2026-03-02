@@ -135,9 +135,8 @@ function makePriceFormatter(market: MarketType) {
   return (price: number) => formatPrice(price, market);
 }
 
-function mapPriceScaleMode(mode: PriceScaleMode): 0 | 1 | 2 {
+function mapPriceScaleMode(mode: PriceScaleMode): 0 | 1 {
   if (mode === "logarithmic") return 1;
-  if (mode === "percentage") return 2;
   return 0;
 }
 
@@ -430,7 +429,6 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
         minimumWidth: CHART_PRICE_SCALE_WIDTH,
         mode: mapPriceScaleMode(ps.mode),
         autoScale: ps.autoScale,
-        invertScale: ps.invertScale,
       },
       leftPriceScale: { visible: false },
       timeScale: {
@@ -791,12 +789,11 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
       rightPriceScale: {
         mode: mapPriceScaleMode(priceScale.mode),
         autoScale: priceScale.autoScale,
-        invertScale: priceScale.invertScale,
       },
     });
     // Keep main/oscillator pane split stable even after rightPriceScale option updates.
     applyIndicatorScaleLayout();
-  }, [applyIndicatorScaleLayout, priceScale.autoScale, priceScale.invertScale, priceScale.mode]);
+  }, [applyIndicatorScaleLayout, priceScale.autoScale, priceScale.mode]);
 
   useEffect(() => {
     applyIndicatorScaleLayout();

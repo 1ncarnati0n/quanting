@@ -298,7 +298,7 @@ export default function CommandCenter({
           trackUxAction("command_hub", "workspace_safe_reset");
           useReplayStore.getState().exitReplay();
           useSettingsStore.getState().setCompare({ enabled: false });
-          useSettingsStore.getState().setPriceScale({ autoScale: true, mode: "normal", invertScale: false });
+          useSettingsStore.getState().setPriceScale({ autoScale: true, mode: "normal" });
           useDrawingStore.getState().clearDrawings();
           window.dispatchEvent(new CustomEvent("quanting:chart-fit"));
           setOpen(false);

@@ -327,7 +327,7 @@ impl KisClient {
                     ("fid_cond_mrkt_div_code", "J"),
                     ("fid_input_iscd", stock_code),
                     ("fid_input_hour_1", cursor_time.as_str()),
-                    ("fid_pw_data_incu_yn", "N"),
+                    ("fid_pw_data_incu_yn", "Y"),
                     ("fid_etc_cls_code", tick_unit),
                 ])
                 .send()

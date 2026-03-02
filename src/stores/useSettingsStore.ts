@@ -14,7 +14,7 @@ import type { MarketType } from "../types";
 
 export type SettingsTab = "indicators" | "layout" | "appearance" | "backtest";
 export type ChartType = "candlestick" | "heikinAshi" | "line" | "area" | "bar";
-export type PriceScaleMode = "normal" | "logarithmic" | "percentage";
+export type PriceScaleMode = "normal" | "logarithmic";
 export type AlertCondition = "above" | "below";
 export type MultiChartLayout = 1 | 2 | 4;
 
@@ -32,7 +32,6 @@ export interface CustomSymbol {
 export interface PriceScaleSettings {
   mode: PriceScaleMode;
   autoScale: boolean;
-  invertScale: boolean;
 }
 
 export interface CompareSettings {
@@ -201,7 +200,6 @@ const DEFAULT_INDICATORS: IndicatorConfig = {
 const DEFAULT_PRICE_SCALE: PriceScaleSettings = {
   mode: "normal",
   autoScale: true,
-  invertScale: false,
 };
 
 const DEFAULT_COMPARE: CompareSettings = {
@@ -552,16 +550,12 @@ function getSavedPriceScale(): PriceScaleSettings {
     if (!raw) return DEFAULT_PRICE_SCALE;
     const parsed = JSON.parse(raw);
     const mode =
-      parsed?.mode === "normal" || parsed?.mode === "logarithmic" || parsed?.mode === "percentage"
+      parsed?.mode === "normal" || parsed?.mode === "logarithmic"
         ? parsed.mode
         : DEFAULT_PRICE_SCALE.mode;
     const autoScale =
       typeof parsed?.autoScale === "boolean" ? parsed.autoScale : DEFAULT_PRICE_SCALE.autoScale;
-    const invertScale =
-      typeof parsed?.invertScale === "boolean"
-        ? parsed.invertScale
-        : DEFAULT_PRICE_SCALE.invertScale;
-    return { mode, autoScale, invertScale };
+    return { mode, autoScale };
   } catch {}
   return DEFAULT_PRICE_SCALE;
 }
@@ -884,7 +878,17 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     }),
   setPriceScale: (partial) =>
     set((state) => {
-      const next = { ...state.priceScale, ...partial };
+      const nextMode =
+        partial.mode === "normal" || partial.mode === "logarithmic"
+          ? partial.mode
+          : state.priceScale.mode;
+      const next: PriceScaleSettings = {
+        mode: nextMode,
+        autoScale:
+          typeof partial.autoScale === "boolean"
+            ? partial.autoScale
+            : state.priceScale.autoScale,
+      };
       savePriceScale(next);
       return { priceScale: next };
     }),

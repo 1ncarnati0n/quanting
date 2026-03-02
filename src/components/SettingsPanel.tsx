@@ -647,11 +647,10 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
                   title="가격 스케일"
                   description="차트 축 표시 형식과 자동 스케일 옵션입니다."
                 >
-                  <div className="grid grid-cols-3 gap-1.5">
+                  <div className="grid grid-cols-2 gap-1.5">
                     {([
                       { value: "normal" as const, label: "기본" },
                       { value: "logarithmic" as const, label: "로그" },
-                      { value: "percentage" as const, label: "%" },
                     ] as const).map((opt) => (
                       <SegmentButton
                         key={opt.value}
@@ -667,11 +666,6 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
                     label="자동 스케일"
                     checked={priceScale.autoScale}
                     onChange={(checked) => setPriceScale({ autoScale: checked })}
-                  />
-                  <ToggleRow
-                    label="역전 스케일"
-                    checked={priceScale.invertScale}
-                    onChange={(checked) => setPriceScale({ invertScale: checked })}
                   />
                 </SettingCard>
 

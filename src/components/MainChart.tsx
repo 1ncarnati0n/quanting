@@ -194,6 +194,8 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
   const lastVisibleTimeRangeRef = useRef<{ from: number; to: number } | null>(null);
   const activeTimeRangeIdRef = useRef<TimeRangeId>(readSavedTimeRangeId());
   const crosshairRafRef = useRef<number | null>(null);
+  const userAdjustedViewportRef = useRef(false);
+  const prevVisibleBarCountRef = useRef<number | null>(null);
 
   const theme = useSettingsStore((s) => s.theme);
   const chartType = useSettingsStore((s) => s.chartType);
@@ -599,11 +601,41 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
     applySize();
 
     // Custom event listeners for chart commands
+    const markViewportAdjusted = () => {
+      userAdjustedViewportRef.current = true;
+    };
+    let pointerDown = false;
+    let pointerStartX = 0;
+    let pointerStartY = 0;
+    const onPointerDown = (event: PointerEvent) => {
+      pointerDown = true;
+      pointerStartX = event.clientX;
+      pointerStartY = event.clientY;
+    };
+    const onPointerMove = (event: PointerEvent) => {
+      if (!pointerDown) return;
+      const distance =
+        Math.abs(event.clientX - pointerStartX) + Math.abs(event.clientY - pointerStartY);
+      if (distance >= 6) {
+        markViewportAdjusted();
+        pointerDown = false;
+      }
+    };
+    const onPointerUp = () => {
+      pointerDown = false;
+    };
+
+    container.addEventListener("wheel", markViewportAdjusted);
+    container.addEventListener("pointerdown", onPointerDown);
+    window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", onPointerUp);
+
     const onZoomIn = () => {
       if (!chartRef.current) return;
       const ts = chartRef.current.timeScale();
       const range = ts.getVisibleLogicalRange();
       if (!range) return;
+      markViewportAdjusted();
       const span = range.to - range.from;
       const center = (range.from + range.to) / 2;
       const newSpan = span * 0.8;
@@ -614,12 +646,14 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
       const ts = chartRef.current.timeScale();
       const range = ts.getVisibleLogicalRange();
       if (!range) return;
+      markViewportAdjusted();
       const span = range.to - range.from;
       const center = (range.from + range.to) / 2;
       const newSpan = span * 1.25;
       ts.setVisibleLogicalRange({ from: center - newSpan / 2, to: center + newSpan / 2 });
     };
     const onFitContent = () => {
+      userAdjustedViewportRef.current = false;
       chartRef.current?.timeScale().fitContent();
     };
     const onScrollLeft = () => {
@@ -627,6 +661,7 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
       const ts = chartRef.current.timeScale();
       const range = ts.getVisibleLogicalRange();
       if (!range) return;
+      markViewportAdjusted();
       const shift = (range.to - range.from) * 0.1;
       ts.setVisibleLogicalRange({ from: range.from - shift, to: range.to - shift });
     };
@@ -635,6 +670,7 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
       const ts = chartRef.current.timeScale();
       const range = ts.getVisibleLogicalRange();
       if (!range) return;
+      markViewportAdjusted();
       const shift = (range.to - range.from) * 0.1;
       ts.setVisibleLogicalRange({ from: range.from + shift, to: range.to + shift });
     };
@@ -682,6 +718,7 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
         activeTimeRangeIdRef.current = "all";
       }
 
+      userAdjustedViewportRef.current = false;
       applyRequestedTimeRange(chartRef.current, dataRef.current.candles, resolvedRange);
     };
 
@@ -695,6 +732,10 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
 
     return () => {
       observer.disconnect();
+      container.removeEventListener("wheel", markViewportAdjusted);
+      container.removeEventListener("pointerdown", onPointerDown);
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerup", onPointerUp);
       window.removeEventListener("quanting:chart-zoom-in", onZoomIn);
       window.removeEventListener("quanting:chart-zoom-out", onZoomOut);
       window.removeEventListener("quanting:chart-fit", onFitContent);
@@ -1640,8 +1681,10 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
     prevDataScopeRef.current = currentScope;
     prevDataSymbolRef.current = data.symbol;
     const symbolChanged = prevSymbol != null && prevSymbol !== data.symbol;
+    const previousVisibleBarCount = prevVisibleBarCountRef.current ?? displayCandles.length;
 
     if (scopeChanged) {
+      userAdjustedViewportRef.current = false;
       // 종목 변경 시 이전 종목의 뷰 범위 복원을 막는다.
       if (symbolChanged) {
         lastVisibleTimeRangeRef.current = null;
@@ -1668,22 +1711,29 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
         }
       }
     } else if (savedRange) {
-      // auto-refresh, WebSocket, indicator 변경 → 뷰 위치 복원
-      const newBarCount = displayCandles.length;
-      const wasAtTrailingEdge = savedRange.to >= newBarCount - 3;
-
-      if (wasAtTrailingEdge) {
-        // 최신 바를 보고 있었으면 → 새 바도 보이도록 shift
-        const span = savedRange.to - savedRange.from;
-        chart.timeScale().setVisibleLogicalRange({
-          from: newBarCount - 1 - span,
-          to: newBarCount - 1 + Math.max(0, savedRange.to - Math.floor(savedRange.to)),
-        });
-      } else {
-        // 과거 영역을 보고 있었으면 → 정확히 같은 위치 복원
+      if (userAdjustedViewportRef.current) {
+        // 사용자가 직접 조작한 뷰(줌/팬)는 실시간 업데이트에도 그대로 유지
         chart.timeScale().setVisibleLogicalRange(savedRange);
+      } else {
+        // auto-refresh/WebSocket 수신 시에는 "최신 바 추적" 상태만 유지
+        const newBarCount = displayCandles.length;
+        const previousLastIndex = Math.max(0, previousVisibleBarCount - 1);
+        const wasAtTrailingEdge = savedRange.to >= previousLastIndex - 0.5;
+
+        if (wasAtTrailingEdge) {
+          const span = savedRange.to - savedRange.from;
+          const rightOffset = savedRange.to - previousLastIndex;
+          const nextTo = Math.max(0, newBarCount - 1) + rightOffset;
+          chart.timeScale().setVisibleLogicalRange({
+            from: nextTo - span,
+            to: nextTo,
+          });
+        } else {
+          chart.timeScale().setVisibleLogicalRange(savedRange);
+        }
       }
     }
+    prevVisibleBarCountRef.current = displayCandles.length;
   }, [
     applyIndicatorScaleLayout,
     applyRequestedTimeRange,

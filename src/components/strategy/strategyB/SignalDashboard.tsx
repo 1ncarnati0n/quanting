@@ -1,4 +1,5 @@
 import type { MACDBBSignal } from "@/stores/useStrategyStore";
+import StatePanel from "@/components/patterns/StatePanel";
 import SignalRow from "./SignalRow";
 
 interface SignalDashboardProps {
@@ -8,11 +9,13 @@ interface SignalDashboardProps {
 export default function SignalDashboard({ signals }: SignalDashboardProps) {
   if (signals.length === 0) {
     return (
-      <div className="flex h-24 items-center justify-center rounded-lg border border-dashed border-[var(--border)]">
-        <span className="ds-type-body text-[var(--muted-foreground)]">
-          감지된 신호가 없습니다
-        </span>
-      </div>
+      <StatePanel
+        variant="empty"
+        size="compact"
+        title="감지된 신호가 없습니다"
+        description="조건을 변경한 뒤 다시 스캔해 보세요."
+        className="h-24 border-dashed bg-transparent flex items-center justify-center"
+      />
     );
   }
 

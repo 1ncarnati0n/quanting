@@ -1,4 +1,4 @@
-use crate::models::{Candle, FundamentalsResponse, MarketType, PremarketSnapshot};
+use crate::models::{Candle, FundamentalsResponse, MarketType, PremarketSnapshot, SymbolSearchResult};
 use serde_json::Value;
 
 pub struct YahooClient {
@@ -24,9 +24,10 @@ impl YahooClient {
         let range = Self::interval_to_range(interval);
         let yahoo_interval = Self::map_interval(interval);
 
+        let include_pre_post = Self::is_intraday(interval);
         let url = format!(
-            "https://query1.finance.yahoo.com/v8/finance/chart/{}?interval={}&range={}",
-            symbol, yahoo_interval, range
+            "https://query1.finance.yahoo.com/v8/finance/chart/{}?interval={}&range={}&includePrePost={}",
+            symbol, yahoo_interval, range, include_pre_post
         );
 
         let resp = self
@@ -246,6 +247,114 @@ impl YahooClient {
         }
 
         Ok(candles)
+    }
+
+    pub async fn search_symbols(
+        &self,
+        query: &str,
+        market_filter: Option<&MarketType>,
+    ) -> Result<Vec<SymbolSearchResult>, String> {
+        let url = "https://query1.finance.yahoo.com/v1/finance/search";
+
+        let resp = self
+            .client
+            .get(url)
+            .query(&[
+                ("q", query),
+                ("quotesCount", "12"),
+                ("newsCount", "0"),
+                ("listsCount", "0"),
+            ])
+            .send()
+            .await
+            .map_err(|e| format!("Network error: {}", e))?;
+
+        if !resp.status().is_success() {
+            let status = resp.status();
+            let body = resp.text().await.unwrap_or_default();
+            return Err(format!("Yahoo Search API error ({}): {}", status, body));
+        }
+
+        let json: serde_json::Value = resp
+            .json()
+            .await
+            .map_err(|e| format!("Parse error: {}", e))?;
+
+        let quotes = json
+            .get("quotes")
+            .and_then(|q| q.as_array())
+            .cloned()
+            .unwrap_or_default();
+
+        let mut results = Vec::new();
+
+        for quote in &quotes {
+            let symbol = quote.get("symbol").and_then(|v| v.as_str()).unwrap_or("");
+            let short_name = quote
+                .get("shortname")
+                .or_else(|| quote.get("longname"))
+                .and_then(|v| v.as_str())
+                .unwrap_or(symbol);
+            let exchange = quote.get("exchDisp").and_then(|v| v.as_str()).unwrap_or("");
+            let quote_type = quote.get("quoteType").and_then(|v| v.as_str()).unwrap_or("");
+
+            let market = Self::classify_market(symbol, exchange, quote_type);
+
+            // Crypto/Forex는 프리셋 기반이므로 검색 결과에서 제외
+            if market == MarketType::Crypto || market == MarketType::Forex {
+                continue;
+            }
+
+            if let Some(ref mf) = market_filter {
+                if **mf != market {
+                    continue;
+                }
+            }
+
+            results.push(SymbolSearchResult {
+                symbol: symbol.to_string(),
+                label: short_name.to_string(),
+                market,
+                exchange: exchange.to_string(),
+            });
+        }
+
+        Ok(results)
+    }
+
+    fn classify_market(symbol: &str, exchange: &str, quote_type: &str) -> MarketType {
+        // 한국 주식: .KS (KOSPI), .KQ (KOSDAQ)
+        if symbol.ends_with(".KS") || symbol.ends_with(".KQ") {
+            return MarketType::KrStock;
+        }
+
+        let exchange_lower = exchange.to_lowercase();
+        if exchange_lower.contains("korea")
+            || exchange_lower.contains("kospi")
+            || exchange_lower.contains("kosdaq")
+        {
+            return MarketType::KrStock;
+        }
+
+        // Forex
+        if symbol.ends_with("=X") {
+            return MarketType::Forex;
+        }
+
+        // Crypto
+        let qt_lower = quote_type.to_lowercase();
+        if qt_lower == "cryptocurrency"
+            || symbol.ends_with("-USD")
+            || symbol.ends_with("USDT")
+        {
+            return MarketType::Crypto;
+        }
+
+        MarketType::UsStock
+    }
+
+    fn is_intraday(interval: &str) -> bool {
+        matches!(interval, "1m" | "2m" | "5m" | "15m" | "30m" | "1h")
     }
 
     fn interval_to_range(interval: &str) -> &'static str {

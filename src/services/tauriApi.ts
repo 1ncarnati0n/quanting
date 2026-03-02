@@ -8,6 +8,8 @@ import type {
   MultiSymbolCandlesResponse,
   PremarketSnapshot,
   PremarketSnapshotParams,
+  SymbolSearchParams,
+  SymbolSearchResult,
   WatchlistSnapshot,
   WatchlistSnapshotParams,
 } from "../types";
@@ -40,4 +42,10 @@ export async function fetchPremarketSnapshots(
   params: PremarketSnapshotParams,
 ): Promise<PremarketSnapshot[]> {
   return invoke<PremarketSnapshot[]>("fetch_premarket_snapshots", { params });
+}
+
+export async function searchSymbols(
+  params: SymbolSearchParams,
+): Promise<SymbolSearchResult[]> {
+  return invoke<SymbolSearchResult[]>("search_symbols", { params });
 }

@@ -23,6 +23,12 @@ export interface FavoriteSymbol {
   market: MarketType;
 }
 
+export interface CustomSymbol {
+  symbol: string;
+  label: string;
+  market: MarketType;
+}
+
 export interface PriceScaleSettings {
   mode: PriceScaleMode;
   autoScale: boolean;
@@ -214,6 +220,7 @@ interface SettingsState {
   multiChartLayout: MultiChartLayout;
   indicators: IndicatorConfig;
   favorites: FavoriteSymbol[];
+  customSymbols: CustomSymbol[];
   recentSymbols: FavoriteSymbol[];
   priceScale: PriceScaleSettings;
   compare: CompareSettings;
@@ -227,6 +234,8 @@ interface SettingsState {
   setInterval: (interval: Interval) => void;
   setMarket: (market: MarketType) => void;
   toggleFavorite: (symbol: string, market?: MarketType) => void;
+  addCustomSymbol: (symbol: string, label: string, market: MarketType) => void;
+  removeCustomSymbol: (symbol: string, market: MarketType) => void;
   clearRecentSymbols: () => void;
   setPriceScale: (partial: Partial<PriceScaleSettings>) => void;
   setCompare: (partial: Partial<CompareSettings>) => void;
@@ -365,6 +374,8 @@ const PRICE_SCALE_STORAGE_KEY = "quanting-price-scale";
 const COMPARE_STORAGE_KEY = "quanting-compare";
 const PRICE_ALERTS_STORAGE_KEY = "quanting-price-alerts";
 const ALERT_HISTORY_STORAGE_KEY = "quanting-alert-history";
+const CUSTOM_SYMBOLS_STORAGE_KEY = "quanting-custom-symbols";
+const MAX_CUSTOM_SYMBOLS = 50;
 const MULTI_CHART_LAYOUT_STORAGE_KEY = "quanting-multi-layout";
 const LAST_SYMBOL_STORAGE_KEY = "quanting-last-symbol";
 const INTERVAL_STORAGE_KEY = "quanting-interval";
@@ -447,6 +458,47 @@ function getSavedFavorites(): FavoriteSymbol[] {
 function saveFavorites(favorites: FavoriteSymbol[]) {
   try {
     localStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(favorites));
+  } catch {}
+}
+
+function parseCustomSymbol(item: unknown): CustomSymbol | null {
+  if (!item || typeof item !== "object") return null;
+  const raw = item as { symbol?: unknown; label?: unknown; market?: unknown };
+  if (typeof raw.symbol !== "string" || typeof raw.label !== "string" || !isKnownMarketType(raw.market)) return null;
+  const symbol = normalizeSymbol(raw.symbol);
+  if (!symbol) return null;
+  return { symbol, label: raw.label, market: raw.market };
+}
+
+function getSavedCustomSymbols(): CustomSymbol[] {
+  try {
+    const raw = localStorage.getItem(CUSTOM_SYMBOLS_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+
+    const normalized = parsed
+      .map(parseCustomSymbol)
+      .filter((item): item is CustomSymbol => item !== null);
+
+    const deduped: CustomSymbol[] = [];
+    const seen = new Set<string>();
+    for (const item of normalized) {
+      const key = `${item.market}:${item.symbol}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      deduped.push(item);
+      if (deduped.length >= MAX_CUSTOM_SYMBOLS) break;
+    }
+    saveCustomSymbols(deduped);
+    return deduped;
+  } catch {}
+  return [];
+}
+
+function saveCustomSymbols(items: CustomSymbol[]) {
+  try {
+    localStorage.setItem(CUSTOM_SYMBOLS_STORAGE_KEY, JSON.stringify(items));
   } catch {}
 }
 
@@ -689,6 +741,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   multiChartLayout: getSavedMultiChartLayout(),
   indicators: getSavedIndicators(),
   favorites: getSavedFavorites(),
+  customSymbols: getSavedCustomSymbols(),
   recentSymbols: getSavedRecentSymbols(),
   priceScale: getSavedPriceScale(),
   compare: getSavedCompare(),
@@ -805,6 +858,24 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
 
       saveFavorites(next);
       return { favorites: next };
+    }),
+  addCustomSymbol: (symbol, label, market) =>
+    set((state) => {
+      const normalized = normalizeSymbol(symbol);
+      if (!normalized) return {};
+      const key = `${market}:${normalized}`;
+      if (state.customSymbols.some((item) => `${item.market}:${item.symbol}` === key)) return {};
+      const next = [{ symbol: normalized, label, market }, ...state.customSymbols].slice(0, MAX_CUSTOM_SYMBOLS);
+      saveCustomSymbols(next);
+      return { customSymbols: next };
+    }),
+  removeCustomSymbol: (symbol, market) =>
+    set((state) => {
+      const key = `${market}:${symbol}`;
+      const next = state.customSymbols.filter((item) => `${item.market}:${item.symbol}` !== key);
+      if (next.length === state.customSymbols.length) return {};
+      saveCustomSymbols(next);
+      return { customSymbols: next };
     }),
   clearRecentSymbols: () =>
     set(() => {

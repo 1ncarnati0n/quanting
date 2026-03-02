@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
-import { fetchAnalysis, fetchWatchlistSnapshots } from "../services/tauriApi";
+import { memo, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
+import { fetchAnalysis, fetchWatchlistSnapshots, searchSymbols } from "../services/tauriApi";
 import { useSettingsStore } from "../stores/useSettingsStore";
-import type { WatchlistSnapshot } from "../types";
+import type { SymbolSearchResult, WatchlistSnapshot } from "../types";
 import {
   getIntervalLabel,
   getIntervalsForMarket,
@@ -13,9 +13,11 @@ import {
 import type { MarketType } from "../types";
 import { formatPrice } from "../utils/formatters";
 import { formatInstrumentDisplayLine, getInstrumentDisplay } from "../utils/marketView";
+import { trackUxAction } from "../utils/uxMetrics";
 import PanelHeader from "./patterns/PanelHeader";
 import SegmentButton from "./patterns/SegmentButton";
 import SettingRow from "./patterns/SettingRow";
+import StatePanel from "./patterns/StatePanel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -52,7 +54,10 @@ interface ScreenerHit {
 }
 
 const SNAPSHOT_REQUEST_SIZE = 18;
+const WATCHLIST_INITIAL_RENDER_COUNT = 48;
+const WATCHLIST_RENDER_STEP = 32;
 const SCREENER_PRESET_STORAGE_KEY = "quanting-screener-presets";
+type SnapshotLoadingStage = "idle" | "initial" | "refresh";
 
 const SCREENER_CONDITION_ITEMS: { value: ScreenerCondition; label: string }[] = [
   { value: "quantBuy", label: "퀀트매수" },
@@ -218,29 +223,32 @@ function evaluateScreenerHit(
   };
 }
 
-function Sparkline({
+const Sparkline = memo(function Sparkline({
   values,
   color,
 }: {
   values: number[];
   color: string;
 }) {
-  if (!values || values.length < 2) {
-    return <div className="h-8 w-full rounded border border-dashed border-[var(--border)] opacity-50" />;
-  }
-
   const width = 112;
   const height = 28;
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const range = Math.max(max - min, 1e-9);
-  const points = values
-    .map((v, i) => {
-      const x = (i / (values.length - 1)) * (width - 2) + 1;
-      const y = height - 1 - ((v - min) / range) * (height - 2);
-      return `${x.toFixed(2)},${y.toFixed(2)}`;
-    })
-    .join(" ");
+  const points = useMemo(() => {
+    if (!values || values.length < 2) return "";
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const range = Math.max(max - min, 1e-9);
+    return values
+      .map((v, i) => {
+        const x = (i / (values.length - 1)) * (width - 2) + 1;
+        const y = height - 1 - ((v - min) / range) * (height - 2);
+        return `${x.toFixed(2)},${y.toFixed(2)}`;
+      })
+      .join(" ");
+  }, [values]);
+
+  if (!points) {
+    return <div className="h-8 w-full rounded border border-dashed border-[var(--border)] opacity-50" />;
+  }
 
   return (
     <svg
@@ -261,7 +269,7 @@ function Sparkline({
       />
     </svg>
   );
-}
+});
 
 export default function WatchlistSidebar({
   onClose,
@@ -274,8 +282,11 @@ export default function WatchlistSidebar({
     interval,
     setSymbol,
     favorites,
+    customSymbols,
     recentSymbols,
     toggleFavorite,
+    addCustomSymbol,
+    removeCustomSymbol,
   } = useSettingsStore();
   const [query, setQuery] = useState("");
   const [marketFilter, setMarketFilter] = useState<MarketFilter>("all");
@@ -291,10 +302,21 @@ export default function WatchlistSidebar({
   const [screenerHits, setScreenerHits] = useState<ScreenerHit[]>([]);
   const [isScanning, setIsScanning] = useState(false);
   const [lastScannedAt, setLastScannedAt] = useState<number | null>(null);
+  const [snapshotLoadingStage, setSnapshotLoadingStage] =
+    useState<SnapshotLoadingStage>("idle");
+  const [lastSnapshotUpdatedAt, setLastSnapshotUpdatedAt] = useState<number | null>(null);
+  const [renderLimit, setRenderLimit] = useState(WATCHLIST_INITIAL_RENDER_COUNT);
   const [snapshots, setSnapshots] = useState<Record<string, WatchlistSnapshot>>(
     {},
   );
-  const [isLoadingSnapshots, setIsLoadingSnapshots] = useState(false);
+  const [apiSearchResults, setApiSearchResults] = useState<SymbolSearchResult[]>([]);
+  const [isApiSearching, setIsApiSearching] = useState(false);
+  const listAreaRef = useRef<HTMLDivElement | null>(null);
+  const listSentinelRef = useRef<HTMLDivElement | null>(null);
+  const watchItemRefs = useRef<Array<HTMLDivElement | null>>([]);
+  const snapshotsRef = useRef<Record<string, WatchlistSnapshot>>({});
+  const searchVersionRef = useRef(0);
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 
   const activeLabel = getSymbolLabel(symbol);
   const instrumentLine = formatInstrumentDisplayLine(symbol, activeLabel, market);
@@ -303,6 +325,10 @@ export default function WatchlistSidebar({
     [favorites],
   );
   const isCurrentFavorite = favoriteSet.has(snapshotKey(symbol, market));
+  const customSymbolSet = useMemo(
+    () => new Set(customSymbols.map((item) => snapshotKey(item.symbol, item.market))),
+    [customSymbols],
+  );
 
   const visibleItems = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -324,6 +350,19 @@ export default function WatchlistSidebar({
       }
     }
 
+    for (const item of customSymbols) {
+      if (marketFilter !== "all" && item.market !== marketFilter) continue;
+      if (favoriteOnly && !favoriteSet.has(snapshotKey(item.symbol, item.market))) continue;
+      if (
+        q &&
+        !item.symbol.toLowerCase().includes(q) &&
+        !item.label.toLowerCase().includes(q)
+      ) {
+        continue;
+      }
+      items.push(item);
+    }
+
     const seen = new Set<string>();
     return items
       .filter((item) => {
@@ -341,17 +380,45 @@ export default function WatchlistSidebar({
         if (aStarts !== bStarts) return aStarts ? -1 : 1;
         return a.symbol.localeCompare(b.symbol);
       });
-  }, [favoriteOnly, favoriteSet, marketFilter, query]);
+  }, [customSymbols, favoriteOnly, favoriteSet, marketFilter, query]);
+  const deferredVisibleItems = useDeferredValue(visibleItems);
+
+  useEffect(() => {
+    snapshotsRef.current = snapshots;
+  }, [snapshots]);
+
+  useEffect(() => {
+    setRenderLimit(WATCHLIST_INITIAL_RENDER_COUNT);
+  }, [favoriteOnly, marketFilter, query]);
+
+  useEffect(() => {
+    setRenderLimit((prev) =>
+      Math.min(
+        Math.max(WATCHLIST_INITIAL_RENDER_COUNT, prev),
+        Math.max(WATCHLIST_INITIAL_RENDER_COUNT, deferredVisibleItems.length),
+      ),
+    );
+  }, [deferredVisibleItems.length]);
+
+  const renderedItems = useMemo(
+    () => deferredVisibleItems.slice(0, renderLimit),
+    [deferredVisibleItems, renderLimit],
+  );
+  const hasMoreItems = renderLimit < deferredVisibleItems.length;
+
+  useEffect(() => {
+    watchItemRefs.current = watchItemRefs.current.slice(0, renderedItems.length);
+  }, [renderedItems.length]);
 
   const snapshotTargets = useMemo(
     () =>
-      visibleItems
+      deferredVisibleItems
         .slice(0, SNAPSHOT_REQUEST_SIZE)
         .map(({ symbol: targetSymbol, market }) => ({
           symbol: targetSymbol,
           market,
         })),
-    [visibleItems],
+    [deferredVisibleItems],
   );
   const screenerTargets = useMemo(() => {
     const preferred = favorites.length
@@ -416,11 +483,28 @@ export default function WatchlistSidebar({
   };
 
   const selectSymbolFromWatch = (item: PresetSymbol) => {
+    trackUxAction("watchlist", "select_symbol");
     setSymbol(item.symbol, item.market);
     onSelectSymbol?.();
   };
 
+  const focusCurrentMarket = () => {
+    trackUxAction("watchlist", "filter_current_market");
+    setMarketFilter(market);
+    if (favoriteOnly) {
+      setFavoriteOnly(false);
+    }
+  };
+
+  const resetWatchFilters = () => {
+    trackUxAction("watchlist", "reset_filters");
+    setQuery("");
+    setMarketFilter("all");
+    setFavoriteOnly(false);
+  };
+
   const runScreener = async () => {
+    trackUxAction("watchlist", "run_screener");
     if (screenerConditions.length === 0) {
       setScreenerHits([]);
       return;
@@ -481,11 +565,56 @@ export default function WatchlistSidebar({
   };
 
   useEffect(() => {
+    const q = query.trim();
+    if (q.length < 2) {
+      setApiSearchResults([]);
+      setIsApiSearching(false);
+      return;
+    }
+
+    setIsApiSearching(true);
+    const version = ++searchVersionRef.current;
+
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const results = await searchSymbols({
+          query: q,
+          marketFilter: marketFilter === "all" ? null : marketFilter,
+        });
+        if (searchVersionRef.current !== version) return;
+
+        const presetKeys = new Set<string>();
+        for (const cat of PRESET_CATEGORIES) {
+          for (const item of cat.items) {
+            presetKeys.add(snapshotKey(item.symbol, item.market));
+          }
+        }
+        const filtered = results.filter(
+          (r) => !presetKeys.has(snapshotKey(r.symbol, r.market)) && !customSymbolSet.has(snapshotKey(r.symbol, r.market)),
+        );
+        setApiSearchResults(filtered.slice(0, 8));
+      } catch {
+        if (searchVersionRef.current === version) setApiSearchResults([]);
+      } finally {
+        if (searchVersionRef.current === version) setIsApiSearching(false);
+      }
+    }, 350);
+
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [query, marketFilter, customSymbolSet]);
+
+  useEffect(() => {
     let cancelled = false;
     if (snapshotTargets.length === 0) return () => {};
 
     const timer = window.setTimeout(async () => {
-      setIsLoadingSnapshots(true);
+      const hasCachedSnapshot = snapshotTargets.some((target) =>
+        Boolean(snapshotsRef.current[snapshotKey(target.symbol, target.market)]),
+      );
+      setSnapshotLoadingStage(hasCachedSnapshot ? "refresh" : "initial");
       try {
         const result = await fetchWatchlistSnapshots({
           items: snapshotTargets,
@@ -501,13 +630,14 @@ export default function WatchlistSidebar({
           }
           return next;
         });
+        setLastSnapshotUpdatedAt(Date.now());
       } catch (error) {
         if (!cancelled) {
           console.warn("watchlist snapshot fetch failed:", error);
         }
       } finally {
         if (!cancelled) {
-          setIsLoadingSnapshots(false);
+          setSnapshotLoadingStage("idle");
         }
       }
     }, 160);
@@ -518,16 +648,42 @@ export default function WatchlistSidebar({
     };
   }, [interval, snapshotTargets]);
 
-  const marketFilterLabel =
-    marketFilter === "all"
-      ? "전체"
-      : marketFilter === "usStock"
-        ? "US"
-        : marketFilter === "krStock"
-          ? "KR"
-          : marketFilter === "crypto"
-            ? "코인"
-            : "FX";
+  useEffect(() => {
+    if (!hasMoreItems) return;
+    const root = listAreaRef.current?.firstElementChild as Element | null;
+    const sentinel = listSentinelRef.current;
+    if (!root || !sentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries.some((entry) => entry.isIntersecting)) return;
+        setRenderLimit((prev) =>
+          Math.min(deferredVisibleItems.length, prev + WATCHLIST_RENDER_STEP),
+        );
+      },
+      {
+        root,
+        rootMargin: "220px 0px",
+        threshold: 0.01,
+      },
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [deferredVisibleItems.length, hasMoreItems]);
+
+  const snapshotSubtitle = useMemo(() => {
+    if (snapshotLoadingStage === "initial") return "스냅샷 초기 로딩중";
+    if (snapshotLoadingStage === "refresh") return "스냅샷 갱신중";
+    const base = `${getIntervalLabel(interval as Interval)} 기준 스냅샷`;
+    if (!lastSnapshotUpdatedAt) return base;
+    return `${base} · ${new Date(lastSnapshotUpdatedAt).toLocaleTimeString("ko-KR", {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    })} 업데이트`;
+  }, [interval, lastSnapshotUpdatedAt, snapshotLoadingStage]);
 
   return (
     <aside
@@ -536,12 +692,12 @@ export default function WatchlistSidebar({
           ? "w-full"
           : "w-[min(22rem,calc(100vw-1rem))] border-l border-[var(--border)] shadow-[var(--shadow-elevated)]"
       }`}
+      role="region"
+      aria-label="관심종목 사이드바"
     >
       <PanelHeader
         title="관심종목"
-        subtitle={`${instrumentLine} · ${
-          isLoadingSnapshots ? "스냅샷 갱신중" : `${getIntervalLabel(interval as Interval)} 기준 스냅샷`
-        }`}
+        subtitle={`${instrumentLine} · ${snapshotSubtitle}`}
         className="px-4 py-3"
         density="compact"
         actionAlign="start"
@@ -553,6 +709,7 @@ export default function WatchlistSidebar({
               className="text-[var(--muted-foreground)]"
               onClick={() => toggleFavorite(symbol, market)}
               title={isCurrentFavorite ? "현재 종목 즐겨찾기 해제" : "현재 종목 즐겨찾기 추가"}
+              aria-pressed={isCurrentFavorite}
             >
               {isCurrentFavorite ? "★" : "☆"}
             </Button>
@@ -571,34 +728,14 @@ export default function WatchlistSidebar({
             )}
           </>
         )}
-      >
-        <div className="grid grid-cols-3 gap-2">
-          <div className="ui-stat-tile">
-            <div className="ds-type-caption uppercase tracking-wider text-[var(--muted-foreground)]">
-              필터
-            </div>
-            <div className="ds-type-title mt-1 font-semibold text-[var(--foreground)]">
-              {marketFilterLabel}
-            </div>
-          </div>
-          <div className="ui-stat-tile">
-            <div className="ds-type-caption uppercase tracking-wider text-[var(--muted-foreground)]">
-              표시
-            </div>
-            <div className="ds-type-title mt-1 font-semibold text-[var(--foreground)]">
-              {visibleItems.length}개
-            </div>
-          </div>
-          <div className="ui-stat-tile">
-            <div className="ds-type-caption uppercase tracking-wider text-[var(--muted-foreground)]">
-              즐겨찾기
-            </div>
-            <div className="ds-type-title mt-1 font-semibold text-[var(--foreground)]">
-              {favorites.length}개
-            </div>
-          </div>
-        </div>
-      </PanelHeader>
+      />
+      <span className="sr-only" role="status" aria-live="polite">
+        {snapshotLoadingStage === "initial"
+          ? "관심종목 스냅샷을 초기 로딩 중입니다."
+          : snapshotLoadingStage === "refresh"
+            ? "관심종목 스냅샷을 갱신 중입니다."
+            : "관심종목 스냅샷이 갱신되었습니다."}
+      </span>
 
       <div className="side-panel-stack px-3 pb-2.5 pt-3">
         <section className="side-panel-section side-panel-stack-tight">
@@ -608,10 +745,11 @@ export default function WatchlistSidebar({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="심볼 검색..."
+            aria-label="관심종목 심볼 검색"
             spellCheck={false}
             className="ds-type-label"
           />
-          <div className="grid grid-cols-3 gap-1">
+          <div className="grid grid-cols-5 gap-1">
             {(["all", "usStock", "krStock", "crypto", "forex"] as const).map((mf) => (
               <SegmentButton
                 key={mf}
@@ -619,7 +757,10 @@ export default function WatchlistSidebar({
                 size="sm"
                 className="w-full"
                 active={marketFilter === mf}
-                onClick={() => setMarketFilter(mf)}
+                onClick={() => {
+                  setMarketFilter(mf);
+                  trackUxAction("watchlist", `filter_market_${mf}`);
+                }}
               >
                 {mf === "all"
                   ? "전체"
@@ -632,20 +773,43 @@ export default function WatchlistSidebar({
                         : "FX"}
               </SegmentButton>
             ))}
-            <SegmentButton
-              type="button"
-              size="sm"
-              className="w-full"
-              active={favoriteOnly}
-              activeTone="warning"
-              onClick={() => setFavoriteOnly((prev) => !prev)}
-              title="즐겨찾기 종목만 보기"
-            >
-              ★ 즐겨찾기
-            </SegmentButton>
           </div>
           <div className="ds-type-caption text-[var(--muted-foreground)]">
-            표시 {visibleItems.length}개 · 즐겨찾기 {favorites.length}개
+            표시 {visibleItems.length}개 · 렌더 {Math.min(renderedItems.length, visibleItems.length)}개 · 즐겨찾기 {favorites.length}개{customSymbols.length > 0 && ` · 사용자 ${customSymbols.length}개`}
+          </div>
+          <div className="grid grid-cols-3 gap-1">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              className="ds-type-caption font-semibold"
+              onClick={focusCurrentMarket}
+              aria-pressed={marketFilter === market && !favoriteOnly}
+            >
+              현재 시장만
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              className="ds-type-caption font-semibold"
+              onClick={() => {
+                trackUxAction("watchlist", favoriteOnly ? "show_all" : "filter_favorite_only");
+                setFavoriteOnly((prev) => !prev);
+              }}
+              aria-pressed={favoriteOnly}
+            >
+              {favoriteOnly ? "전체 보기" : "즐겨찾기만"}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="ds-type-caption text-[var(--muted-foreground)]"
+              onClick={resetWatchFilters}
+            >
+              필터 초기화
+            </Button>
           </div>
 
           {recentSymbols.length > 0 && (
@@ -671,6 +835,68 @@ export default function WatchlistSidebar({
             </div>
           )}
         </section>
+
+        {(apiSearchResults.length > 0 || isApiSearching) && (
+          <section className="side-panel-section side-panel-stack-tight">
+            <div className="ds-type-caption font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
+              {isApiSearching ? "검색 중..." : `API 검색 결과 (${apiSearchResults.length})`}
+            </div>
+            <ScrollArea className="max-h-52" viewportClassName="space-y-1 pr-1">
+              {apiSearchResults.map((result) => {
+                const badge = marketBadge(result.market);
+                return (
+                  <div
+                    key={`api-${result.market}-${result.symbol}`}
+                    className="flex items-center gap-2 rounded border border-[var(--border)] bg-[var(--secondary)] px-2 py-1.5"
+                  >
+                    <span
+                      className="ds-type-caption shrink-0 rounded px-1.5 py-0.5 font-bold"
+                      style={{
+                        background: `color-mix(in srgb, ${badge.color} 18%, transparent)`,
+                        color: badge.color,
+                      }}
+                    >
+                      {badge.text}
+                    </span>
+                    <button
+                      type="button"
+                      className="min-w-0 flex-1 text-left"
+                      onClick={() => {
+                        setSymbol(result.symbol, result.market);
+                        onSelectSymbol?.();
+                      }}
+                    >
+                      <span className="ds-type-label font-mono font-semibold text-[var(--foreground)]">
+                        {result.symbol}
+                      </span>
+                      <span className="ds-type-caption ml-1.5 text-[var(--muted-foreground)]">
+                        {result.label}
+                      </span>
+                      {result.exchange && (
+                        <span className="ds-type-caption ml-1 text-[var(--muted-foreground)] opacity-60">
+                          · {result.exchange}
+                        </span>
+                      )}
+                    </button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 shrink-0 text-[var(--primary)]"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        addCustomSymbol(result.symbol, result.label, result.market);
+                      }}
+                      title={`${result.symbol} 워치리스트에 추가`}
+                    >
+                      +
+                    </Button>
+                  </div>
+                );
+              })}
+            </ScrollArea>
+          </section>
+        )}
 
         <section className="side-panel-section side-panel-stack-tight">
           <div className="flex items-center justify-between">
@@ -813,29 +1039,76 @@ export default function WatchlistSidebar({
               </button>
             ))}
             {screenerHits.length === 0 && (
-              <div className="ds-type-label text-[var(--muted-foreground)]">
-                {lastScannedAt ? "조건 일치 종목이 없습니다." : "조건 선택 후 스캔 실행"}
-              </div>
+              <StatePanel
+                variant="empty"
+                size="compact"
+                title={lastScannedAt ? "조건 일치 종목이 없습니다." : "조건 선택 후 스캔 실행"}
+                description="조건/정렬을 조정한 뒤 다시 스캔해 보세요."
+                className="border-dashed bg-transparent"
+              />
             )}
           </ScrollArea>
         </section>
       </div>
 
-      <ScrollArea className="side-panel-scroll min-h-0 flex-1 border-t border-[var(--border)]" viewportClassName="px-3 pb-3 pt-3">
+      <ScrollArea
+        ref={listAreaRef}
+        className="side-panel-scroll min-h-0 flex-1 border-t border-[var(--border)]"
+        viewportClassName="px-3 pb-3 pt-3"
+      >
         <div className="space-y-2.5">
-          {visibleItems.map((item) => {
+          {renderedItems.map((item, itemIndex) => {
             const badge = marketBadge(item.market);
             const active = symbol === item.symbol && market === item.market;
             const itemKey = snapshotKey(item.symbol, item.market);
             const isFavorite = favoriteSet.has(itemKey);
             const instrument = getInstrumentDisplay(item.symbol, item.label, item.market);
+            const snapshot = snapshots[itemKey];
+            const trendColor = snapshot
+              ? snapshot.change >= 0
+                ? "var(--success)"
+                : "var(--destructive)"
+              : "var(--muted-foreground)";
+            const isUp = snapshot ? snapshot.change >= 0 : null;
+            const priceColor =
+              isUp === null
+                ? "var(--foreground)"
+                : isUp
+                  ? "var(--success)"
+                  : "var(--destructive)";
+            const changeLabel = snapshot
+              ? `${snapshot.changePct >= 0 ? "+" : ""}${snapshot.changePct.toFixed(2)}%`
+              : "로딩중";
             return (
               <div
                 key={itemKey}
                 role="button"
                 tabIndex={0}
+                ref={(node) => {
+                  watchItemRefs.current[itemIndex] = node;
+                }}
                 onClick={() => selectSymbolFromWatch(item)}
                 onKeyDown={(e) => {
+                  if (e.key === "ArrowDown") {
+                    e.preventDefault();
+                    watchItemRefs.current[Math.min(renderedItems.length - 1, itemIndex + 1)]?.focus();
+                    return;
+                  }
+                  if (e.key === "ArrowUp") {
+                    e.preventDefault();
+                    watchItemRefs.current[Math.max(0, itemIndex - 1)]?.focus();
+                    return;
+                  }
+                  if (e.key === "Home") {
+                    e.preventDefault();
+                    watchItemRefs.current[0]?.focus();
+                    return;
+                  }
+                  if (e.key === "End") {
+                    e.preventDefault();
+                    watchItemRefs.current[renderedItems.length - 1]?.focus();
+                    return;
+                  }
                   if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
                     selectSymbolFromWatch(item);
@@ -849,6 +1122,9 @@ export default function WatchlistSidebar({
                   borderColor: active ? "var(--primary)" : "var(--border)",
                   cursor: "pointer",
                 }}
+                aria-label={`${item.symbol} ${item.market} 종목 선택`}
+                aria-current={active ? "true" : undefined}
+                aria-keyshortcuts="Enter Space ArrowUp ArrowDown Home End"
               >
                 <div className="flex min-w-0 items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
@@ -873,30 +1149,16 @@ export default function WatchlistSidebar({
                     )}
                   </div>
                   <div className="shrink-0 flex items-start gap-1.5">
-                    <div className="text-right">
-                      {(() => {
-                        const snapshot = snapshots[snapshotKey(item.symbol, item.market)];
-                        const isUp = snapshot ? snapshot.change >= 0 : null;
-                        const priceColor =
-                          isUp === null
-                            ? "var(--foreground)"
-                            : isUp
-                              ? "var(--success)"
-                              : "var(--destructive)";
-                        const changeLabel = snapshot
-                          ? `${snapshot.changePct >= 0 ? "+" : ""}${snapshot.changePct.toFixed(2)}%`
-                          : "로딩중";
-                        return (
-                          <>
-                            <div className="font-mono text-sm font-semibold" style={{ color: priceColor }}>
-                              {snapshot ? formatPrice(snapshot.lastPrice, item.market) : "-"}
-                            </div>
-                            <div className="ds-type-label" style={{ color: priceColor }}>
-                              {changeLabel}
-                            </div>
-                          </>
-                        );
-                      })()}
+                    <div className="w-[88px] text-right">
+                      <div
+                        className="h-5 font-mono text-sm font-semibold leading-5"
+                        style={{ color: priceColor }}
+                      >
+                        {snapshot ? formatPrice(snapshot.lastPrice, item.market) : "----"}
+                      </div>
+                      <div className="ds-type-label h-4 leading-4" style={{ color: priceColor }}>
+                        {changeLabel}
+                      </div>
                     </div>
                     <button
                       type="button"
@@ -905,6 +1167,8 @@ export default function WatchlistSidebar({
                         toggleFavorite(item.symbol, item.market);
                       }}
                       className="rounded px-1.5 py-1 text-sm leading-none"
+                      aria-label={isFavorite ? `${item.symbol} 즐겨찾기 해제` : `${item.symbol} 즐겨찾기 추가`}
+                      aria-pressed={isFavorite}
                       title={isFavorite ? "즐겨찾기 해제" : "즐겨찾기 추가"}
                       style={{
                         color: isFavorite ? "var(--warning)" : "var(--muted-foreground)",
@@ -912,35 +1176,50 @@ export default function WatchlistSidebar({
                     >
                       {isFavorite ? "★" : "☆"}
                     </button>
+                    {customSymbolSet.has(itemKey) && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeCustomSymbol(item.symbol, item.market);
+                        }}
+                        className="rounded px-1 py-1 text-xs leading-none text-[var(--muted-foreground)] hover:text-[var(--destructive)]"
+                        aria-label={`${item.symbol} 워치리스트에서 제거`}
+                        title="워치리스트에서 제거"
+                      >
+                        ✕
+                      </button>
+                    )}
                   </div>
                 </div>
 
-                {(() => {
-                  const snapshot = snapshots[snapshotKey(item.symbol, item.market)];
-                  const trendColor = snapshot
-                    ? snapshot.change >= 0
-                      ? "var(--success)"
-                      : "var(--destructive)"
-                    : "var(--muted-foreground)";
-                  return (
-                    <div className="mt-1.5">
-                      <Sparkline values={snapshot?.sparkline ?? []} color={trendColor} />
-                      {snapshot && (
-                        <p className="ds-type-caption mt-0.5 text-[var(--muted-foreground)]">
-                          H {formatPrice(snapshot.high, item.market)} · L{" "}
-                          {formatPrice(snapshot.low, item.market)}
-                        </p>
-                      )}
-                    </div>
-                  );
-                })()}
+                <div className="mt-1.5">
+                  <Sparkline values={snapshot?.sparkline ?? []} color={trendColor} />
+                  <p className="ds-type-caption mt-0.5 h-4 text-[var(--muted-foreground)]">
+                    {snapshot
+                      ? `H ${formatPrice(snapshot.high, item.market)} · L ${formatPrice(snapshot.low, item.market)}`
+                      : "\u00a0"}
+                  </p>
+                </div>
               </div>
             );
           })}
-          {visibleItems.length === 0 && (
-            <div className="ds-type-caption rounded border border-[var(--border)] px-3 py-4 text-center text-[var(--muted-foreground)]">
-              {favoriteOnly ? "즐겨찾기 종목이 없습니다" : "심볼이 없습니다"}
+          {hasMoreItems && (
+            <div
+              ref={listSentinelRef}
+              className="ds-type-caption rounded border border-dashed border-[var(--border)] bg-[var(--muted)] px-2 py-1.5 text-center text-[var(--muted-foreground)]"
+            >
+              스크롤 시 목록을 추가 로드합니다...
             </div>
+          )}
+          {visibleItems.length === 0 && (
+            <StatePanel
+              variant="empty"
+              size="compact"
+              title={favoriteOnly ? "즐겨찾기 종목이 없습니다" : "심볼이 없습니다"}
+              description="필터를 변경하거나 검색어를 지워서 다시 확인해 보세요."
+              className="border-dashed bg-transparent"
+            />
           )}
         </div>
       </ScrollArea>

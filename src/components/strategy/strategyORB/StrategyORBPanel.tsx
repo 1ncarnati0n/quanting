@@ -3,6 +3,7 @@ import { useStrategyStore } from "@/stores/useStrategyStore";
 import { fetchPremarketSnapshots } from "@/services/tauriApi";
 import { filterStocksInPlay } from "@/utils/strategyORB/orbLogic";
 import { Button } from "@/components/ui/button";
+import StatePanel from "@/components/patterns/StatePanel";
 import ORBSettings from "./ORBSettings";
 import PremarketScreener from "./PremarketScreener";
 import ORBSignalList from "./ORBSignalList";
@@ -60,9 +61,23 @@ export default function StrategyORBPanel() {
       </div>
 
       {error && (
-        <div className="rounded-lg border border-[var(--destructive)] p-2">
-          <span className="ds-type-caption text-[var(--destructive)]">{error}</span>
-        </div>
+        <StatePanel
+          variant="error"
+          size="compact"
+          title={error}
+          description="프리마켓 데이터 조회 후 다시 시도해 보세요."
+          actionLabel="다시 스캔"
+          onAction={() => void handleScan()}
+        />
+      )}
+
+      {loading && (
+        <StatePanel
+          variant="loading"
+          size="compact"
+          title="프리마켓 스캔 중입니다"
+          description="종목별 변동률과 RVOL 조건을 계산하고 있어요."
+        />
       )}
 
       <div>

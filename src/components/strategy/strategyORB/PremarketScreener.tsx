@@ -1,4 +1,5 @@
 import type { PremarketStock } from "@/stores/useStrategyStore";
+import StatePanel from "@/components/patterns/StatePanel";
 
 interface PremarketScreenerProps {
   stocks: PremarketStock[];
@@ -7,11 +8,13 @@ interface PremarketScreenerProps {
 export default function PremarketScreener({ stocks }: PremarketScreenerProps) {
   if (stocks.length === 0) {
     return (
-      <div className="flex h-20 items-center justify-center rounded-lg border border-dashed border-[var(--border)]">
-        <span className="ds-type-body text-[var(--muted-foreground)]">
-          조건에 맞는 종목이 없습니다
-        </span>
-      </div>
+      <StatePanel
+        variant="empty"
+        size="compact"
+        title="조건에 맞는 종목이 없습니다"
+        description="RVOL/변동률 기준을 조정해 보세요."
+        className="h-20 border-dashed bg-transparent flex items-center justify-center"
+      />
     );
   }
 

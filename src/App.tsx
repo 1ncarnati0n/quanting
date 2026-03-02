@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import MarketHeader from "./components/MarketHeader";
 import ChartContainer from "./components/ChartContainer";
 import StatusBar from "./components/StatusBar";
@@ -7,10 +7,13 @@ import WatchlistSidebar from "./components/WatchlistSidebar";
 import CollapsibleSidebar from "./components/CollapsibleSidebar";
 import ShortcutsModal from "./components/ShortcutsModal";
 import SymbolSearch from "./components/SymbolSearch";
+import CommandCenter from "./components/CommandCenter";
 import { useChartStore } from "./stores/useChartStore";
 import { useSettingsStore } from "./stores/useSettingsStore";
 import { useReplayStore } from "./stores/useReplayStore";
+import type { Candle } from "./types";
 import { buildAnalysisParams } from "./utils/analysisParams";
+import { isActiveDialogLayer, isEditableKeyboardTarget } from "./utils/shortcuts";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 
 const BINANCE_STREAM_INTERVALS = new Set([
@@ -33,6 +36,8 @@ const BINANCE_STREAM_INTERVALS = new Set([
 
 function App() {
   const [showWatchlist, setShowWatchlist] = useState(false);
+  const pendingRealtimeCandleRef = useRef<Candle | null>(null);
+  const realtimeFlushRafRef = useRef<number | null>(null);
   const fetchData = useChartStore((s) => s.fetchData);
   const data = useChartStore((s) => s.data);
   const updateRealtimeCandle = useChartStore((s) => s.updateRealtimeCandle);
@@ -172,12 +177,27 @@ function App() {
           Number.isFinite(nextCandle.close) &&
           Number.isFinite(nextCandle.volume)
         ) {
-          updateRealtimeCandle(nextCandle);
+          pendingRealtimeCandleRef.current = nextCandle;
+          if (realtimeFlushRafRef.current === null) {
+            realtimeFlushRafRef.current = window.requestAnimationFrame(() => {
+              realtimeFlushRafRef.current = null;
+              const pending = pendingRealtimeCandleRef.current;
+              pendingRealtimeCandleRef.current = null;
+              if (pending) {
+                updateRealtimeCandle(pending);
+              }
+            });
+          }
         }
       } catch {}
     };
 
     return () => {
+      if (realtimeFlushRafRef.current !== null) {
+        window.cancelAnimationFrame(realtimeFlushRafRef.current);
+        realtimeFlushRafRef.current = null;
+      }
+      pendingRealtimeCandleRef.current = null;
       ws.close();
     };
   }, [interval, market, symbol, updateRealtimeCandle]);
@@ -273,15 +293,10 @@ function App() {
   // Extended keyboard shortcuts
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
+      if (e.defaultPrevented) return;
       const target = e.target as HTMLElement | null;
-      const tag = target?.tagName;
-      const isInDialog = !!target?.closest('[role="dialog"]');
-      const isTyping =
-        !!target &&
-        (tag === "INPUT" ||
-          tag === "TEXTAREA" ||
-          tag === "SELECT" ||
-          target.isContentEditable);
+      const isInDialog = isActiveDialogLayer(target);
+      const isTyping = isEditableKeyboardTarget(target);
 
       if (e.key === "Escape") {
         if (isInDialog) {
@@ -297,6 +312,7 @@ function App() {
         window.dispatchEvent(new CustomEvent("quanting:close-sidebars"));
         return;
       }
+      if (isInDialog) return;
       if (isTyping) return;
 
       const isMod = e.metaKey || e.ctrlKey;
@@ -307,6 +323,7 @@ function App() {
         switch (key) {
           case "r":
           case "R": {
+            if (e.repeat) return;
             e.preventDefault();
             const replay = useReplayStore.getState();
             const bars = useChartStore.getState().data?.candles.length ?? 0;
@@ -322,6 +339,7 @@ function App() {
             return;
           case "f":
           case "F":
+            if (e.repeat) return;
             e.preventDefault();
             toggleFullscreen();
             return;
@@ -347,6 +365,7 @@ function App() {
             window.dispatchEvent(new CustomEvent("quanting:chart-scroll-right"));
             return;
           case "?":
+            if (e.repeat) return;
             e.preventDefault();
             window.dispatchEvent(new CustomEvent("quanting:show-shortcuts"));
             return;
@@ -355,33 +374,44 @@ function App() {
 
       const keyLower = key.toLowerCase();
       if (isMod && keyLower === "b") {
+        if (e.repeat) return;
         e.preventDefault();
         if (window.matchMedia("(min-width: 1280px)").matches) return;
         setShowWatchlist((prev) => !prev);
-        if (showSettings) setShowSettings(false);
+        setShowSettings(false);
       }
       if (isMod && keyLower === ",") {
+        if (e.repeat) return;
         e.preventDefault();
         if (window.matchMedia("(min-width: 1280px)").matches) return;
-        setShowSettings(!showSettings);
+        const store = useSettingsStore.getState();
+        setShowSettings(!store.showSettings);
         setShowWatchlist(false);
       }
       if (isMod && keyLower === "k") {
+        if (e.repeat) return;
         e.preventDefault();
         setShowSettings(false);
         setShowWatchlist(false);
         window.dispatchEvent(new CustomEvent("quanting:open-symbol-search"));
       }
+      if (isMod && keyLower === "j") {
+        if (e.repeat) return;
+        e.preventDefault();
+        window.dispatchEvent(new CustomEvent("quanting:open-command-center"));
+      }
       if (isMod && keyLower === "/") {
+        if (e.repeat) return;
         e.preventDefault();
         setShowSettings(false);
         setShowWatchlist(false);
         window.dispatchEvent(new CustomEvent("quanting:open-symbol-search"));
       }
       if (isMod && e.shiftKey && keyLower === "s") {
+        if (e.repeat) return;
         e.preventDefault();
         const store = useSettingsStore.getState();
-        if (store.settingsTab === "backtest" && showSettings) {
+        if (store.settingsTab === "backtest" && store.showSettings) {
           setShowSettings(false);
         } else {
           store.setSettingsTab("backtest");
@@ -393,7 +423,7 @@ function App() {
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [setShowSettings, setShowWatchlist, showSettings, toggleFullscreen]);
+  }, [setShowSettings, setShowWatchlist, toggleFullscreen]);
 
   // Fullscreen mode: only render chart
   if (isFullscreen) {
@@ -407,6 +437,12 @@ function App() {
         </div>
         <ShortcutsModal />
         <SymbolSearch hideTrigger />
+        <CommandCenter
+          showWatchlist={showWatchlist}
+          setShowWatchlist={setShowWatchlist}
+          showSettings={showSettings}
+          setShowSettings={setShowSettings}
+        />
       </div>
     );
   }
@@ -491,6 +527,12 @@ function App() {
 
         <ShortcutsModal />
         <SymbolSearch hideTrigger />
+        <CommandCenter
+          showWatchlist={showWatchlist}
+          setShowWatchlist={setShowWatchlist}
+          showSettings={showSettings}
+          setShowSettings={setShowSettings}
+        />
       </div>
     </div>
   );

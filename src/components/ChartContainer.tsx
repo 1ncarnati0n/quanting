@@ -9,10 +9,12 @@ import ReplayControls from "./ReplayControls";
 import SignalZonesOverlay from "./SignalZonesOverlay";
 import VolumeProfileOverlay from "./VolumeProfileOverlay";
 import FundamentalsOverlay from "./FundamentalsOverlay";
+import StatePanel from "./patterns/StatePanel";
 import { useChartStore } from "../stores/useChartStore";
 import { useSettingsStore } from "../stores/useSettingsStore";
 import { calculateRvol } from "../utils/rvol";
 import { computeIndicatorBandLayout } from "../utils/indicatorBandLayout";
+import { buildAnalysisParams } from "../utils/analysisParams";
 import type { IChartApi, ISeriesApi, SeriesType } from "lightweight-charts";
 
 type OverlayBand = {
@@ -24,8 +26,8 @@ type OverlayBand = {
 };
 
 export default function ChartContainer() {
-  const { data, isLoading, error } = useChartStore();
-  const { indicators, multiChartLayout } = useSettingsStore();
+  const { data, isLoading, error, fetchData } = useChartStore();
+  const { indicators, multiChartLayout, symbol, interval, market } = useSettingsStore();
   const [chartApi, setChartApi] = useState<IChartApi | null>(null);
   const [mainSeries, setMainSeries] = useState<ISeriesApi<SeriesType> | null>(null);
   const compactFormatter = useMemo(
@@ -159,34 +161,38 @@ export default function ChartContainer() {
     [],
   );
 
+  const retryFetch = useCallback(() => {
+    fetchData(
+      buildAnalysisParams({
+        symbol,
+        interval,
+        market,
+        indicators,
+      }),
+    );
+  }, [fetchData, indicators, interval, market, symbol]);
+
   if (error) {
     return (
-      <div className="flex h-full w-full items-center justify-center rounded border p-6" style={{ borderColor: "var(--border)", background: "var(--card)" }}>
-        <div className="text-center">
-          <p className="mb-2 text-sm" style={{ color: "var(--destructive)" }}>
-            {error}
-          </p>
-          <p className="ds-type-label" style={{ color: "var(--muted-foreground)" }}>
-            심볼명 또는 네트워크 연결을 확인해 주세요
-          </p>
-        </div>
-      </div>
+      <StatePanel
+        variant="error"
+        title={error}
+        description="심볼명 또는 네트워크 연결을 확인한 뒤 다시 시도해 주세요."
+        actionLabel="다시 시도"
+        onAction={retryFetch}
+        className="h-full w-full flex items-center justify-center"
+      />
     );
   }
 
   if (isLoading && !data) {
     return (
-      <div className="flex h-full w-full items-center justify-center rounded border p-6" style={{ borderColor: "var(--border)", background: "var(--card)" }}>
-        <div className="text-center">
-          <div
-            className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-2 border-t-transparent"
-            style={{ borderColor: "var(--primary)", borderTopColor: "transparent" }}
-          />
-          <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>
-            데이터 불러오는 중...
-          </p>
-        </div>
-      </div>
+      <StatePanel
+        variant="loading"
+        title="데이터를 불러오는 중입니다"
+        description="시장 데이터와 지표를 동기화하고 있어요."
+        className="h-full w-full flex items-center justify-center"
+      />
     );
   }
 
@@ -245,7 +251,7 @@ export default function ChartContainer() {
         </div>
       )}
       <div
-        className={multiChartLayout === 1 ? "flex-1 min-h-0" : "flex-1 min-h-0 grid gap-1 p-1"}
+        className={multiChartLayout === 1 ? "flex-1 min-h-0 pt-10" : "flex-1 min-h-0 grid gap-1 p-1 pt-10"}
         style={
           multiChartLayout === 1
             ? undefined

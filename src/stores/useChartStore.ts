@@ -129,6 +129,16 @@ export const useChartStore = create<ChartState>((set) => ({
       if (!last) return {};
 
       if (candle.time < last.time) return {};
+
+      const isSameAsLast =
+        candle.time === last.time &&
+        candle.open === last.open &&
+        candle.high === last.high &&
+        candle.low === last.low &&
+        candle.close === last.close &&
+        candle.volume === last.volume;
+      if (isSameAsLast) return {};
+
       if (candle.time === last.time) {
         candles[candles.length - 1] = candle;
       } else {

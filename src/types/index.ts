@@ -491,6 +491,20 @@ export interface WatchlistSnapshotParams {
   limit?: number;
 }
 
+// --- Symbol search types ---
+
+export interface SymbolSearchParams {
+  query: string;
+  marketFilter?: MarketType | null;
+}
+
+export interface SymbolSearchResult {
+  symbol: string;
+  label: string;
+  market: MarketType;
+  exchange: string;
+}
+
 export interface WatchlistSnapshot {
   symbol: string;
   market: MarketType;

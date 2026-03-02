@@ -51,7 +51,12 @@ export default function ChartToolbar() {
       >
         <div className="relative">
           <DropdownMenuTrigger asChild>
-            <button type="button" className="chart-toolbar-btn" title="차트 타입">
+            <button
+              type="button"
+              className="chart-toolbar-btn"
+              title="차트 타입"
+              aria-label="차트 타입 선택"
+            >
               <span className="ds-type-caption font-bold leading-none">{currentTypeLabel}</span>
             </button>
           </DropdownMenuTrigger>
@@ -78,7 +83,12 @@ export default function ChartToolbar() {
       >
         <div className="relative">
           <DropdownMenuTrigger asChild>
-            <button type="button" className="chart-toolbar-btn" title="지표">
+            <button
+              type="button"
+              className="chart-toolbar-btn"
+              title="지표"
+              aria-label="지표 빠른 선택"
+            >
               <svg
                 width="14"
                 height="14"
@@ -105,6 +115,7 @@ export default function ChartToolbar() {
         onClick={toggleReplay}
         className={`chart-toolbar-btn ${replayEnabled ? "is-warning" : ""}`}
         title="바 리플레이 (R)"
+        aria-label="바 리플레이 전환"
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <polygon points="5 3 19 12 5 21 5 3" />
@@ -118,6 +129,7 @@ export default function ChartToolbar() {
         onClick={() => dispatch("quanting:chart-screenshot")}
         className="chart-toolbar-btn"
         title="스크린샷 저장"
+        aria-label="차트 스크린샷 저장"
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <rect x="3" y="3" width="18" height="18" rx="2" />
@@ -134,6 +146,7 @@ export default function ChartToolbar() {
         onClick={() => dispatch("quanting:chart-zoom-in")}
         className="chart-toolbar-btn"
         title="줌 인 (+)"
+        aria-label="차트 확대"
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <line x1="12" y1="5" x2="12" y2="19" />
@@ -145,6 +158,7 @@ export default function ChartToolbar() {
         onClick={() => dispatch("quanting:chart-zoom-out")}
         className="chart-toolbar-btn"
         title="줌 아웃 (-)"
+        aria-label="차트 축소"
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <line x1="5" y1="12" x2="19" y2="12" />
@@ -155,6 +169,7 @@ export default function ChartToolbar() {
         onClick={() => dispatch("quanting:chart-fit")}
         className="chart-toolbar-btn"
         title="차트 맞춤 (Home)"
+        aria-label="차트 화면 맞춤"
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <polyline points="15 3 21 3 21 9" />
@@ -172,6 +187,7 @@ export default function ChartToolbar() {
         onClick={toggleFullscreen}
         className="chart-toolbar-btn"
         title="전체화면 (F)"
+        aria-label="전체 화면 전환"
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <polyline points="8 3 3 3 3 8" />

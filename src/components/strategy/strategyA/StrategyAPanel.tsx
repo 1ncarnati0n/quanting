@@ -12,6 +12,7 @@ import AllocationSummary from "./AllocationSummary";
 import GemSignalCard from "./GemSignalCard";
 import TaaSignalCard from "./TaaSignalCard";
 import SectorRankingCard from "./SectorRankingCard";
+import StatePanel from "@/components/patterns/StatePanel";
 import type { Candle } from "@/types";
 import type { GemSignal } from "@/utils/strategyA/gemStrategy";
 import type { TaaAssetSignal } from "@/utils/strategyA/taaStrategy";
@@ -86,10 +87,22 @@ export default function StrategyAPanel() {
 
       <BacktestConfig onRun={handleRun} isLoading={status === "loading"} />
 
+      {status === "loading" && !result && (
+        <StatePanel
+          variant="loading"
+          title="백테스트 실행 중입니다"
+          description="전략 데이터를 수집하고 성과를 계산하고 있어요."
+        />
+      )}
+
       {status === "error" && (
-        <div className="rounded-lg border border-[var(--destructive)] bg-[color-mix(in_srgb,var(--destructive)_10%,transparent)] p-3">
-          <span className="ds-type-label text-[var(--destructive)]">{error}</span>
-        </div>
+        <StatePanel
+          variant="error"
+          title={error ?? "백테스트 실행에 실패했습니다"}
+          description="설정을 확인한 뒤 다시 실행해 주세요."
+          actionLabel="다시 실행"
+          onAction={() => void handleRun()}
+        />
       )}
 
       {result && status === "done" && (
@@ -110,11 +123,12 @@ export default function StrategyAPanel() {
       )}
 
       {status === "idle" && (
-        <div className="flex h-40 items-center justify-center rounded-lg border border-dashed border-[var(--border)]">
-          <span className="ds-type-body text-[var(--muted-foreground)]">
-            "백테스트 실행" 버튼을 눌러 시작하세요
-          </span>
-        </div>
+        <StatePanel
+          variant="empty"
+          title="백테스트를 아직 실행하지 않았습니다"
+          description="상단의 실행 버튼으로 전략 시뮬레이션을 시작하세요."
+          className="h-40 flex items-center justify-center border-dashed bg-transparent"
+        />
       )}
     </div>
   );

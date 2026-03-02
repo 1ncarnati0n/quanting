@@ -1,6 +1,6 @@
 use tauri::State;
 
-use crate::api_client::{BinanceClient, YahooClient};
+use crate::api_client::{BinanceClient, KisClient, YahooClient};
 use crate::cache::CacheDb;
 use crate::models::{
     AnalysisParams, AnalysisResponse, Candle, FundamentalsParams, FundamentalsResponse, MarketType,
@@ -34,7 +34,10 @@ fn native_intervals(market: &MarketType) -> &'static [&'static str] {
             "1m", "3m", "5m", "15m", "30m", "1h", "2h", "4h", "6h", "8h", "12h", "1d", "1w",
             "1M",
         ],
-        MarketType::Forex | MarketType::UsStock | MarketType::KrStock => {
+        MarketType::KrStock => {
+            &["1m", "5m", "15m", "30m", "1h", "1d", "1w", "1M"]
+        }
+        MarketType::Forex | MarketType::UsStock => {
             &["1m", "2m", "5m", "15m", "30m", "1h", "1d", "1w", "1M"]
         }
     }
@@ -150,7 +153,8 @@ fn requested_source_limit(output_limit: u32, plan: &IntervalPlan, market: &Marke
     let expanded = output_limit.saturating_mul(factor.saturating_add(1));
     match market {
         MarketType::Crypto => expanded.clamp(output_limit, 1_000),
-        MarketType::Forex | MarketType::UsStock | MarketType::KrStock => {
+        MarketType::KrStock => expanded.clamp(output_limit, 1_500),
+        MarketType::Forex | MarketType::UsStock => {
             expanded.clamp(output_limit, 2_500)
         }
     }
@@ -201,6 +205,7 @@ pub async fn fetch_analysis(
     params: AnalysisParams,
     binance_client: State<'_, BinanceClient>,
     yahoo_client: State<'_, YahooClient>,
+    kis_client: State<'_, KisClient>,
     cache: State<'_, CacheDb>,
 ) -> Result<AnalysisResponse, String> {
     let market_prefix = market_prefix(&params.market);
@@ -220,7 +225,22 @@ pub async fn fetch_analysis(
                 .fetch_klines(&params.symbol, &plan.source, source_limit)
                 .await?
         }
-        MarketType::Forex | MarketType::UsStock | MarketType::KrStock => {
+        MarketType::KrStock => {
+            let is_intraday = matches!(
+                plan.source.as_str(),
+                "1m" | "2m" | "5m" | "15m" | "30m" | "1h"
+            );
+            if is_intraday {
+                yahoo_client
+                    .fetch_klines(&params.symbol, &plan.source, source_limit)
+                    .await?
+            } else {
+                kis_client
+                    .fetch_klines(&params.symbol, &plan.source, source_limit)
+                    .await?
+            }
+        }
+        MarketType::Forex | MarketType::UsStock => {
             yahoo_client
                 .fetch_klines(&params.symbol, &plan.source, source_limit)
                 .await?
@@ -239,6 +259,7 @@ pub async fn fetch_watchlist_snapshots(
     params: WatchlistSnapshotParams,
     binance_client: State<'_, BinanceClient>,
     yahoo_client: State<'_, YahooClient>,
+    kis_client: State<'_, KisClient>,
     cache: State<'_, CacheDb>,
 ) -> Result<Vec<WatchlistSnapshot>, String> {
     if params.items.is_empty() {
@@ -268,7 +289,22 @@ pub async fn fetch_watchlist_snapshots(
                         .fetch_klines(&item.symbol, &plan.source, source_limit)
                         .await
                 }
-                MarketType::Forex | MarketType::UsStock | MarketType::KrStock => {
+                MarketType::KrStock => {
+                    let is_intraday = matches!(
+                        plan.source.as_str(),
+                        "1m" | "2m" | "5m" | "15m" | "30m" | "1h"
+                    );
+                    if is_intraday {
+                        yahoo_client
+                            .fetch_klines(&item.symbol, &plan.source, source_limit)
+                            .await
+                    } else {
+                        kis_client
+                            .fetch_klines(&item.symbol, &plan.source, source_limit)
+                            .await
+                    }
+                }
+                MarketType::Forex | MarketType::UsStock => {
                     yahoo_client
                         .fetch_klines(&item.symbol, &plan.source, source_limit)
                         .await

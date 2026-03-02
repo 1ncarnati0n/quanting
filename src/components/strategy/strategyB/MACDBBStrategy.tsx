@@ -5,6 +5,7 @@ import { fetchAnalysis } from "@/services/tauriApi";
 import { buildAnalysisParams } from "@/utils/analysisParams";
 import { detectMACDBBSignals } from "@/utils/strategyB/macdBBSignals";
 import { Button } from "@/components/ui/button";
+import StatePanel from "@/components/patterns/StatePanel";
 import SignalDashboard from "./SignalDashboard";
 
 export default function MACDBBStrategy() {
@@ -76,9 +77,33 @@ export default function MACDBBStrategy() {
       </div>
 
       {error && (
-        <div className="rounded-lg border border-[var(--destructive)] p-2">
-          <span className="ds-type-caption text-[var(--destructive)]">{error}</span>
-        </div>
+        <StatePanel
+          variant="error"
+          size="compact"
+          title={error}
+          description="네트워크 또는 심볼/주기 설정을 확인해 주세요."
+          actionLabel="다시 스캔"
+          onAction={() => void handleScan()}
+        />
+      )}
+
+      {loading && (
+        <StatePanel
+          variant="loading"
+          size="compact"
+          title="신호 스캔 중입니다"
+          description="MACD/볼린저/RSI 조건을 순차 검증하고 있어요."
+        />
+      )}
+
+      {!loading && !error && !scannedSymbol && signals.length === 0 && (
+        <StatePanel
+          variant="empty"
+          size="compact"
+          title="아직 스캔을 실행하지 않았습니다"
+          description="신호 스캔 버튼으로 현재 종목의 조건을 점검해 보세요."
+          className="border-dashed bg-transparent"
+        />
       )}
 
       {scannedSymbol && (

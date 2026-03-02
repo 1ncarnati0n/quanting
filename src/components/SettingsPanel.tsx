@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/accordion";
 import { cn } from "@/lib/utils";
 import { INDICATOR_GUIDE } from "../utils/indicatorGuide";
+import { downloadUxMetrics, resetUxMetrics, trackUxAction } from "../utils/uxMetrics";
 import type { SettingsTab } from "../stores/useSettingsStore";
 
 function paramDesc(title: string, label: string): string | undefined {
@@ -44,6 +45,7 @@ type SectionState = {
 };
 
 const SETTINGS_SECTION_STORAGE_KEY = "quanting-settings-sections";
+const SETTINGS_INDICATOR_MODE_STORAGE_KEY = "quanting-settings-indicator-mode";
 
 const DEFAULT_SECTION_STATE: SectionState = {
   appearance: true,
@@ -54,6 +56,9 @@ const DEFAULT_SECTION_STATE: SectionState = {
   volume: false,
   alerts: false,
 };
+
+type IndicatorViewMode = "basic" | "advanced";
+const DEFAULT_INDICATOR_VIEW_MODE: IndicatorViewMode = "basic";
 
 const LAYOUT_PRESETS = {
   balanced: {
@@ -126,6 +131,24 @@ const SETTINGS_TAB_ITEMS: { value: SettingsTab; label: string; description: stri
   { value: "backtest", label: "백테스트", description: "준비 중" },
 ];
 
+const QUICK_INDICATOR_ITEMS = [
+  { key: "bb", label: "볼린저" },
+  { key: "rsi", label: "RSI" },
+  { key: "macd", label: "MACD" },
+  { key: "volume", label: "거래량" },
+  { key: "vwap", label: "VWAP" },
+  { key: "signalZones", label: "신호 구간" },
+] as const;
+
+const CORE_INDICATOR_KEYS = [
+  "bb",
+  "rsi",
+  "macd",
+  "volume",
+  "vwap",
+  "signalZones",
+] as const;
+
 function loadSectionState(): SectionState {
   try {
     if (typeof window === "undefined") return DEFAULT_SECTION_STATE;
@@ -135,6 +158,16 @@ function loadSectionState(): SectionState {
     return { ...DEFAULT_SECTION_STATE, ...parsed };
   } catch {
     return DEFAULT_SECTION_STATE;
+  }
+}
+
+function loadIndicatorViewMode(): IndicatorViewMode {
+  try {
+    if (typeof window === "undefined") return DEFAULT_INDICATOR_VIEW_MODE;
+    const raw = localStorage.getItem(SETTINGS_INDICATOR_MODE_STORAGE_KEY);
+    return raw === "advanced" ? "advanced" : "basic";
+  } catch {
+    return DEFAULT_INDICATOR_VIEW_MODE;
   }
 }
 
@@ -330,6 +363,8 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
   const strat = indicators.signalStrategies;
   const layout = indicators.layout;
   const [openSections, setOpenSections] = useState<SectionState>(loadSectionState);
+  const [indicatorViewMode, setIndicatorViewMode] =
+    useState<IndicatorViewMode>(loadIndicatorViewMode);
   const activeTab = settingsTab;
   const setActiveTab = setSettingsTab;
   const [alertInput, setAlertInput] = useState("");
@@ -337,57 +372,22 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
   const marketBadgeMeta = getMarketBadgeMeta(market);
   const marketBadge = { text: marketBadgeMeta.label, color: marketBadgeMeta.color };
   const instrumentLine = formatInstrumentDisplayLine(symbol, symbolLabel, market);
-  const enabledIndicatorCount = useMemo(
-    () =>
-      [
-        indicators.bb.enabled,
-        indicators.rsi.enabled,
-        indicators.sma.enabled,
-        indicators.ema.enabled,
-        indicators.macd.enabled,
-        indicators.stochastic.enabled,
-        indicators.volume.enabled,
-        indicators.obv.enabled,
-        indicators.signalZones.enabled,
-        indicators.volumeProfile.enabled,
-        indicators.fundamentals.enabled,
-        indicators.vwap.enabled,
-        indicators.atr.enabled,
-        indicators.ichimoku.enabled,
-        indicators.supertrend.enabled,
-        indicators.psar.enabled,
-        indicators.hma.enabled,
-        indicators.donchian.enabled,
-        indicators.keltner.enabled,
-        indicators.mfi.enabled,
-        indicators.cmf.enabled,
-        indicators.choppiness.enabled,
-        indicators.williamsR.enabled,
-        indicators.adx.enabled,
-        indicators.cvd.enabled,
-        indicators.stc.enabled,
-        indicators.smc.enabled,
-        indicators.anchoredVwap.enabled,
-        indicators.autoFib.enabled,
-      ].filter(Boolean).length,
-    [indicators],
-  );
   const scopedAlerts = useMemo(
     () => priceAlerts.filter((alert) => alert.symbol === symbol && alert.market === market),
     [market, priceAlerts, symbol],
   );
-  const activeAlertCount = useMemo(
-    () => scopedAlerts.length,
-    [scopedAlerts],
-  );
-  const activeTabLabel =
-    SETTINGS_TAB_ITEMS.find((tab) => tab.value === activeTab)?.label ?? "지표";
 
   useEffect(() => {
     try {
       localStorage.setItem(SETTINGS_SECTION_STORAGE_KEY, JSON.stringify(openSections));
     } catch {}
   }, [openSections]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(SETTINGS_INDICATOR_MODE_STORAGE_KEY, indicatorViewMode);
+    } catch {}
+  }, [indicatorViewMode]);
 
   const applyLayoutPreset = (presetKey: LayoutPresetKey) => {
     setIndicator("layout", LAYOUT_PRESETS[presetKey].values);
@@ -415,12 +415,50 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
     );
   };
 
+  const setCoreIndicatorsEnabled = (enabled: boolean) => {
+    trackUxAction("settings.indicators", enabled ? "core_enable_all" : "core_disable_all");
+    for (const key of CORE_INDICATOR_KEYS) {
+      setIndicator(key, { enabled });
+    }
+  };
+
+  const setIndicatorSectionsOpen = (open: boolean) => {
+    trackUxAction("settings.indicators", open ? "expand_all_sections" : "collapse_all_sections");
+    setOpenSections((prev) => ({
+      ...prev,
+      overlay: open,
+      oscillators: open,
+      quant: open,
+      volume: open,
+      alerts: open,
+    }));
+  };
+
+  const openCoreIndicatorSections = () => {
+    trackUxAction("settings.indicators", "open_core_sections");
+    setOpenSections((prev) => ({
+      ...prev,
+      overlay: true,
+      oscillators: true,
+      quant: false,
+      volume: false,
+      alerts: true,
+    }));
+  };
+
+  const setIndicatorViewModeTracked = (mode: IndicatorViewMode) => {
+    setIndicatorViewMode(mode);
+    trackUxAction("settings.indicators", mode === "advanced" ? "set_advanced_mode" : "set_basic_mode");
+  };
+
   const submitAlert = (condition: "above" | "below") => {
     const price = Number(alertInput.trim());
     if (!Number.isFinite(price) || price <= 0) return;
     addPriceAlert(price, condition);
     setAlertInput("");
   };
+
+  const isAdvancedIndicatorMode = indicatorViewMode === "advanced";
 
   const exportWorkspace = () => {
     const state = useSettingsStore.getState();
@@ -496,6 +534,8 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
           ? "w-full"
           : "w-[min(26rem,calc(100vw-1rem))] border-l border-[var(--border)] shadow-[var(--shadow-elevated)]"
       }`}
+      role="region"
+      aria-label="지표 설정 사이드바"
     >
       <PanelHeader
         title="지표 설정"
@@ -511,40 +551,15 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
             size="icon"
             onClick={onClose}
             className="text-[var(--muted-foreground)]"
+            title="지표 설정 닫기"
+            aria-label="지표 설정 닫기"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M18 6L6 18M6 6l12 12" />
             </svg>
           </Button>
         ) : undefined}
-      >
-        <div className="grid grid-cols-3 gap-2">
-          <div className="ui-stat-tile">
-            <div className="ds-type-caption uppercase tracking-wider text-[var(--muted-foreground)]">
-              현재 탭
-            </div>
-            <div className="ds-type-title mt-1 font-semibold text-[var(--foreground)]">
-              {activeTabLabel}
-            </div>
-          </div>
-          <div className="ui-stat-tile">
-            <div className="ds-type-caption uppercase tracking-wider text-[var(--muted-foreground)]">
-              활성 지표
-            </div>
-            <div className="ds-type-title mt-1 font-semibold text-[var(--foreground)]">
-              {enabledIndicatorCount}개
-            </div>
-          </div>
-          <div className="ui-stat-tile">
-            <div className="ds-type-caption uppercase tracking-wider text-[var(--muted-foreground)]">
-              현재 알림
-            </div>
-            <div className="ds-type-title mt-1 font-semibold text-[var(--foreground)]">
-              {activeAlertCount}개
-            </div>
-          </div>
-        </div>
-      </PanelHeader>
+      />
 
       <Tabs
         value={activeTab}
@@ -719,10 +734,10 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
 
                   <div className="grid grid-cols-2 gap-1.5">
                     <Button variant="secondary" size="sm" className="ds-type-caption font-semibold" onClick={exportWorkspace}>
-                      저장(Export)
+                      설정 내보내기
                     </Button>
                     <Button variant="secondary" size="sm" className="ds-type-caption font-semibold" onClick={importWorkspace}>
-                      불러오기(Import)
+                      설정 불러오기
                     </Button>
                   </div>
                 </SettingCard>
@@ -856,6 +871,129 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
 
           {activeTab === "indicators" && (
             <>
+              <SettingCard
+                title="빠른 설정"
+                description="자주 쓰는 지표와 섹션을 한 번에 제어합니다."
+              >
+                <div className="grid grid-cols-2 gap-1.5">
+                  <SegmentButton
+                    type="button"
+                    active={indicatorViewMode === "basic"}
+                    activeTone="accent"
+                    onClick={() => setIndicatorViewModeTracked("basic")}
+                    aria-pressed={indicatorViewMode === "basic"}
+                  >
+                    기본 모드
+                  </SegmentButton>
+                  <SegmentButton
+                    type="button"
+                    active={indicatorViewMode === "advanced"}
+                    activeTone="warning"
+                    onClick={() => setIndicatorViewModeTracked("advanced")}
+                    aria-pressed={indicatorViewMode === "advanced"}
+                  >
+                    고급 모드
+                  </SegmentButton>
+                </div>
+                <p className="ds-type-caption mt-2 text-[var(--muted-foreground)]">
+                  {isAdvancedIndicatorMode
+                    ? "고급 모드: 전체 지표/전략 설정을 노출합니다."
+                    : "기본 모드: 핵심 지표와 필수 알림만 노출합니다."}
+                </p>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {QUICK_INDICATOR_ITEMS.map((item) => (
+                    <SegmentButton
+                      key={item.key}
+                      type="button"
+                      active={indicators[item.key].enabled}
+                      onClick={() => {
+                        const nextEnabled = !indicators[item.key].enabled;
+                        setIndicator(item.key, { enabled: nextEnabled });
+                        trackUxAction(
+                          "settings.indicators",
+                          `${item.key}_${nextEnabled ? "enabled" : "disabled"}`,
+                        );
+                      }}
+                      aria-pressed={indicators[item.key].enabled}
+                      aria-label={`${item.label} ${indicators[item.key].enabled ? "끄기" : "켜기"}`}
+                    >
+                      {item.label}
+                    </SegmentButton>
+                  ))}
+                </div>
+                <div className="mt-2 grid grid-cols-2 gap-1.5">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    className="ds-type-caption font-semibold"
+                    onClick={() => setCoreIndicatorsEnabled(true)}
+                  >
+                    핵심 지표 켜기
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    className="ds-type-caption font-semibold"
+                    onClick={() => setCoreIndicatorsEnabled(false)}
+                  >
+                    핵심 지표 끄기
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="ds-type-caption text-[var(--muted-foreground)]"
+                    onClick={() => setIndicatorSectionsOpen(true)}
+                  >
+                    섹션 모두 펼치기
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="ds-type-caption text-[var(--muted-foreground)]"
+                    onClick={() => setIndicatorSectionsOpen(false)}
+                  >
+                    섹션 모두 접기
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="ds-type-caption text-[var(--muted-foreground)]"
+                    onClick={openCoreIndicatorSections}
+                  >
+                    핵심 섹션 보기
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="ds-type-caption text-[var(--muted-foreground)]"
+                    onClick={() => {
+                      trackUxAction("settings.indicators", "export_ux_metrics");
+                      downloadUxMetrics();
+                    }}
+                  >
+                    UX 지표 내보내기
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="ds-type-caption text-[var(--muted-foreground)]"
+                    onClick={() => {
+                      resetUxMetrics();
+                      trackUxAction("settings.indicators", "reset_ux_metrics");
+                    }}
+                  >
+                    UX 지표 초기화
+                  </Button>
+                </div>
+              </SettingCard>
+
               <AccordionSection
                 value="overlay"
                 title="오버레이 지표"
@@ -891,177 +1029,185 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
                 </IndicatorSection>
 
                 <IndicatorSection
-                  title="재무 오버레이"
-                  color="#60A5FA"
-                  enabled={indicators.fundamentals.enabled}
-                  onToggle={() => toggleIndicator("fundamentals")}
+                  title="VWAP"
+                  color="#06B6D4"
+                  enabled={indicators.vwap.enabled}
+                  onToggle={() => toggleIndicator("vwap")}
                 />
 
-                  <IndicatorSection
-                    title="SMA"
-                    color="#F59E0B"
-                    enabled={indicators.sma.enabled}
-                    onToggle={() => toggleIndicator("sma")}
-                  >
-                    <PeriodsInput
-                      periods={indicators.sma.periods}
-                      onChange={(periods) => setIndicator("sma", { periods })}
+                {isAdvancedIndicatorMode ? (
+                  <>
+                    <IndicatorSection
+                      title="재무 오버레이"
+                      color="#60A5FA"
+                      enabled={indicators.fundamentals.enabled}
+                      onToggle={() => toggleIndicator("fundamentals")}
                     />
-                  </IndicatorSection>
 
-                  <IndicatorSection
-                    title="EMA"
-                    color="#8B5CF6"
-                    enabled={indicators.ema.enabled}
-                    onToggle={() => toggleIndicator("ema")}
-                  >
-                    <PeriodsInput
-                      periods={indicators.ema.periods}
-                      onChange={(periods) => setIndicator("ema", { periods })}
+                    <IndicatorSection
+                      title="SMA"
+                      color="#F59E0B"
+                      enabled={indicators.sma.enabled}
+                      onToggle={() => toggleIndicator("sma")}
+                    >
+                      <PeriodsInput
+                        periods={indicators.sma.periods}
+                        onChange={(periods) => setIndicator("sma", { periods })}
+                      />
+                    </IndicatorSection>
+
+                    <IndicatorSection
+                      title="EMA"
+                      color="#8B5CF6"
+                      enabled={indicators.ema.enabled}
+                      onToggle={() => toggleIndicator("ema")}
+                    >
+                      <PeriodsInput
+                        periods={indicators.ema.periods}
+                        onChange={(periods) => setIndicator("ema", { periods })}
+                      />
+                    </IndicatorSection>
+
+                    <IndicatorSection
+                      title="Ichimoku"
+                      color="#F59E0B"
+                      enabled={indicators.ichimoku.enabled}
+                      onToggle={() => toggleIndicator("ichimoku")}
                     />
-                  </IndicatorSection>
 
-                  <IndicatorSection
-                    title="VWAP"
-                    color="#06B6D4"
-                    enabled={indicators.vwap.enabled}
-                    onToggle={() => toggleIndicator("vwap")}
-                  />
+                    <IndicatorSection
+                      title="Supertrend"
+                      color="#22C55E"
+                      enabled={indicators.supertrend.enabled}
+                      onToggle={() => toggleIndicator("supertrend")}
+                    />
 
-                  <IndicatorSection
-                    title="Ichimoku"
-                    color="#F59E0B"
-                    enabled={indicators.ichimoku.enabled}
-                    onToggle={() => toggleIndicator("ichimoku")}
-                  />
+                    <IndicatorSection
+                      title="Parabolic SAR"
+                      color="#F97316"
+                      enabled={indicators.psar.enabled}
+                      onToggle={() => toggleIndicator("psar")}
+                    />
 
-                  <IndicatorSection
-                    title="Supertrend"
-                    color="#22C55E"
-                    enabled={indicators.supertrend.enabled}
-                    onToggle={() => toggleIndicator("supertrend")}
-                  />
+                    <IndicatorSection
+                      title="HMA"
+                      color="#14B8A6"
+                      enabled={indicators.hma.enabled}
+                      onToggle={() => toggleIndicator("hma")}
+                    >
+                      <PeriodsInput
+                        periods={indicators.hma.periods}
+                        onChange={(periods) => setIndicator("hma", { periods })}
+                      />
+                    </IndicatorSection>
 
-                <IndicatorSection
-                  title="Parabolic SAR"
-                  color="#F97316"
-                  enabled={indicators.psar.enabled}
-                  onToggle={() => toggleIndicator("psar")}
-                />
+                    <IndicatorSection
+                      title="Donchian Channels"
+                      color={COLORS.donchianUpper}
+                      enabled={indicators.donchian.enabled}
+                      onToggle={() => toggleIndicator("donchian")}
+                    >
+                      <SliderRow
+                        label="기간"
+                        value={indicators.donchian.period}
+                        min={5}
+                        max={100}
+                        step={1}
+                        onChange={(v) => setIndicator("donchian", { period: v })}
+                        description={paramDesc("Donchian Channels", "기간")}
+                      />
+                    </IndicatorSection>
 
-                <IndicatorSection
-                  title="HMA"
-                  color="#14B8A6"
-                  enabled={indicators.hma.enabled}
-                  onToggle={() => toggleIndicator("hma")}
-                >
-                  <PeriodsInput
-                    periods={indicators.hma.periods}
-                    onChange={(periods) => setIndicator("hma", { periods })}
-                  />
-                </IndicatorSection>
+                    <IndicatorSection
+                      title="Keltner Channels"
+                      color={COLORS.keltnerUpper}
+                      enabled={indicators.keltner.enabled}
+                      onToggle={() => toggleIndicator("keltner")}
+                    >
+                      <SliderRow
+                        label="EMA 기간"
+                        value={indicators.keltner.emaPeriod}
+                        min={5}
+                        max={50}
+                        step={1}
+                        onChange={(v) => setIndicator("keltner", { emaPeriod: v })}
+                        description={paramDesc("Keltner Channels", "EMA 기간")}
+                      />
+                      <SliderRow
+                        label="ATR 기간"
+                        value={indicators.keltner.atrPeriod}
+                        min={5}
+                        max={50}
+                        step={1}
+                        onChange={(v) => setIndicator("keltner", { atrPeriod: v })}
+                        description={paramDesc("Keltner Channels", "ATR 기간")}
+                      />
+                      <SliderRow
+                        label="ATR 배수"
+                        value={indicators.keltner.atrMultiplier}
+                        min={0.5}
+                        max={4.0}
+                        step={0.1}
+                        onChange={(v) => setIndicator("keltner", { atrMultiplier: v })}
+                        description={paramDesc("Keltner Channels", "ATR 배수")}
+                      />
+                    </IndicatorSection>
 
-                <IndicatorSection
-                  title="Donchian Channels"
-                  color={COLORS.donchianUpper}
-                  enabled={indicators.donchian.enabled}
-                  onToggle={() => toggleIndicator("donchian")}
-                >
-                  <SliderRow
-                    label="기간"
-                    value={indicators.donchian.period}
-                    min={5}
-                    max={100}
-                    step={1}
-                    onChange={(v) => setIndicator("donchian", { period: v })}
-                    description={paramDesc("Donchian Channels", "기간")}
-                  />
-                </IndicatorSection>
+                    <IndicatorSection
+                      title="SMC (스마트머니)"
+                      color={COLORS.smcBosBull}
+                      enabled={indicators.smc.enabled}
+                      onToggle={() => toggleIndicator("smc")}
+                    >
+                      <SliderRow
+                        label="스윙 길이"
+                        value={indicators.smc.swingLength}
+                        min={2}
+                        max={20}
+                        step={1}
+                        onChange={(v) => setIndicator("smc", { swingLength: v })}
+                        description={paramDesc("SMC (스마트머니)", "스윙 길이")}
+                      />
+                    </IndicatorSection>
 
-                <IndicatorSection
-                  title="Keltner Channels"
-                  color={COLORS.keltnerUpper}
-                  enabled={indicators.keltner.enabled}
-                  onToggle={() => toggleIndicator("keltner")}
-                >
-                  <SliderRow
-                    label="EMA 기간"
-                    value={indicators.keltner.emaPeriod}
-                    min={5}
-                    max={50}
-                    step={1}
-                    onChange={(v) => setIndicator("keltner", { emaPeriod: v })}
-                    description={paramDesc("Keltner Channels", "EMA 기간")}
-                  />
-                  <SliderRow
-                    label="ATR 기간"
-                    value={indicators.keltner.atrPeriod}
-                    min={5}
-                    max={50}
-                    step={1}
-                    onChange={(v) => setIndicator("keltner", { atrPeriod: v })}
-                    description={paramDesc("Keltner Channels", "ATR 기간")}
-                  />
-                  <SliderRow
-                    label="ATR 배수"
-                    value={indicators.keltner.atrMultiplier}
-                    min={0.5}
-                    max={4.0}
-                    step={0.1}
-                    onChange={(v) => setIndicator("keltner", { atrMultiplier: v })}
-                    description={paramDesc("Keltner Channels", "ATR 배수")}
-                  />
-                </IndicatorSection>
+                    <IndicatorSection
+                      title="Anchored VWAP"
+                      color={COLORS.anchoredVwap}
+                      enabled={indicators.anchoredVwap.enabled}
+                      onToggle={() => toggleIndicator("anchoredVwap")}
+                    />
 
-                <IndicatorSection
-                  title="SMC (스마트머니)"
-                  color={COLORS.smcBosBull}
-                  enabled={indicators.smc.enabled}
-                  onToggle={() => toggleIndicator("smc")}
-                >
-                  <SliderRow
-                    label="스윙 길이"
-                    value={indicators.smc.swingLength}
-                    min={2}
-                    max={20}
-                    step={1}
-                    onChange={(v) => setIndicator("smc", { swingLength: v })}
-                    description={paramDesc("SMC (스마트머니)", "스윙 길이")}
-                  />
-                </IndicatorSection>
-
-                <IndicatorSection
-                  title="Anchored VWAP"
-                  color={COLORS.anchoredVwap}
-                  enabled={indicators.anchoredVwap.enabled}
-                  onToggle={() => toggleIndicator("anchoredVwap")}
-                />
-
-                <IndicatorSection
-                  title="Auto Fibonacci"
-                  color={COLORS.autoFib}
-                  enabled={indicators.autoFib.enabled}
-                  onToggle={() => toggleIndicator("autoFib")}
-                >
-                  <SliderRow
-                    label="조회 기간"
-                    value={indicators.autoFib.lookback}
-                    min={20}
-                    max={500}
-                    step={10}
-                    onChange={(v) => setIndicator("autoFib", { lookback: v })}
-                    description={paramDesc("Auto Fibonacci", "조회 기간")}
-                  />
-                  <SliderRow
-                    label="스윙 길이"
-                    value={indicators.autoFib.swingLength}
-                    min={2}
-                    max={20}
-                    step={1}
-                    onChange={(v) => setIndicator("autoFib", { swingLength: v })}
-                    description={paramDesc("Auto Fibonacci", "스윙 길이")}
-                  />
-                </IndicatorSection>
+                    <IndicatorSection
+                      title="Auto Fibonacci"
+                      color={COLORS.autoFib}
+                      enabled={indicators.autoFib.enabled}
+                      onToggle={() => toggleIndicator("autoFib")}
+                    >
+                      <SliderRow
+                        label="조회 기간"
+                        value={indicators.autoFib.lookback}
+                        min={20}
+                        max={500}
+                        step={10}
+                        onChange={(v) => setIndicator("autoFib", { lookback: v })}
+                        description={paramDesc("Auto Fibonacci", "조회 기간")}
+                      />
+                      <SliderRow
+                        label="스윙 길이"
+                        value={indicators.autoFib.swingLength}
+                        min={2}
+                        max={20}
+                        step={1}
+                        onChange={(v) => setIndicator("autoFib", { swingLength: v })}
+                        description={paramDesc("Auto Fibonacci", "스윙 길이")}
+                      />
+                    </IndicatorSection>
+                  </>
+                ) : (
+                  <p className="ds-type-caption text-[var(--muted-foreground)]">
+                    고급 오버레이 지표(SMA/EMA/Ichimoku/SMC 등)는 고급 모드에서 설정할 수 있습니다.
+                  </p>
+                )}
               </AccordionSection>
 
               <AccordionSection
@@ -1124,10 +1270,10 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
                     />
                   </IndicatorSection>
 
-                  <IndicatorSection
-                    title="스토캐스틱"
-                    color={COLORS.stochK}
-                    enabled={indicators.stochastic.enabled}
+                <IndicatorSection
+                  title="스토캐스틱"
+                  color={COLORS.stochK}
+                  enabled={indicators.stochastic.enabled}
                     onToggle={() => toggleIndicator("stochastic")}
                   >
                     <SliderRow
@@ -1155,250 +1301,276 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
                       max={10}
                       step={1}
                       onChange={(v) => setIndicator("stochastic", { smooth: v })}
-                      description={paramDesc("스토캐스틱", "스무딩")}
+                    description={paramDesc("스토캐스틱", "스무딩")}
+                  />
+                </IndicatorSection>
+                {isAdvancedIndicatorMode ? (
+                  <>
+                    <IndicatorSection
+                      title="ATR"
+                      color="#38BDF8"
+                      enabled={indicators.atr.enabled}
+                      onToggle={() => toggleIndicator("atr")}
                     />
-                  </IndicatorSection>
 
-                <IndicatorSection
-                  title="ATR"
-                  color="#38BDF8"
-                  enabled={indicators.atr.enabled}
-                  onToggle={() => toggleIndicator("atr")}
-                />
+                    <IndicatorSection
+                      title="MFI"
+                      color={COLORS.mfiLine}
+                      enabled={indicators.mfi.enabled}
+                      onToggle={() => toggleIndicator("mfi")}
+                    >
+                      <SliderRow
+                        label="기간"
+                        value={indicators.mfi.period}
+                        min={2}
+                        max={50}
+                        step={1}
+                        onChange={(v) => setIndicator("mfi", { period: v })}
+                        description={paramDesc("MFI", "기간")}
+                      />
+                    </IndicatorSection>
 
-                <IndicatorSection
-                  title="MFI"
-                  color={COLORS.mfiLine}
-                  enabled={indicators.mfi.enabled}
-                  onToggle={() => toggleIndicator("mfi")}
-                >
-                  <SliderRow
-                    label="기간"
-                    value={indicators.mfi.period}
-                    min={2}
-                    max={50}
-                    step={1}
-                    onChange={(v) => setIndicator("mfi", { period: v })}
-                    description={paramDesc("MFI", "기간")}
-                  />
-                </IndicatorSection>
+                    <IndicatorSection
+                      title="CMF"
+                      color={COLORS.cmfLine}
+                      enabled={indicators.cmf.enabled}
+                      onToggle={() => toggleIndicator("cmf")}
+                    >
+                      <SliderRow
+                        label="기간"
+                        value={indicators.cmf.period}
+                        min={2}
+                        max={50}
+                        step={1}
+                        onChange={(v) => setIndicator("cmf", { period: v })}
+                        description={paramDesc("CMF", "기간")}
+                      />
+                    </IndicatorSection>
 
-                <IndicatorSection
-                  title="CMF"
-                  color={COLORS.cmfLine}
-                  enabled={indicators.cmf.enabled}
-                  onToggle={() => toggleIndicator("cmf")}
-                >
-                  <SliderRow
-                    label="기간"
-                    value={indicators.cmf.period}
-                    min={2}
-                    max={50}
-                    step={1}
-                    onChange={(v) => setIndicator("cmf", { period: v })}
-                    description={paramDesc("CMF", "기간")}
-                  />
-                </IndicatorSection>
+                    <IndicatorSection
+                      title="Choppiness Index"
+                      color={COLORS.chopLine}
+                      enabled={indicators.choppiness.enabled}
+                      onToggle={() => toggleIndicator("choppiness")}
+                    >
+                      <SliderRow
+                        label="기간"
+                        value={indicators.choppiness.period}
+                        min={2}
+                        max={50}
+                        step={1}
+                        onChange={(v) => setIndicator("choppiness", { period: v })}
+                        description={paramDesc("Choppiness Index", "기간")}
+                      />
+                    </IndicatorSection>
 
-                <IndicatorSection
-                  title="Choppiness Index"
-                  color={COLORS.chopLine}
-                  enabled={indicators.choppiness.enabled}
-                  onToggle={() => toggleIndicator("choppiness")}
-                >
-                  <SliderRow
-                    label="기간"
-                    value={indicators.choppiness.period}
-                    min={2}
-                    max={50}
-                    step={1}
-                    onChange={(v) => setIndicator("choppiness", { period: v })}
-                    description={paramDesc("Choppiness Index", "기간")}
-                  />
-                </IndicatorSection>
+                    <IndicatorSection
+                      title="Williams %R"
+                      color={COLORS.willrLine}
+                      enabled={indicators.williamsR.enabled}
+                      onToggle={() => toggleIndicator("williamsR")}
+                    >
+                      <SliderRow
+                        label="기간"
+                        value={indicators.williamsR.period}
+                        min={2}
+                        max={50}
+                        step={1}
+                        onChange={(v) => setIndicator("williamsR", { period: v })}
+                        description={paramDesc("Williams %R", "기간")}
+                      />
+                    </IndicatorSection>
 
-                <IndicatorSection
-                  title="Williams %R"
-                  color={COLORS.willrLine}
-                  enabled={indicators.williamsR.enabled}
-                  onToggle={() => toggleIndicator("williamsR")}
-                >
-                  <SliderRow
-                    label="기간"
-                    value={indicators.williamsR.period}
-                    min={2}
-                    max={50}
-                    step={1}
-                    onChange={(v) => setIndicator("williamsR", { period: v })}
-                    description={paramDesc("Williams %R", "기간")}
-                  />
-                </IndicatorSection>
+                    <IndicatorSection
+                      title="ADX"
+                      color={COLORS.adxLine}
+                      enabled={indicators.adx.enabled}
+                      onToggle={() => toggleIndicator("adx")}
+                    >
+                      <SliderRow
+                        label="기간"
+                        value={indicators.adx.period}
+                        min={2}
+                        max={50}
+                        step={1}
+                        onChange={(v) => setIndicator("adx", { period: v })}
+                        description={paramDesc("ADX", "기간")}
+                      />
+                    </IndicatorSection>
 
-                <IndicatorSection
-                  title="ADX"
-                  color={COLORS.adxLine}
-                  enabled={indicators.adx.enabled}
-                  onToggle={() => toggleIndicator("adx")}
-                >
-                  <SliderRow
-                    label="기간"
-                    value={indicators.adx.period}
-                    min={2}
-                    max={50}
-                    step={1}
-                    onChange={(v) => setIndicator("adx", { period: v })}
-                    description={paramDesc("ADX", "기간")}
-                  />
-                </IndicatorSection>
-
-                <IndicatorSection
-                  title="STC"
-                  color={COLORS.stcLine}
-                  enabled={indicators.stc.enabled}
-                  onToggle={() => toggleIndicator("stc")}
-                >
-                  <SliderRow
-                    label="TC 기간"
-                    value={indicators.stc.tcLen}
-                    min={2}
-                    max={30}
-                    step={1}
-                    onChange={(v) => setIndicator("stc", { tcLen: v })}
-                    description={paramDesc("STC", "TC 기간")}
-                  />
-                  <SliderRow
-                    label="단기 MA"
-                    value={indicators.stc.fastMa}
-                    min={5}
-                    max={50}
-                    step={1}
-                    onChange={(v) => setIndicator("stc", { fastMa: v })}
-                    description={paramDesc("STC", "단기 MA")}
-                  />
-                  <SliderRow
-                    label="장기 MA"
-                    value={indicators.stc.slowMa}
-                    min={20}
-                    max={100}
-                    step={1}
-                    onChange={(v) => setIndicator("stc", { slowMa: v })}
-                    description={paramDesc("STC", "장기 MA")}
-                  />
-                </IndicatorSection>
+                    <IndicatorSection
+                      title="STC"
+                      color={COLORS.stcLine}
+                      enabled={indicators.stc.enabled}
+                      onToggle={() => toggleIndicator("stc")}
+                    >
+                      <SliderRow
+                        label="TC 기간"
+                        value={indicators.stc.tcLen}
+                        min={2}
+                        max={30}
+                        step={1}
+                        onChange={(v) => setIndicator("stc", { tcLen: v })}
+                        description={paramDesc("STC", "TC 기간")}
+                      />
+                      <SliderRow
+                        label="단기 MA"
+                        value={indicators.stc.fastMa}
+                        min={5}
+                        max={50}
+                        step={1}
+                        onChange={(v) => setIndicator("stc", { fastMa: v })}
+                        description={paramDesc("STC", "단기 MA")}
+                      />
+                      <SliderRow
+                        label="장기 MA"
+                        value={indicators.stc.slowMa}
+                        min={20}
+                        max={100}
+                        step={1}
+                        onChange={(v) => setIndicator("stc", { slowMa: v })}
+                        description={paramDesc("STC", "장기 MA")}
+                      />
+                    </IndicatorSection>
+                  </>
+                ) : (
+                  <p className="ds-type-caption text-[var(--muted-foreground)]">
+                    고급 오실레이터(ATR/MFI/CMF/ADX/STC 등)는 고급 모드에서 설정할 수 있습니다.
+                  </p>
+                )}
               </AccordionSection>
 
-              <AccordionSection
-                value="quant"
-                title="퀀트 전략"
-                subtitle="시그널 전략"
-                open={openSections.quant}
-                onOpenChange={(open) => setOpenSections((prev) => ({ ...prev, quant: open }))}
-                sectionId="quant"
-              >
-                <IndicatorSection
-                  title="매수/매도 구간 배경"
-                  color="#22C55E"
-                  enabled={indicators.signalZones.enabled}
-                  onToggle={() => toggleIndicator("signalZones")}
-                />
+              {isAdvancedIndicatorMode ? (
+                <>
+                  <AccordionSection
+                    value="quant"
+                    title="퀀트 전략"
+                    subtitle="시그널 전략"
+                    open={openSections.quant}
+                    onOpenChange={(open) => setOpenSections((prev) => ({ ...prev, quant: open }))}
+                    sectionId="quant"
+                  >
+                    <IndicatorSection
+                      title="매수/매도 구간 배경"
+                      color="#22C55E"
+                      enabled={indicators.signalZones.enabled}
+                      onToggle={() => toggleIndicator("signalZones")}
+                    />
 
-                <IndicatorSection
-                  title="퀀트 시그널 전략"
-                  color="#8B5CF6"
-                  enabled={Object.entries(strat).some(([, v]) => typeof v === "boolean" && v)}
-                  onToggle={() => {
-                    const anyOn = Object.entries(strat).some(([, v]) => typeof v === "boolean" && v);
-                    const boolKeys = Object.keys(strat).filter((k) => typeof (strat as Record<string, unknown>)[k] === "boolean") as (keyof typeof strat)[];
-                    const update: Record<string, boolean> = {};
-                    for (const k of boolKeys) update[k] = !anyOn;
-                    setIndicator("signalStrategies", update);
-                  }}
-                >
-                  <div className="ds-type-caption font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">추세 추종</div>
-                  <ToggleRow label="Supertrend + ADX" checked={strat.supertrendAdx} onChange={(v) => setIndicator("signalStrategies", { supertrendAdx: v })} />
-                  <ToggleRow label="EMA Crossover" checked={strat.emaCrossover} onChange={(v) => setIndicator("signalStrategies", { emaCrossover: v })} />
-                  {strat.emaCrossover && (
-                    <>
-                      <SliderRow label="EMA Fast" value={strat.emaFastPeriod} min={3} max={50} step={1} onChange={(v) => setIndicator("signalStrategies", { emaFastPeriod: v })} />
-                      <SliderRow label="EMA Slow" value={strat.emaSlowPeriod} min={10} max={200} step={1} onChange={(v) => setIndicator("signalStrategies", { emaSlowPeriod: v })} />
-                    </>
-                  )}
-                  <ToggleRow label="Parabolic SAR 반전" checked={strat.parabolicSar} onChange={(v) => setIndicator("signalStrategies", { parabolicSar: v })} />
-                  <div className="mt-3 ds-type-caption font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">모멘텀/오실레이터</div>
-                  <ToggleRow label="Stochastic + RSI" checked={strat.stochRsiCombined} onChange={(v) => setIndicator("signalStrategies", { stochRsiCombined: v })} />
-                  <ToggleRow label="MACD Histogram 반전" checked={strat.macdHistReversal} onChange={(v) => setIndicator("signalStrategies", { macdHistReversal: v })} />
-                  <ToggleRow label="TTM Squeeze" checked={strat.ttmSqueeze} onChange={(v) => setIndicator("signalStrategies", { ttmSqueeze: v })} />
-                  <div className="mt-3 ds-type-caption font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">거래량</div>
-                  <ToggleRow label="CMF + OBV Flow" checked={strat.cmfObv} onChange={(v) => setIndicator("signalStrategies", { cmfObv: v })} />
-                  <ToggleRow label="VWAP Breakout" checked={strat.vwapBreakout} onChange={(v) => setIndicator("signalStrategies", { vwapBreakout: v })} />
-                  <div className="mt-3 ds-type-caption font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">평균 회귀</div>
-                  <ToggleRow label="IBS Mean Reversion" checked={strat.ibsMeanReversion} onChange={(v) => setIndicator("signalStrategies", { ibsMeanReversion: v })} />
-                  <ToggleRow label="RSI Divergence" checked={strat.rsiDivergence} onChange={(v) => setIndicator("signalStrategies", { rsiDivergence: v })} />
-                  {strat.rsiDivergence && (
-                    <SliderRow label="Swing Length" value={strat.divergenceSwingLength} min={3} max={20} step={1} onChange={(v) => setIndicator("signalStrategies", { divergenceSwingLength: v })} />
-                  )}
-                </IndicatorSection>
-              </AccordionSection>
+                    <IndicatorSection
+                      title="퀀트 시그널 전략"
+                      color="#8B5CF6"
+                      enabled={Object.entries(strat).some(([, v]) => typeof v === "boolean" && v)}
+                      onToggle={() => {
+                        const anyOn = Object.entries(strat).some(([, v]) => typeof v === "boolean" && v);
+                        const boolKeys = Object.keys(strat).filter((k) => typeof (strat as Record<string, unknown>)[k] === "boolean") as (keyof typeof strat)[];
+                        const update: Record<string, boolean> = {};
+                        for (const k of boolKeys) update[k] = !anyOn;
+                        setIndicator("signalStrategies", update);
+                      }}
+                    >
+                      <div className="ds-type-caption font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">추세 추종</div>
+                      <ToggleRow label="Supertrend + ADX" checked={strat.supertrendAdx} onChange={(v) => setIndicator("signalStrategies", { supertrendAdx: v })} />
+                      <ToggleRow label="EMA Crossover" checked={strat.emaCrossover} onChange={(v) => setIndicator("signalStrategies", { emaCrossover: v })} />
+                      {strat.emaCrossover && (
+                        <>
+                          <SliderRow label="EMA Fast" value={strat.emaFastPeriod} min={3} max={50} step={1} onChange={(v) => setIndicator("signalStrategies", { emaFastPeriod: v })} />
+                          <SliderRow label="EMA Slow" value={strat.emaSlowPeriod} min={10} max={200} step={1} onChange={(v) => setIndicator("signalStrategies", { emaSlowPeriod: v })} />
+                        </>
+                      )}
+                      <ToggleRow label="Parabolic SAR 반전" checked={strat.parabolicSar} onChange={(v) => setIndicator("signalStrategies", { parabolicSar: v })} />
+                      <div className="mt-3 ds-type-caption font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">모멘텀/오실레이터</div>
+                      <ToggleRow label="Stochastic + RSI" checked={strat.stochRsiCombined} onChange={(v) => setIndicator("signalStrategies", { stochRsiCombined: v })} />
+                      <ToggleRow label="MACD Histogram 반전" checked={strat.macdHistReversal} onChange={(v) => setIndicator("signalStrategies", { macdHistReversal: v })} />
+                      <ToggleRow label="TTM Squeeze" checked={strat.ttmSqueeze} onChange={(v) => setIndicator("signalStrategies", { ttmSqueeze: v })} />
+                      <div className="mt-3 ds-type-caption font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">거래량</div>
+                      <ToggleRow label="CMF + OBV Flow" checked={strat.cmfObv} onChange={(v) => setIndicator("signalStrategies", { cmfObv: v })} />
+                      <ToggleRow label="VWAP Breakout" checked={strat.vwapBreakout} onChange={(v) => setIndicator("signalStrategies", { vwapBreakout: v })} />
+                      <div className="mt-3 ds-type-caption font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">평균 회귀</div>
+                      <ToggleRow label="IBS Mean Reversion" checked={strat.ibsMeanReversion} onChange={(v) => setIndicator("signalStrategies", { ibsMeanReversion: v })} />
+                      <ToggleRow label="RSI Divergence" checked={strat.rsiDivergence} onChange={(v) => setIndicator("signalStrategies", { rsiDivergence: v })} />
+                      {strat.rsiDivergence && (
+                        <SliderRow label="Swing Length" value={strat.divergenceSwingLength} min={3} max={20} step={1} onChange={(v) => setIndicator("signalStrategies", { divergenceSwingLength: v })} />
+                      )}
+                    </IndicatorSection>
+                  </AccordionSection>
 
-              <AccordionSection
-                value="volume"
-                title="거래량/자금흐름"
-                subtitle="거래량/OBV 오버레이"
-                open={openSections.volume}
-                onOpenChange={(open) => setOpenSections((prev) => ({ ...prev, volume: open }))}
-                sectionId="volume"
-              >
-                <IndicatorSection
-                  title="거래량"
-                  color="var(--success)"
-                  enabled={indicators.volume.enabled}
-                  onToggle={() => toggleIndicator("volume")}
-                />
-                <IndicatorSection
-                  title="OBV(온밸런스볼륨)"
-                  color="#14B8A6"
-                  enabled={indicators.obv.enabled}
-                  onToggle={() => toggleIndicator("obv")}
-                />
-                <IndicatorSection
-                  title="CVD(누적거래량델타)"
-                  color={COLORS.cvdLine}
-                  enabled={indicators.cvd.enabled}
-                  onToggle={() => toggleIndicator("cvd")}
-                />
-                <IndicatorSection
-                  title="볼륨 프로파일"
-                  color="#60A5FA"
-                  enabled={indicators.volumeProfile.enabled}
-                  onToggle={() => toggleIndicator("volumeProfile")}
+                  <AccordionSection
+                    value="volume"
+                    title="거래량/자금흐름"
+                    subtitle="거래량/OBV 오버레이"
+                    open={openSections.volume}
+                    onOpenChange={(open) => setOpenSections((prev) => ({ ...prev, volume: open }))}
+                    sectionId="volume"
+                  >
+                    <IndicatorSection
+                      title="거래량"
+                      color="var(--success)"
+                      enabled={indicators.volume.enabled}
+                      onToggle={() => toggleIndicator("volume")}
+                    />
+                    <IndicatorSection
+                      title="OBV(온밸런스볼륨)"
+                      color="#14B8A6"
+                      enabled={indicators.obv.enabled}
+                      onToggle={() => toggleIndicator("obv")}
+                    />
+                    <IndicatorSection
+                      title="CVD(누적거래량델타)"
+                      color={COLORS.cvdLine}
+                      enabled={indicators.cvd.enabled}
+                      onToggle={() => toggleIndicator("cvd")}
+                    />
+                    <IndicatorSection
+                      title="볼륨 프로파일"
+                      color="#60A5FA"
+                      enabled={indicators.volumeProfile.enabled}
+                      onToggle={() => toggleIndicator("volumeProfile")}
+                    >
+                      <SliderRow
+                        label="가격 구간(Bins)"
+                        value={indicators.volumeProfile.bins}
+                        min={12}
+                        max={60}
+                        step={1}
+                        onChange={(v) => setIndicator("volumeProfile", { bins: v })}
+                        description={paramDesc("볼륨 프로파일", "가격 구간(Bins)")}
+                      />
+                    </IndicatorSection>
+                    <IndicatorSection
+                      title="거래량 비율(RVOL)"
+                      color="#F59E0B"
+                      enabled={indicators.rvol.enabled}
+                      onToggle={() => toggleIndicator("rvol")}
+                    >
+                      <SliderRow
+                        label="평균 기간"
+                        value={indicators.rvol.period}
+                        min={5}
+                        max={60}
+                        step={1}
+                        onChange={(v) => setIndicator("rvol", { period: v })}
+                        description={paramDesc("거래량 비율(RVOL)", "평균 기간")}
+                      />
+                    </IndicatorSection>
+                  </AccordionSection>
+                </>
+              ) : (
+                <SettingCard
+                  title="고급 설정 숨김"
+                  description="퀀트 전략/거래량 세부 설정은 고급 모드에서만 노출됩니다."
                 >
-                  <SliderRow
-                    label="가격 구간(Bins)"
-                    value={indicators.volumeProfile.bins}
-                    min={12}
-                    max={60}
-                    step={1}
-                    onChange={(v) => setIndicator("volumeProfile", { bins: v })}
-                    description={paramDesc("볼륨 프로파일", "가격 구간(Bins)")}
-                  />
-                </IndicatorSection>
-                <IndicatorSection
-                  title="거래량 비율(RVOL)"
-                  color="#F59E0B"
-                  enabled={indicators.rvol.enabled}
-                  onToggle={() => toggleIndicator("rvol")}
-                >
-                  <SliderRow
-                    label="평균 기간"
-                    value={indicators.rvol.period}
-                    min={5}
-                    max={60}
-                    step={1}
-                    onChange={(v) => setIndicator("rvol", { period: v })}
-                    description={paramDesc("거래량 비율(RVOL)", "평균 기간")}
-                  />
-                </IndicatorSection>
-              </AccordionSection>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="ds-type-caption text-[var(--muted-foreground)]"
+                    onClick={() => setIndicatorViewModeTracked("advanced")}
+                  >
+                    고급 모드로 전환
+                  </Button>
+                </SettingCard>
+              )}
 
               <AccordionSection
                 value="alerts"

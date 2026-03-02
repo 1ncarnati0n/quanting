@@ -2,6 +2,7 @@ mod candle;
 mod fundamental;
 mod indicator;
 mod params;
+mod search;
 mod signal;
 mod strategy;
 mod watchlist;
@@ -18,6 +19,7 @@ pub use indicator::{
     WillrResult,
 };
 pub use params::{AnalysisParams, MarketType};
+pub use search::{SymbolSearchParams, SymbolSearchResult};
 pub use signal::{SignalPoint, SignalType};
 pub use strategy::{
     MultiSymbolCandlesParams, MultiSymbolCandlesResponse, PremarketSnapshot,

@@ -80,6 +80,7 @@ export default function DrawingToolbar() {
               type="button"
               className={`chart-toolbar-btn ${activeTool !== "none" ? "is-active" : ""}`}
               title={`드로잉 도구: ${currentTool.label}`}
+              aria-label={`드로잉 도구 선택: ${currentTool.label}`}
             >
               <span className="ds-type-caption font-bold leading-none">{currentTool.icon}</span>
             </button>
@@ -108,6 +109,7 @@ export default function DrawingToolbar() {
         title="최근 1개 실행취소"
         onClick={undoLastDrawing}
         disabled={drawings.length === 0}
+        aria-label="최근 드로잉 실행 취소"
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <polyline points="9 14 4 9 9 4" />
@@ -121,6 +123,7 @@ export default function DrawingToolbar() {
         title="선택 드로잉 삭제"
         onClick={() => selectedDrawingId && removeDrawing(selectedDrawingId)}
         disabled={!selectedDrawingId}
+        aria-label="선택한 드로잉 삭제"
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <path d="M3 6h18" />
@@ -135,6 +138,7 @@ export default function DrawingToolbar() {
         className={`chart-toolbar-btn ${showList ? "is-active" : ""}`}
         title={`드로잉 목록 (${drawings.length})`}
         onClick={() => setShowList((prev) => !prev)}
+        aria-label={`드로잉 목록 열기 (${drawings.length}개)`}
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <line x1="8" y1="6" x2="21" y2="6" />
@@ -152,6 +156,7 @@ export default function DrawingToolbar() {
         title="드로잉 전체 삭제"
         onClick={clearDrawings}
         disabled={drawings.length === 0}
+        aria-label="모든 드로잉 삭제"
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <polyline points="3 6 5 6 21 6" />

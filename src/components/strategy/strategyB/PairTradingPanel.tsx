@@ -9,6 +9,7 @@ import {
   getZScoreSignal,
 } from "@/utils/strategyB/pairCointegration";
 import { Button } from "@/components/ui/button";
+import StatePanel from "@/components/patterns/StatePanel";
 import PairSelector from "./PairSelector";
 import CointegrationResult from "./CointegrationResult";
 import ZScoreChart from "./ZScoreChart";
@@ -115,6 +116,16 @@ export default function PairTradingPanel() {
 
       <PairSelector selected={selectedPair} onSelect={setSelectedPair} />
 
+      {!selectedPair && (
+        <StatePanel
+          variant="empty"
+          size="compact"
+          title="먼저 분석할 페어를 선택해 주세요"
+          description="심볼 조합을 선택하면 공적분 분석을 실행할 수 있습니다."
+          className="border-dashed bg-transparent"
+        />
+      )}
+
       {selectedPair && (
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1 rounded-md border border-[var(--border)] bg-[var(--secondary)] px-3 py-1.5">
@@ -133,9 +144,33 @@ export default function PairTradingPanel() {
       )}
 
       {error && (
-        <div className="rounded-lg border border-[var(--destructive)] p-2">
-          <span className="ds-type-caption text-[var(--destructive)]">{error}</span>
-        </div>
+        <StatePanel
+          variant="error"
+          size="compact"
+          title={error}
+          description="데이터 범위 또는 심볼 조합을 확인해 보세요."
+          actionLabel="다시 분석"
+          onAction={() => void handleAnalyze()}
+        />
+      )}
+
+      {loading && !pairResult && (
+        <StatePanel
+          variant="loading"
+          size="compact"
+          title="공적분 분석 중입니다"
+          description="회귀/ADF/Z-Score를 계산하고 있어요."
+        />
+      )}
+
+      {selectedPair && !loading && !error && !pairResult && (
+        <StatePanel
+          variant="empty"
+          size="compact"
+          title="분석 결과가 아직 없습니다"
+          description="공적분 분석 버튼을 눌러 신호를 생성해 보세요."
+          className="border-dashed bg-transparent"
+        />
       )}
 
       {pairResult && (

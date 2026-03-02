@@ -1,4 +1,5 @@
 import type { ORBSignal } from "@/stores/useStrategyStore";
+import StatePanel from "@/components/patterns/StatePanel";
 
 interface ORBSignalListProps {
   signals: ORBSignal[];
@@ -7,11 +8,13 @@ interface ORBSignalListProps {
 export default function ORBSignalList({ signals }: ORBSignalListProps) {
   if (signals.length === 0) {
     return (
-      <div className="flex h-20 items-center justify-center rounded-lg border border-dashed border-[var(--border)]">
-        <span className="ds-type-body text-[var(--muted-foreground)]">
-          감지된 돌파 신호가 없습니다
-        </span>
-      </div>
+      <StatePanel
+        variant="empty"
+        size="compact"
+        title="감지된 돌파 신호가 없습니다"
+        description="프리마켓 스캔 후 장중 돌파를 확인하세요."
+        className="h-20 border-dashed bg-transparent flex items-center justify-center"
+      />
     );
   }
 

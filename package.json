@@ -6,6 +6,14 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "ux:gate": "node scripts/ux-gate.mjs",
+    "a11y:audit": "node scripts/a11y-audit.mjs",
+    "a11y:scenario": "node scripts/a11y-scenario-audit.mjs",
+    "perf:sim": "node scripts/perf-realtime-sim.mjs",
+    "perf:list-sim": "node scripts/perf-watchlist-sim.mjs",
+    "ux:qa-gate": "node scripts/ux-qa-gate.mjs",
+    "ux:kpi": "node scripts/ux-kpi-remeasure.mjs",
+    "ux:verify": "npm run ux:gate && npm run a11y:audit && npm run a11y:scenario && npm run build",
     "check": "npm run build && cargo check --manifest-path src-tauri/Cargo.toml",
     "preview": "vite preview",
     "tauri": "tauri"

@@ -543,7 +543,10 @@ textarea {
 
 input:focus-visible,
 button:focus-visible,
-select:focus-visible {
+select:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible,
+[tabindex]:not([tabindex="-1"]):focus-visible {
   outline: 2px solid color-mix(in srgb, var(--primary) 72%, transparent);
   outline-offset: 1px;
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--background) 88%, transparent);

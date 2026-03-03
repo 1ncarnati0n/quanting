@@ -33,6 +33,7 @@ export default function IntervalSelector() {
   const [lastIntradayInterval, setLastIntradayInterval] = useState<Interval | null>(
     fallbackIntradayInterval,
   );
+  const [intradayMenuOpen, setIntradayMenuOpen] = useState(false);
   const primaryIntradayInterval = lastIntradayInterval ?? fallbackIntradayInterval;
   const intradayLabel = primaryIntradayInterval
     ? getIntervalLabel(primaryIntradayInterval)
@@ -57,23 +58,32 @@ export default function IntervalSelector() {
     lastIntradayInterval,
   ]);
 
+  useEffect(() => {
+    if (!intradayActive && intradayMenuOpen) {
+      setIntradayMenuOpen(false);
+    }
+  }, [intradayActive, intradayMenuOpen]);
+
   const handlePrimaryIntradayClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     if (!primaryIntradayInterval) return;
-    if (interval !== primaryIntradayInterval) {
-      event.preventDefault();
+    event.preventDefault();
+    if (!intradayActive) {
+      setIntradayMenuOpen(false);
       setInterval(primaryIntradayInterval);
+      return;
     }
+    setIntradayMenuOpen((prev) => !prev);
   };
 
   return (
-    <div className="flex items-center gap-1">
+    <div className="relative z-10 flex items-center gap-1">
       {intradayIntervals.length > 0 && (
-        <DropdownMenu>
+        <DropdownMenu open={intradayMenuOpen} onOpenChange={setIntradayMenuOpen}>
           <div className="relative">
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                className={`${CONTROL_CHIP_BUTTON_CLASS} inline-flex items-center justify-center gap-1.5 border ${
+                className={`${CONTROL_CHIP_BUTTON_CLASS} min-w-[36px] inline-flex items-center justify-center gap-1.5 border ${
                   intradayActive
                     ? "border-[var(--primary)] bg-[var(--primary)] text-[var(--primary-foreground)]"
                     : "border-[var(--border)] bg-[var(--secondary)] text-[var(--foreground)]"
@@ -85,7 +95,7 @@ export default function IntervalSelector() {
                 <span>{intradayLabel}</span>
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="z-[90] max-h-64 min-w-[7.25rem] overflow-y-auto">
+            <DropdownMenuContent align="start" className="z-[240] max-h-64 min-w-[7.25rem] overflow-y-auto">
               {intradayIntervals.map((iv) => {
                 const active = interval === iv;
                 return (
@@ -94,7 +104,10 @@ export default function IntervalSelector() {
                     role="menuitemradio"
                     aria-checked={active}
                     data-dropdown-active={active ? "true" : undefined}
-                    onSelect={() => setInterval(iv)}
+                    onSelect={() => {
+                      setInterval(iv);
+                      setIntradayMenuOpen(false);
+                    }}
                     className="justify-between"
                   >
                     <span>{getIntervalLabel(iv)}</span>

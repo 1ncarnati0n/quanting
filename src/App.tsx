@@ -58,10 +58,10 @@ function App() {
 
   const shellStyle: CSSProperties = {
     background: "var(--background)",
-    paddingTop: "calc(env(safe-area-inset-top, 0px) + 0.75rem)",
-    paddingRight: "calc(env(safe-area-inset-right, 0px) + 0.75rem)",
-    paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 0.75rem)",
-    paddingLeft: "calc(env(safe-area-inset-left, 0px) + 0.75rem)",
+    paddingTop: "1px",
+    paddingRight: "1px",
+    paddingBottom: "1px",
+    paddingLeft: "1px",
   };
 
   // Apply theme class (.dark) using shadcn token pattern
@@ -189,7 +189,7 @@ function App() {
             });
           }
         }
-      } catch {}
+      } catch { }
     };
 
     return () => {
@@ -230,7 +230,7 @@ function App() {
             }
           }
         }
-      } catch {}
+      } catch { }
       console.info(`${title}: ${body}`);
     };
 
@@ -246,7 +246,7 @@ function App() {
         gain.gain.value = 0.04;
         osc.start();
         osc.stop(audioCtx.currentTime + 0.15);
-      } catch {}
+      } catch { }
     };
 
     for (const alert of scopedAlerts) {
@@ -272,9 +272,9 @@ function App() {
   // Fullscreen sync with browser Fullscreen API
   useEffect(() => {
     if (isFullscreen) {
-      document.documentElement.requestFullscreen?.().catch(() => {});
+      document.documentElement.requestFullscreen?.().catch(() => { });
     } else if (document.fullscreenElement) {
-      document.exitFullscreen?.().catch(() => {});
+      document.exitFullscreen?.().catch(() => { });
     }
   }, [isFullscreen]);
 

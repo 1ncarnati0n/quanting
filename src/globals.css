@@ -22,10 +22,10 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --radius-sm: 0.4rem;
-  --radius-md: 0.5rem;
-  --radius-lg: 0.6rem;
-  --radius-xl: 0.7rem;
+  --radius-sm: 0.3rem;
+  --radius-md: 0.4rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.6rem;
 }
 
 :root {
@@ -82,7 +82,6 @@
   --radius-panel: 0.65rem;
   --panel-padding: 0.75rem;
   --panel-gap: 0.625rem;
-  --layout-column-gap: 0.75rem;
   --control-height-sm: 2rem;
   --control-height-md: 2.25rem;
   --control-height-lg: 2.5rem;
@@ -116,7 +115,6 @@
   --brand-fx: #2dd4bf;
   --shadow-elevated: 0 10px 28px rgba(2, 6, 23, 0.35);
   --accent-glow: 0 0 12px rgba(47, 124, 255, 0.25);
-  --layout-column-gap: 0.75rem;
   --chart-bg: #0d1421;
   --chart-foreground: #9eb0c8;
   --chart-grid: #1b273b;
@@ -124,8 +122,8 @@
 }
 
 * {
-  margin: 0;
-  padding: 0;
+  margin: 0px;
+  padding: 0px;
   box-sizing: border-box;
 }
 
@@ -163,16 +161,18 @@ textarea {
 .btn-ghost:hover {
   background: var(--secondary);
 }
+
 .btn-ghost:active {
-  opacity: 0.8;
+  opacity: 0.2;
 }
+
 .dropdown-item:hover {
   background: var(--secondary) !important;
 }
 
 .surface-card {
   background: var(--card);
-  border: 1px solid var(--border);
+  border: 2px solid var(--border);
   box-shadow: var(--shadow-elevated);
 }
 
@@ -190,10 +190,12 @@ textarea {
     opacity: 1;
     transform: scale(1);
   }
+
   50% {
     opacity: 0.45;
     transform: scale(0.75);
   }
+
   100% {
     opacity: 1;
     transform: scale(1);
@@ -208,19 +210,16 @@ textarea {
 .segment-control {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
   max-width: 100%;
-  border: 1px solid var(--border);
+  border: 2px solid var(--border);
   background: var(--secondary);
-  border-radius: 6px;
-  padding: 2px;
+  border-radius: 2px;
 }
 
 .segment-button {
   border: 0;
   border-radius: 4px;
   background: transparent;
-  padding: 4px 10px;
   font-size: var(--font-size-body-sm);
   font-weight: 600;
   line-height: 1.2;
@@ -327,16 +326,16 @@ textarea {
   color: var(--muted-foreground);
 }
 
-.ds-market-stat > strong {
+.ds-market-stat>strong {
   color: var(--foreground);
   font-weight: 600;
 }
 
-.ds-market-stat--trend > strong {
+.ds-market-stat--trend>strong {
   color: var(--market-trend-color, var(--foreground));
 }
 
-.ds-market-range > strong {
+.ds-market-range>strong {
   color: var(--primary);
   font-weight: 600;
 }
@@ -355,22 +354,22 @@ textarea {
 
 .panel-readable .ds-type-caption {
   font-size: 12px;
-  line-height: 1.35;
+  line-height: 1.2;
 }
 
 .panel-readable .ds-type-label {
   font-size: 13px;
-  line-height: 1.45;
+  line-height: 1.4;
 }
 
 .panel-readable .ds-type-body {
   font-size: 14px;
-  line-height: 1.5;
+  line-height: 1.35;
 }
 
 .panel-readable .ds-type-title {
-  font-size: 15px;
-  line-height: 1.35;
+  font-size: 16px;
+  line-height: 1.4;
 }
 
 .panel-readable input,
@@ -381,66 +380,63 @@ textarea {
 
 .side-panel-shell {
   position: relative;
+  margin: 1px;
+  padding: 1px;
   background:
-    linear-gradient(
-      180deg,
+    linear-gradient(180deg,
       color-mix(in srgb, var(--card) 92%, var(--muted)) 0%,
       var(--card) 22%,
-      color-mix(in srgb, var(--card) 95%, var(--muted)) 100%
-    );
-  --side-panel-gap-loose: var(--space-3);
-  --side-panel-gap: var(--space-2-5);
-  --side-panel-gap-tight: var(--space-2);
+      color-mix(in srgb, var(--card) 95%, var(--muted)) 100%);
 }
 
 .side-panel-stack {
   display: flex;
   flex-direction: column;
-  gap: var(--side-panel-gap);
+  margin-top: 3px;
+  margin-bottom: 3px;
 }
 
 .side-panel-stack-tight {
   display: flex;
   flex-direction: column;
-  gap: var(--side-panel-gap-tight);
 }
 
 .side-panel-heading {
-  margin-bottom: var(--side-panel-gap-tight);
+  margin-bottom: 3px;
 }
 
 .side-panel-section {
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: color-mix(in srgb, var(--muted) 72%, var(--card));
-  padding: var(--space-3);
+  margin: 2px;
+
 }
 
 .side-panel-scroll {
   background:
-    linear-gradient(
-      180deg,
+    linear-gradient(180deg,
       color-mix(in srgb, var(--card) 95%, var(--muted)) 0%,
       var(--card) 18%,
-      color-mix(in srgb, var(--card) 97%, var(--muted)) 100%
-    );
+      color-mix(in srgb, var(--card) 97%, var(--muted)) 100%);
 }
 
 .ui-control-cluster {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-1);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--muted);
-  padding: var(--space-1) var(--space-2);
 }
 
 .ui-stat-tile {
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--muted);
-  padding: var(--space-2) var(--space-2-5);
+}
+
+.ui-stat-tile>div {
+  padding: 2px;
 }
 
 .settings-tab-trigger {
@@ -470,8 +466,6 @@ textarea {
 }
 
 .floating-toolbar-divider {
-  margin-left: 2px;
-  margin-right: 2px;
   width: 1px;
   height: 20px;
   background: var(--border);
@@ -496,10 +490,8 @@ textarea {
   left: 8px;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
   border: 1px solid var(--border);
   border-radius: 4px;
-  padding: 2px 6px;
   background: color-mix(in srgb, var(--background) 76%, transparent);
   backdrop-filter: blur(4px);
   font-size: var(--font-size-caption);
@@ -527,15 +519,16 @@ textarea {
 @media (max-width: 1535px) {
   .chart-band-label {
     left: 6px;
-    padding: 1px 5px;
     font-size: 9px;
   }
 }
 
-@media (max-width: 1279px), (max-height: 780px) {
+@media (max-width: 1279px),
+(max-height: 780px) {
   .chart-band-label {
     display: none;
   }
+
   .chart-band-separator {
     opacity: 0.55;
   }
@@ -553,6 +546,7 @@ a:focus-visible,
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   *,
   *::before,
   *::after {
@@ -578,24 +572,29 @@ a:focus-visible,
   line-height: 1;
   transition: background 120ms, color 120ms, border-color 120ms;
 }
+
 .chart-toolbar-btn:hover {
   background: var(--secondary);
   color: var(--foreground);
   border-color: color-mix(in srgb, var(--border) 75%, transparent);
 }
+
 .chart-toolbar-btn:disabled {
   opacity: 0.45;
 }
+
 .chart-toolbar-btn.is-active {
   background: var(--accent);
   color: var(--primary);
   border-color: color-mix(in srgb, var(--primary) 30%, var(--border));
 }
+
 .chart-toolbar-btn.is-warning {
   background: color-mix(in srgb, var(--warning) 16%, transparent);
   color: var(--warning);
   border-color: color-mix(in srgb, var(--warning) 32%, var(--border));
 }
+
 .chart-toolbar-btn:focus-visible {
   background: var(--secondary);
   color: var(--foreground);
@@ -609,22 +608,18 @@ a:focus-visible,
   z-index: 50;
   display: flex;
   flex-direction: column;
-  gap: 1px;
   border-radius: var(--radius-md);
   border: 1px solid var(--border);
   background: var(--card);
   box-shadow: var(--shadow-elevated);
-  padding: var(--space-1);
   pointer-events: auto;
 }
+
 .chart-toolbar-dropdown-item {
   display: flex;
   align-items: center;
-  gap: 8px;
-  border: 0;
   border-radius: var(--radius-sm);
   background: transparent;
-  padding: 7px 9px;
   font-size: var(--font-size-body-sm);
   line-height: 1.35;
   color: var(--foreground);
@@ -632,9 +627,11 @@ a:focus-visible,
   white-space: nowrap;
   transition: background 100ms;
 }
+
 .chart-toolbar-dropdown-item:hover {
   background: var(--secondary);
 }
+
 .chart-toolbar-dropdown-item.is-active {
   background: color-mix(in srgb, var(--primary) 16%, transparent);
 }
@@ -653,17 +650,14 @@ a:focus-visible,
   border: 1px solid var(--border);
   background: var(--card);
   box-shadow: var(--shadow-elevated);
-  padding: 4px;
 }
+
 .context-menu-item {
   display: flex;
   align-items: center;
-  gap: 8px;
   width: 100%;
-  border: 0;
-  border-radius: 3px;
+  border-radius: 2px;
   background: transparent;
-  padding: 7px 10px;
   font-size: var(--font-size-body-sm);
   line-height: 1.35;
   color: var(--foreground);
@@ -671,12 +665,13 @@ a:focus-visible,
   white-space: nowrap;
   transition: background 100ms;
 }
+
 .context-menu-item:hover {
   background: var(--secondary);
 }
+
 .context-menu-separator {
-  height: 1px;
-  margin: 3px 6px;
+  height: 3px;
   background: var(--border);
 }
 
@@ -691,6 +686,7 @@ a:focus-visible,
   background: rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(2px);
 }
+
 .modal-content {
   position: relative;
   max-width: 480px;
@@ -701,7 +697,6 @@ a:focus-visible,
   border: 1px solid var(--border);
   background: var(--card);
   box-shadow: var(--shadow-elevated);
-  padding: 24px;
 }
 
 /* Custom scrollbar */

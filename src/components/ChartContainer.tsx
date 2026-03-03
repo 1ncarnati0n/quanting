@@ -256,9 +256,9 @@ export default function ChartContainer() {
           multiChartLayout === 1
             ? undefined
             : {
-                gridTemplateColumns: multiChartLayout === 4 ? "1fr 1fr" : "1fr 1fr",
-                gridTemplateRows: multiChartLayout === 4 ? "1fr 1fr" : "1fr",
-              }
+              gridTemplateColumns: multiChartLayout === 4 ? "1fr 1fr" : "1fr 1fr",
+              gridTemplateRows: multiChartLayout === 4 ? "1fr 1fr" : "1fr",
+            }
         }
       >
         {chartSlots.map((slotIndex) => (

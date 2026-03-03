@@ -1,7 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
-import "./index.css";
+import "./globals.css";
 
 const root = document.documentElement;
 const storedTheme = localStorage.getItem("bb-rsi-theme");

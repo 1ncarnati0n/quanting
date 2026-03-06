@@ -1,3 +1,5 @@
+import { useMemo } from "react";
+import { useShallow } from "zustand/react/shallow";
 import { useCrosshairStore } from "../stores/useCrosshairStore";
 import { useSettingsStore } from "../stores/useSettingsStore";
 import { formatPrice } from "../utils/formatters";
@@ -12,15 +14,36 @@ const CHART_TYPE_LABELS: Record<string, string> = {
 };
 
 export default function CrosshairLegend() {
-  const { open, high, low, close, volume, indicators } = useCrosshairStore();
-  const { symbol, chartType, market } = useSettingsStore();
+  const { open, high, low, close, volume, indicators } = useCrosshairStore(
+    useShallow((state) => ({
+      open: state.open,
+      high: state.high,
+      low: state.low,
+      close: state.close,
+      volume: state.volume,
+      indicators: state.indicators,
+    })),
+  );
+  const { symbol, chartType, market } = useSettingsStore(
+    useShallow((state) => ({
+      symbol: state.symbol,
+      chartType: state.chartType,
+      market: state.market,
+    })),
+  );
+  const compactFormatter = useMemo(
+    () =>
+      new Intl.NumberFormat("ko-KR", {
+        notation: "compact",
+        maximumFractionDigits: 2,
+      }),
+    [],
+  );
+  const indicatorEntries = useMemo(() => Object.entries(indicators), [indicators]);
 
   const hasData = open !== 0 || high !== 0 || low !== 0 || close !== 0;
   const changeColor = close >= open ? COLORS.candleUp : COLORS.candleDown;
   const isLineType = chartType === "line" || chartType === "area";
-
-  const compactFormat = (v: number) =>
-    new Intl.NumberFormat("ko-KR", { notation: "compact", maximumFractionDigits: 2 }).format(v);
 
   return (
     <div
@@ -56,15 +79,15 @@ export default function CrosshairLegend() {
           {volume > 0 && (
             <>
               <span style={{ color: "var(--muted-foreground)" }}>V</span>
-              <span style={{ color: "var(--foreground)" }}>{compactFormat(volume)}</span>
+              <span style={{ color: "var(--foreground)" }}>{compactFormatter.format(volume)}</span>
             </>
           )}
         </div>
       )}
 
-      {Object.keys(indicators).length > 0 && (
+      {indicatorEntries.length > 0 && (
         <div className="ds-type-caption flex flex-wrap gap-x-2" style={{ color: "var(--muted-foreground)" }}>
-          {Object.entries(indicators).map(([key, val]) => (
+          {indicatorEntries.map(([key, val]) => (
             <span key={key}>
               <span className="font-medium uppercase">{key.replace(/-\d+$/, "").replace("-line", "")}</span>{" "}
               <span className="font-mono" style={{ color: "var(--foreground)" }}>{val}</span>

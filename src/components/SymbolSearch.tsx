@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useMemo, type KeyboardEvent } from "react";
+import { useShallow } from "zustand/react/shallow";
 import { useSettingsStore } from "../stores/useSettingsStore";
 import { PRESET_CATEGORIES, getSymbolLabel, detectMarket } from "../utils/constants";
 import type { MarketType, SymbolSearchResult } from "../types";
@@ -52,7 +53,17 @@ export default function SymbolSearch({ hideTrigger = false }: SymbolSearchProps)
     recentSymbols,
     toggleFavorite,
     clearRecentSymbols,
-  } = useSettingsStore();
+  } = useSettingsStore(
+    useShallow((state) => ({
+      symbol: state.symbol,
+      market: state.market,
+      setSymbol: state.setSymbol,
+      favorites: state.favorites,
+      recentSymbols: state.recentSymbols,
+      toggleFavorite: state.toggleFavorite,
+      clearRecentSymbols: state.clearRecentSymbols,
+    })),
+  );
   const [isOpen, setIsOpen] = useState(false);
   const [filter, setFilter] = useState("");
   const [manualInput, setManualInput] = useState("");

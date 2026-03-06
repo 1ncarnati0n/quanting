@@ -1,4 +1,5 @@
 import { memo, useDeferredValue, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useShallow } from "zustand/react/shallow";
 import { fetchAnalysis, fetchWatchlistSnapshots, searchSymbols } from "../services/tauriApi";
 import { useSettingsStore, type WorkspaceView } from "../stores/useSettingsStore";
 import type { SymbolSearchResult, WatchlistSnapshot } from "../types";
@@ -330,7 +331,20 @@ export default function WatchlistSidebar({
     toggleFavorite,
     addCustomSymbol,
     removeCustomSymbol,
-  } = useSettingsStore();
+  } = useSettingsStore(
+    useShallow((state) => ({
+      symbol: state.symbol,
+      market: state.market,
+      interval: state.interval,
+      setSymbol: state.setSymbol,
+      favorites: state.favorites,
+      customSymbols: state.customSymbols,
+      recentSymbols: state.recentSymbols,
+      toggleFavorite: state.toggleFavorite,
+      addCustomSymbol: state.addCustomSymbol,
+      removeCustomSymbol: state.removeCustomSymbol,
+    })),
+  );
   const [query, setQuery] = useState("");
   const [marketFilter, setMarketFilter] = useState<MarketFilter>("all");
   const [favoriteOnly, setFavoriteOnly] = useState(false);
@@ -359,7 +373,7 @@ export default function WatchlistSidebar({
   const watchItemRefs = useRef<Array<HTMLDivElement | null>>([]);
   const snapshotsRef = useRef<Record<string, WatchlistSnapshot>>({});
   const searchVersionRef = useRef(0);
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const activeLabel = getSymbolLabel(symbol);
   const instrumentLine = formatInstrumentDisplayLine(symbol, activeLabel, market);

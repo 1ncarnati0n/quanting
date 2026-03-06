@@ -1,8 +1,9 @@
+import { useMemo } from "react";
+import { useShallow } from "zustand/react/shallow";
 import { useChartStore } from "../stores/useChartStore";
 import { useSettingsStore } from "../stores/useSettingsStore";
 import SignalBadge from "./SignalBadge";
 import { formatPrice, formatTime } from "../utils/formatters";
-import { useMemo } from "react";
 import { getIntervalLabel, type Interval } from "../utils/constants";
 
 type PillIndicatorKey =
@@ -60,8 +61,14 @@ function StatusMetric({
 }
 
 export default function StatusBar() {
-  const { data } = useChartStore();
-  const { interval, market, indicators } = useSettingsStore();
+  const data = useChartStore((state) => state.data);
+  const { interval, market, indicators } = useSettingsStore(
+    useShallow((state) => ({
+      interval: state.interval,
+      market: state.market,
+      indicators: state.indicators,
+    })),
+  );
 
   const lastCandle = data?.candles[data.candles.length - 1];
   const lastSignal = data?.signals[data.signals.length - 1];

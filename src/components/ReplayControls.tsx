@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { useShallow } from "zustand/react/shallow";
 import { useChartStore } from "../stores/useChartStore";
 import { useReplayStore } from "../stores/useReplayStore";
 
@@ -31,7 +32,20 @@ export default function ReplayControls() {
     setSpeed,
     setCurrentIndex,
     step,
-  } = useReplayStore();
+  } = useReplayStore(
+    useShallow((state) => ({
+      enabled: state.enabled,
+      playing: state.playing,
+      speed: state.speed,
+      currentIndex: state.currentIndex,
+      enterReplay: state.enterReplay,
+      exitReplay: state.exitReplay,
+      togglePlaying: state.togglePlaying,
+      setSpeed: state.setSpeed,
+      setCurrentIndex: state.setCurrentIndex,
+      step: state.step,
+    })),
+  );
 
   const totalBars = data?.candles.length ?? 0;
   const cappedIndex = Math.min(Math.max(currentIndex, 0), Math.max(0, totalBars - 1));

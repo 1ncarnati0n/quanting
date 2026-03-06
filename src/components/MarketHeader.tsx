@@ -1,4 +1,5 @@
 import { useMemo, type CSSProperties } from "react";
+import { useShallow } from "zustand/react/shallow";
 import IntervalSelector from "./IntervalSelector";
 import TimeRangeBar from "./TimeRangeBar";
 import { useSettingsStore } from "../stores/useSettingsStore";
@@ -45,8 +46,21 @@ export default function MarketHeader({
   onToggleWatchlist,
   onToggleSettings,
 }: MarketHeaderProps) {
-  const { theme, toggleTheme, symbol, market, interval } = useSettingsStore();
-  const { data, isLoading } = useChartStore();
+  const { theme, toggleTheme, symbol, market, interval } = useSettingsStore(
+    useShallow((state) => ({
+      theme: state.theme,
+      toggleTheme: state.toggleTheme,
+      symbol: state.symbol,
+      market: state.market,
+      interval: state.interval,
+    })),
+  );
+  const { data, isLoading } = useChartStore(
+    useShallow((state) => ({
+      data: state.data,
+      isLoading: state.isLoading,
+    })),
+  );
   const symbolLabel = getSymbolLabel(symbol);
   const candles = data?.candles ?? [];
   const { lastCandle, prevCandle, high, low, change, changePct } = useMemo(

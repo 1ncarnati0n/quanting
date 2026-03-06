@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode } from "react";
 import type { IChartApi, ISeriesApi, SeriesType, Time } from "lightweight-charts";
+import { useShallow } from "zustand/react/shallow";
 import { useDrawingStore, type DrawingPoint, type DrawingTool } from "../stores/useDrawingStore";
 
 interface DrawingCanvasProps {
@@ -72,7 +73,14 @@ function makeInfiniteLine(
 }
 
 export default function DrawingCanvas({ chart, mainSeries }: DrawingCanvasProps) {
-  const { activeTool, drawings, addDrawing, selectedDrawingId } = useDrawingStore();
+  const { activeTool, drawings, addDrawing, selectedDrawingId } = useDrawingStore(
+    useShallow((state) => ({
+      activeTool: state.activeTool,
+      drawings: state.drawings,
+      addDrawing: state.addDrawing,
+      selectedDrawingId: state.selectedDrawingId,
+    })),
+  );
   const [pendingPoints, setPendingPoints] = useState<DrawingPoint[]>([]);
   const [hoverPoint, setHoverPoint] = useState<DrawingPoint | null>(null);
   const [size, setSize] = useState({ width: 0, height: 0 });

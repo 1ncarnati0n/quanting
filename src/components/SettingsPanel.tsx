@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useShallow } from "zustand/react/shallow";
 import { useSettingsStore } from "../stores/useSettingsStore";
 import { useDrawingStore } from "../stores/useDrawingStore";
 import { COLORS, getSymbolLabel } from "../utils/constants";
@@ -359,8 +360,40 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
     clearAlertHistory,
     settingsTab,
     setSettingsTab,
-  } = useSettingsStore();
-  const { drawings, setDrawings } = useDrawingStore();
+  } = useSettingsStore(
+    useShallow((state) => ({
+      theme: state.theme,
+      chartType: state.chartType,
+      multiChartLayout: state.multiChartLayout,
+      indicators: state.indicators,
+      priceScale: state.priceScale,
+      compare: state.compare,
+      workspaceView: state.workspaceView,
+      symbol: state.symbol,
+      market: state.market,
+      priceAlerts: state.priceAlerts,
+      alertHistory: state.alertHistory,
+      toggleTheme: state.toggleTheme,
+      setChartType: state.setChartType,
+      setMultiChartLayout: state.setMultiChartLayout,
+      setIndicator: state.setIndicator,
+      toggleIndicator: state.toggleIndicator,
+      setPriceScale: state.setPriceScale,
+      setCompare: state.setCompare,
+      addPriceAlert: state.addPriceAlert,
+      removePriceAlert: state.removePriceAlert,
+      togglePriceAlert: state.togglePriceAlert,
+      clearAlertHistory: state.clearAlertHistory,
+      settingsTab: state.settingsTab,
+      setSettingsTab: state.setSettingsTab,
+    })),
+  );
+  const { drawings, setDrawings } = useDrawingStore(
+    useShallow((state) => ({
+      drawings: state.drawings,
+      setDrawings: state.setDrawings,
+    })),
+  );
   const strat = indicators.signalStrategies;
   const layout = indicators.layout;
   const [openSections, setOpenSections] = useState<SectionState>(loadSectionState);

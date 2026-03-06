@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useShallow } from "zustand/react/shallow";
 import {
   getIntervalLabel,
   getIntervalsForMarket,
@@ -20,7 +21,13 @@ import {
 const CORE_INTERVALS: readonly Interval[] = ["1d", "1w", "1M"];
 
 export default function IntervalSelector() {
-  const { interval, market, setInterval } = useSettingsStore();
+  const { interval, market, setInterval } = useSettingsStore(
+    useShallow((state) => ({
+      interval: state.interval,
+      market: state.market,
+      setInterval: state.setInterval,
+    })),
+  );
   const intervals = getIntervalsForMarket(market);
   const coreIntervals = CORE_INTERVALS.filter((iv) => intervals.includes(iv));
   const intradayIntervals = intervals.filter((iv) => !coreIntervals.includes(iv));

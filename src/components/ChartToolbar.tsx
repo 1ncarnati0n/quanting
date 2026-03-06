@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useShallow } from "zustand/react/shallow";
 import { useSettingsStore, type ChartType } from "../stores/useSettingsStore";
 import { useChartStore } from "../stores/useChartStore";
 import { useReplayStore } from "../stores/useReplayStore";
@@ -19,7 +20,13 @@ const CHART_TYPE_OPTIONS: { value: ChartType; label: string; icon: string }[] = 
 ];
 
 export default function ChartToolbar() {
-  const { chartType, setChartType, toggleFullscreen } = useSettingsStore();
+  const { chartType, setChartType, toggleFullscreen } = useSettingsStore(
+    useShallow((state) => ({
+      chartType: state.chartType,
+      setChartType: state.setChartType,
+      toggleFullscreen: state.toggleFullscreen,
+    })),
+  );
   const candleCount = useChartStore((s) => s.data?.candles.length ?? 0);
   const replayEnabled = useReplayStore((s) => s.enabled);
   const replayPlaying = useReplayStore((s) => s.playing);
@@ -202,7 +209,12 @@ export default function ChartToolbar() {
 
 // Quick Indicator Menu (inline sub-component)
 function QuickIndicatorMenu() {
-  const { indicators, toggleIndicator } = useSettingsStore();
+  const { indicators, toggleIndicator } = useSettingsStore(
+    useShallow((state) => ({
+      indicators: state.indicators,
+      toggleIndicator: state.toggleIndicator,
+    })),
+  );
 
   const items: { key: Parameters<typeof toggleIndicator>[0]; label: string; enabled: boolean }[] = [
     { key: "bb", label: "볼린저 밴드", enabled: indicators.bb.enabled },

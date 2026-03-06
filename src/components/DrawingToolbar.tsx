@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useShallow } from "zustand/react/shallow";
 import { useDrawingStore, type DrawingItem, type DrawingTool } from "../stores/useDrawingStore";
 import {
   DropdownMenu,
@@ -46,7 +47,18 @@ export default function DrawingToolbar() {
     drawings,
     removeDrawing,
     undoLastDrawing,
-  } = useDrawingStore();
+  } = useDrawingStore(
+    useShallow((state) => ({
+      activeTool: state.activeTool,
+      setActiveTool: state.setActiveTool,
+      selectedDrawingId: state.selectedDrawingId,
+      setSelectedDrawing: state.setSelectedDrawing,
+      clearDrawings: state.clearDrawings,
+      drawings: state.drawings,
+      removeDrawing: state.removeDrawing,
+      undoLastDrawing: state.undoLastDrawing,
+    })),
+  );
   const [showList, setShowList] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 

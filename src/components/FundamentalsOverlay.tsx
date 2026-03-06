@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { useShallow } from "zustand/react/shallow";
 import { useChartStore } from "../stores/useChartStore";
 import { useSettingsStore } from "../stores/useSettingsStore";
 import type { FundamentalsResponse, MarketType } from "../types";
@@ -56,12 +57,14 @@ export default function FundamentalsOverlay() {
   const symbol = useSettingsStore((s) => s.symbol);
   const market = useSettingsStore((s) => s.market);
   const enabled = useSettingsStore((s) => s.indicators.fundamentals.enabled);
-  const {
-    fundamentals,
-    fundamentalsLoading,
-    fundamentalsError,
-    fetchFundamentals,
-  } = useChartStore();
+  const { fundamentals, fundamentalsLoading, fundamentalsError, fetchFundamentals } = useChartStore(
+    useShallow((state) => ({
+      fundamentals: state.fundamentals,
+      fundamentalsLoading: state.fundamentalsLoading,
+      fundamentalsError: state.fundamentalsError,
+      fetchFundamentals: state.fetchFundamentals,
+    })),
+  );
 
   useEffect(() => {
     if (!enabled) return;

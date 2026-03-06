@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactElement } from "react";
 import type { IChartApi, Time } from "lightweight-charts";
 import { useSettingsStore } from "../stores/useSettingsStore";
 import { useReplayStore } from "../stores/useReplayStore";
@@ -149,7 +149,7 @@ export default function SignalZonesOverlay({ chart, data }: SignalZonesOverlayPr
           </div>
         );
       })
-      .filter((node): node is JSX.Element => node !== null);
+      .filter((node): node is ReactElement => node !== null);
   }, [chart, data, replayEnabled, replayIndex, revision, showZones]);
 
   if (!showZones || elements.length === 0) return null;

@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useShallow } from "zustand/react/shallow";
 import MarketHeader from "./components/MarketHeader";
 import ChartContainer from "./components/ChartContainer";
 import StatusBar from "./components/StatusBar";
@@ -39,26 +40,53 @@ function App() {
   const [showWatchlist, setShowWatchlist] = useState(false);
   const pendingRealtimeCandleRef = useRef<Candle | null>(null);
   const realtimeFlushRafRef = useRef<number | null>(null);
-  const fetchData = useChartStore((s) => s.fetchData);
-  const data = useChartStore((s) => s.data);
-  const updateRealtimeCandle = useChartStore((s) => s.updateRealtimeCandle);
-  const replayEnabled = useReplayStore((s) => s.enabled);
-  const replayPlaying = useReplayStore((s) => s.playing);
-  const replaySpeed = useReplayStore((s) => s.speed);
-  const symbol = useSettingsStore((s) => s.symbol);
-  const interval = useSettingsStore((s) => s.interval);
-  const market = useSettingsStore((s) => s.market);
-  const indicators = useSettingsStore((s) => s.indicators);
-  const priceAlerts = useSettingsStore((s) => s.priceAlerts);
-  const markAlertTriggered = useSettingsStore((s) => s.markAlertTriggered);
-  const showSettings = useSettingsStore((s) => s.showSettings);
-  const setShowSettings = useSettingsStore((s) => s.setShowSettings);
-  const setSettingsTab = useSettingsStore((s) => s.setSettingsTab);
-  const theme = useSettingsStore((s) => s.theme);
-  const isFullscreen = useSettingsStore((s) => s.isFullscreen);
-  const toggleFullscreen = useSettingsStore((s) => s.toggleFullscreen);
-  const workspaceView = useSettingsStore((s) => s.workspaceView);
-  const setWorkspaceView = useSettingsStore((s) => s.setWorkspaceView);
+  const { fetchData, data, updateRealtimeCandle } = useChartStore(
+    useShallow((state) => ({
+      fetchData: state.fetchData,
+      data: state.data,
+      updateRealtimeCandle: state.updateRealtimeCandle,
+    })),
+  );
+  const { replayEnabled, replayPlaying, replaySpeed } = useReplayStore(
+    useShallow((state) => ({
+      replayEnabled: state.enabled,
+      replayPlaying: state.playing,
+      replaySpeed: state.speed,
+    })),
+  );
+  const {
+    symbol,
+    interval,
+    market,
+    indicators,
+    priceAlerts,
+    markAlertTriggered,
+    showSettings,
+    setShowSettings,
+    setSettingsTab,
+    theme,
+    isFullscreen,
+    toggleFullscreen,
+    workspaceView,
+    setWorkspaceView,
+  } = useSettingsStore(
+    useShallow((state) => ({
+      symbol: state.symbol,
+      interval: state.interval,
+      market: state.market,
+      indicators: state.indicators,
+      priceAlerts: state.priceAlerts,
+      markAlertTriggered: state.markAlertTriggered,
+      showSettings: state.showSettings,
+      setShowSettings: state.setShowSettings,
+      setSettingsTab: state.setSettingsTab,
+      theme: state.theme,
+      isFullscreen: state.isFullscreen,
+      toggleFullscreen: state.toggleFullscreen,
+      workspaceView: state.workspaceView,
+      setWorkspaceView: state.setWorkspaceView,
+    })),
+  );
 
   const shellStyle: CSSProperties = {
     background: "var(--background)",

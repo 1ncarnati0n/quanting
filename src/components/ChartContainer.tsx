@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
+import { useShallow } from "zustand/react/shallow";
 import MainChart from "./MainChart";
 import CrosshairLegend from "./CrosshairLegend";
 import ChartToolbar from "./ChartToolbar";
@@ -26,8 +27,43 @@ type OverlayBand = {
 };
 
 export default function ChartContainer() {
-  const { data, isLoading, error, fetchData } = useChartStore();
-  const { indicators, multiChartLayout, symbol, interval, market } = useSettingsStore();
+  const { data, isLoading, error, fetchData } = useChartStore(
+    useShallow((state) => ({
+      data: state.data,
+      isLoading: state.isLoading,
+      error: state.error,
+      fetchData: state.fetchData,
+    })),
+  );
+  const {
+    multiChartLayout,
+    symbol,
+    interval,
+    market,
+    volumeIndicator,
+    rsiIndicator,
+    macdIndicator,
+    stochasticIndicator,
+    obvIndicator,
+    atrIndicator,
+    rvolIndicator,
+    indicatorLayout,
+  } = useSettingsStore(
+    useShallow((state) => ({
+      multiChartLayout: state.multiChartLayout,
+      symbol: state.symbol,
+      interval: state.interval,
+      market: state.market,
+      volumeIndicator: state.indicators.volume,
+      rsiIndicator: state.indicators.rsi,
+      macdIndicator: state.indicators.macd,
+      stochasticIndicator: state.indicators.stochastic,
+      obvIndicator: state.indicators.obv,
+      atrIndicator: state.indicators.atr,
+      rvolIndicator: state.indicators.rvol,
+      indicatorLayout: state.indicators.layout,
+    })),
+  );
   const [chartApi, setChartApi] = useState<IChartApi | null>(null);
   const [mainSeries, setMainSeries] = useState<ISeriesApi<SeriesType> | null>(null);
   const compactFormatter = useMemo(
@@ -52,88 +88,106 @@ export default function ChartContainer() {
     const lastObv = obvData[obvData.length - 1];
     const lastAtr = atrData[atrData.length - 1];
 
-    if (indicators.volume.enabled) {
+    if (volumeIndicator.enabled) {
       next.push({
         id: "volume",
         label: "거래량",
         color: "var(--success)",
-        weight: Math.max(0.2, indicators.layout.volumeWeight),
+        weight: Math.max(0.2, indicatorLayout.volumeWeight),
         value: lastCandle ? compactFormatter.format(lastCandle.volume) : "-",
       });
     }
 
-    if (indicators.rsi.enabled) {
+    if (rsiIndicator.enabled) {
       next.push({
         id: "rsi",
         label: "RSI",
         color: "#A78BFA",
-        weight: Math.max(0.2, indicators.layout.rsiWeight),
+        weight: Math.max(0.2, indicatorLayout.rsiWeight),
         value: lastRsi ? lastRsi.value.toFixed(1) : "-",
       });
     }
 
-    if (indicators.macd.enabled) {
+    if (macdIndicator.enabled) {
       next.push({
         id: "macd",
         label: "MACD",
         color: "var(--primary)",
-        weight: Math.max(0.2, indicators.layout.macdWeight),
+        weight: Math.max(0.2, indicatorLayout.macdWeight),
         value: lastMacd ? `${lastMacd.macd.toFixed(2)} / ${lastMacd.signal.toFixed(2)}` : "-",
       });
     }
 
-    if (indicators.stochastic.enabled) {
+    if (stochasticIndicator.enabled) {
       next.push({
         id: "stoch",
         label: "STOCH",
         color: "#F59E0B",
-        weight: Math.max(0.2, indicators.layout.stochasticWeight),
+        weight: Math.max(0.2, indicatorLayout.stochasticWeight),
         value: lastStoch ? `${lastStoch.k.toFixed(1)} / ${lastStoch.d.toFixed(1)}` : "-",
       });
     }
 
-    if (indicators.obv.enabled) {
+    if (obvIndicator.enabled) {
       next.push({
         id: "obv",
         label: "OBV",
         color: "#14B8A6",
-        weight: Math.max(0.2, indicators.layout.obvWeight),
+        weight: Math.max(0.2, indicatorLayout.obvWeight),
         value: lastObv ? compactFormatter.format(lastObv.value) : "-",
       });
     }
 
-    if (indicators.atr.enabled) {
+    if (atrIndicator.enabled) {
       next.push({
         id: "atr",
         label: "ATR",
         color: "#38BDF8",
-        weight: Math.max(0.2, indicators.layout.atrWeight),
+        weight: Math.max(0.2, indicatorLayout.atrWeight),
         value: lastAtr ? lastAtr.value.toFixed(2) : "-",
       });
     }
 
-    if (indicators.rvol.enabled) {
+    if (rvolIndicator.enabled) {
       const candles = data?.candles ?? [];
-      const rvolData = calculateRvol(candles, indicators.rvol.period);
+      const rvolData = calculateRvol(candles, rvolIndicator.period);
       const lastRvol = rvolData[rvolData.length - 1];
       next.push({
         id: "rvol",
         label: "RVOL",
         color: "#F59E0B",
-        weight: Math.max(0.2, indicators.layout.rvolWeight),
+        weight: Math.max(0.2, indicatorLayout.rvolWeight),
         value: lastRvol ? `${lastRvol.value.toFixed(2)}x` : "-",
       });
     }
 
     return next;
-  }, [compactFormatter, data, indicators]);
+  }, [
+    atrIndicator.enabled,
+    compactFormatter,
+    data,
+    indicatorLayout.atrWeight,
+    indicatorLayout.macdWeight,
+    indicatorLayout.obvWeight,
+    indicatorLayout.rsiWeight,
+    indicatorLayout.rvolWeight,
+    indicatorLayout.stochasticWeight,
+    indicatorLayout.volumeWeight,
+    macdIndicator.enabled,
+    obvIndicator.enabled,
+    rsiIndicator.enabled,
+    rvolIndicator.enabled,
+    rvolIndicator.period,
+    stochasticIndicator.enabled,
+    volumeIndicator.enabled,
+  ]);
 
   const bandLayouts = useMemo(() => {
     if (bands.length === 0) return [];
 
     return computeIndicatorBandLayout(
       bands,
-      indicators.layout.priceAreaRatio,
+      indicatorLayout.priceAreaRatio,
       {
         minMainRegionTop: 0.35,
         maxMainRegionTop: 0.85,
@@ -142,7 +196,7 @@ export default function ChartContainer() {
         minBandHeight: 0.028,
       },
     ).bands.filter((band) => Number.isFinite(band.top) && Number.isFinite(band.height));
-  }, [bands, indicators.layout.priceAreaRatio]);
+  }, [bands, indicatorLayout.priceAreaRatio]);
 
   const chartSlots = useMemo(() => {
     if (multiChartLayout === 4) return [0, 1, 2, 3];
@@ -162,15 +216,16 @@ export default function ChartContainer() {
   );
 
   const retryFetch = useCallback(() => {
+    const currentIndicators = useSettingsStore.getState().indicators;
     fetchData(
       buildAnalysisParams({
         symbol,
         interval,
         market,
-        indicators,
+        indicators: currentIndicators,
       }),
     );
-  }, [fetchData, indicators, interval, market, symbol]);
+  }, [fetchData, interval, market, symbol]);
 
   if (error) {
     return (

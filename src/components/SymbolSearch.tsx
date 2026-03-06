@@ -373,8 +373,8 @@ export default function SymbolSearch({ hideTrigger = false }: SymbolSearchProps)
       )}
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="w-[min(100%-2rem,620px)] overflow-hidden p-0">
-          <Command className="h-[min(72vh,580px)] rounded-none border-0 bg-[var(--muted)]">
+        <DialogContent className="symbol-search-dialog w-[min(100%-2rem,620px)] overflow-hidden p-0">
+          <Command className="symbol-search-dialog__command h-[min(72vh,580px)] rounded-none border-0 bg-[var(--muted)]">
             <div className="border-b border-[var(--border)] p-2.5">
               <CommandInput
                 ref={inputRef}

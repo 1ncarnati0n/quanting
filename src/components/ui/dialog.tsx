@@ -37,11 +37,15 @@ function DialogContent({
   ...props
 }: DialogContentProps) {
   const context = React.useContext(DialogContext);
-  if (!context || !context.open) return null;
   const contentRef = React.useRef<HTMLDivElement | null>(null);
   const restoreFocusRef = React.useRef<HTMLElement | null>(null);
+  const isOpen = Boolean(context?.open);
+  const onOpenChange = context?.onOpenChange;
+  const titleId = context?.titleId;
 
   React.useEffect(() => {
+    if (!isOpen || typeof document === "undefined") return;
+
     restoreFocusRef.current = document.activeElement instanceof HTMLElement
       ? document.activeElement
       : null;
@@ -54,7 +58,7 @@ function DialogContent({
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        context.onOpenChange?.(false);
+        onOpenChange?.(false);
       }
     };
     window.addEventListener("keydown", onKeyDown);
@@ -64,7 +68,9 @@ function DialogContent({
       window.removeEventListener("keydown", onKeyDown);
       restoreFocusRef.current?.focus?.();
     };
-  }, [context.onOpenChange]);
+  }, [isOpen, onOpenChange]);
+
+  if (!context || !isOpen || typeof document === "undefined") return null;
 
   const content = (
     <div className={cn("fixed inset-0 z-[200] flex items-center justify-center", overlayClassName)}>
@@ -73,13 +79,13 @@ function DialogContent({
         aria-label="닫기"
         tabIndex={-1}
         className="absolute inset-0 cursor-default bg-black/50 backdrop-blur-[2px]"
-        onClick={() => context.onOpenChange?.(false)}
+        onClick={() => onOpenChange?.(false)}
       />
       <div
         ref={contentRef}
         role="dialog"
         aria-modal="true"
-        aria-labelledby={context.titleId}
+        aria-labelledby={titleId}
         tabIndex={-1}
         onKeyDown={(event) => {
           const node = contentRef.current;

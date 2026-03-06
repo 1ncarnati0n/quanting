@@ -2,7 +2,7 @@ import { useMemo, type CSSProperties } from "react";
 import IntervalSelector from "./IntervalSelector";
 import TimeRangeBar from "./TimeRangeBar";
 import { useSettingsStore } from "../stores/useSettingsStore";
-import { getSymbolLabel } from "../utils/constants";
+import { getIntervalLabel, getSymbolLabel, type Interval } from "../utils/constants";
 import { useChartStore } from "../stores/useChartStore";
 import { formatPrice } from "../utils/formatters";
 import {
@@ -19,11 +19,33 @@ interface MarketHeaderProps {
   onToggleSettings: () => void;
 }
 
+function HeaderMetric({
+  label,
+  value,
+  helper,
+  accent,
+}: {
+  label: string;
+  value: string;
+  helper?: string;
+  accent?: string;
+}) {
+  return (
+    <div className="market-header__stat">
+      <span className="market-header__stat-label">{label}</span>
+      <strong className="market-header__stat-value" style={accent ? { color: accent } : undefined}>
+        {value}
+      </strong>
+      {helper ? <span className="market-header__stat-helper">{helper}</span> : null}
+    </div>
+  );
+}
+
 export default function MarketHeader({
   onToggleWatchlist,
   onToggleSettings,
 }: MarketHeaderProps) {
-  const { theme, toggleTheme, symbol, market } = useSettingsStore();
+  const { theme, toggleTheme, symbol, market, interval } = useSettingsStore();
   const { data, isLoading } = useChartStore();
   const symbolLabel = getSymbolLabel(symbol);
   const candles = data?.candles ?? [];
@@ -41,78 +63,107 @@ export default function MarketHeader({
   } as CSSProperties;
 
   const rangePct = high !== null && low !== null && low > 0 ? ((high - low) / low) * 100 : null;
+  const marketVenue =
+    market === "crypto" ? "24H Global" : market === "forex" ? "FX Session" : market === "krStock" ? "KRX" : "US Equities";
+  const priceDeltaLabel =
+    lastCandle && prevCandle
+      ? `${change >= 0 ? "+" : ""}${formatPrice(Math.abs(change), market)} (${changePct >= 0 ? "+" : ""}${changePct.toFixed(2)}%)`
+      : "변동 데이터 대기중";
+  const headerSubtitle = instrument.secondary
+    ? `${instrument.secondary} · ${getIntervalLabel(interval as Interval)}`
+    : `${symbolLabel} · ${getIntervalLabel(interval as Interval)}`;
 
   return (
     <div className="market-header flex flex-col" style={headerStyle}>
-      {/* Row 1: Symbol / Price / OHLV / Range */}
-      <div className="flex min-w-0 flex-wrap items-end gap-x-3 gap-y-2 px-4 py-3 sm:gap-x-4 sm:px-5 sm:py-3.5">
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1.5 sm:gap-2">
-            <QuantingLogo size={16} color="var(--primary)" />
-            <span className="ds-type-caption text-token-primary font-semibold tracking-wide">
-              Quanting
-            </span>
-            <span className="ds-market-badge ds-type-caption rounded px-1.5 py-1 font-bold leading-none">
-              {marketBadge}
-            </span>
-            <span className="ds-live-pill ds-type-caption hidden items-center gap-1 rounded px-2 py-1 sm:inline-flex">
-              <span className={`ds-live-dot h-1.5 w-1.5 rounded-full ${isLoading ? "" : "header-live-dot"}`} />
-              {isLoading ? "갱신중" : "LIVE"}
-            </span>
-          </div>
-          <div className="mt-1 min-w-0">
-            <h1 className="text-token-foreground truncate text-[18px] font-bold leading-tight sm:text-[22px]">
-              {instrument.primary}
-            </h1>
-            {instrument.secondary && (
-              <p className="ds-type-label text-token-muted mt-0.5 truncate font-mono">
-                {instrument.secondary}
+      <div className="market-header__hero flex flex-col gap-4 px-4 py-4 sm:px-5 sm:py-5">
+        <div className="flex min-w-0 flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+          <div className="min-w-0 flex-1">
+            <div className="market-header__eyebrow flex flex-wrap items-center gap-2">
+              <span className="market-header__brand">
+                <QuantingLogo size={17} color="var(--primary)" />
+                <span className="ds-type-caption font-semibold tracking-[0.22em] text-token-primary uppercase">
+                  QuantAI Terminal
+                </span>
+              </span>
+              <span className="ds-market-badge ds-type-caption rounded-full px-2 py-1 font-bold leading-none">
+                {marketBadge}
+              </span>
+              <span className="market-header__meta-pill ds-type-caption">
+                {getIntervalLabel(interval as Interval)}
+              </span>
+              <span className="market-header__meta-pill ds-type-caption">
+                {marketVenue}
+              </span>
+              <span className="ds-live-pill ds-type-caption inline-flex items-center gap-1 rounded-full px-2.5 py-1">
+                <span className={`ds-live-dot h-1.5 w-1.5 rounded-full ${isLoading ? "" : "header-live-dot"}`} />
+                {isLoading ? "갱신중" : "LIVE"}
+              </span>
+            </div>
+
+            <div className="mt-3 min-w-0">
+              <div className="flex min-w-0 flex-wrap items-end gap-x-3 gap-y-2">
+                <h1 className="text-token-foreground truncate text-[22px] font-semibold leading-none tracking-[-0.035em] sm:text-[28px]">
+                  {instrument.primary}
+                </h1>
+                {instrument.secondary && (
+                  <span className="market-header__ticker-chip ds-type-label font-mono">
+                    {instrument.secondary}
+                  </span>
+                )}
+              </div>
+              <p className="market-header__subtitle ds-type-label mt-2 truncate">
+                {headerSubtitle}
               </p>
-            )}
+            </div>
+          </div>
+
+          <div className="market-header__price-panel w-full xl:max-w-[22rem]">
+            <div className="market-header__price-eyebrow ds-type-caption">Last Price</div>
+            <div className="mt-2 flex flex-wrap items-end gap-x-3 gap-y-2">
+              <span className="price-display text-token-foreground font-mono text-[28px] font-semibold tracking-[-0.035em] sm:text-[34px]">
+                {lastCandle ? formatPrice(lastCandle.close, market) : "-"}
+              </span>
+              <span className="ds-market-delta ds-type-label font-mono font-semibold">
+                {priceDeltaLabel}
+              </span>
+            </div>
+            <div className="market-header__price-foot mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 ds-type-caption">
+              <span>Open {lastCandle ? formatPrice(lastCandle.open, market) : "-"}</span>
+              <span className="hidden h-3.5 w-px bg-[var(--border)] sm:block" />
+              <span>Close {lastCandle ? formatPrice(lastCandle.close, market) : "-"}</span>
+              <span className="hidden h-3.5 w-px bg-[var(--border)] sm:block" />
+              <span>{isLoading ? "실시간 동기화 중" : "실시간 워치 활성"}</span>
+            </div>
           </div>
         </div>
 
-        {/* Price + Change */}
-        <div className="flex items-baseline gap-1.5 sm:gap-2">
-          <span className="price-display text-token-foreground font-mono text-lg font-bold sm:text-xl">
-            {lastCandle ? formatPrice(lastCandle.close, market) : "-"}
-          </span>
-          {lastCandle && prevCandle && (
-            <span className="ds-market-delta ds-type-label font-mono font-semibold">
-              {change >= 0 ? "+" : ""}{formatPrice(Math.abs(change), market)} ({changePct >= 0 ? "+" : ""}{changePct.toFixed(2)}%)
-            </span>
-          )}
+        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+          <HeaderMetric
+            label="고가"
+            value={high !== null ? formatPrice(high, market) : "-"}
+            helper="세션 상단"
+          />
+          <HeaderMetric
+            label="저가"
+            value={low !== null ? formatPrice(low, market) : "-"}
+            helper="세션 하단"
+          />
+          <HeaderMetric
+            label="거래량"
+            value={formatCompactNumber(lastCandle?.volume ?? null)}
+            helper="최근 캔들 기준"
+            accent="var(--success)"
+          />
+          <HeaderMetric
+            label="레인지"
+            value={rangePct !== null ? `${rangePct.toFixed(2)}%` : "-"}
+            helper="고저 변동폭"
+            accent="var(--primary)"
+          />
         </div>
-
-        {/* Divider */}
-        <div className="hidden h-4 w-px bg-[var(--border)] md:block" />
-
-        {/* H / L / Vol inline */}
-        <div className="ds-type-label hidden items-center gap-2 font-mono md:flex lg:gap-3">
-          <span className="ds-market-stat">
-            H <strong>{high !== null ? formatPrice(high, market) : "-"}</strong>
-          </span>
-          <span className="ds-market-stat">
-            L <strong>{low !== null ? formatPrice(low, market) : "-"}</strong>
-          </span>
-          <span className="ds-market-stat ds-market-stat--trend">
-            V <strong>{formatCompactNumber(lastCandle?.volume ?? null)}</strong>
-          </span>
-        </div>
-
-        {/* Divider */}
-        {rangePct !== null && <div className="hidden h-4 w-px bg-[var(--border)] lg:block" />}
-
-        {/* Range */}
-        {rangePct !== null && (
-          <span className="ds-market-stat ds-market-range ds-type-label hidden font-mono lg:inline">
-            Range <strong>{rangePct.toFixed(2)}%</strong>
-          </span>
-        )}
       </div>
 
-      {/* Row 2: Controls */}
-      <div className="flex min-w-0 flex-wrap items-center gap-2.5 border-t border-[var(--border)] px-4 py-2.5 sm:px-5">
+      <div className="market-header__toolbar flex min-w-0 flex-wrap items-center gap-2.5 px-4 py-2.5 sm:px-5">
         <Button
           variant="ghost"
           size="icon"
@@ -143,9 +194,12 @@ export default function MarketHeader({
           </div>
         </div>
 
-        <div className="min-w-0 flex-1" />
+        <div className="market-header__toolbar-note ds-type-caption hidden min-w-0 flex-1 items-center gap-2 text-token-muted lg:flex">
+          <span className="market-header__toolbar-line" />
+          전략/알림/리플레이는 현재 컨텍스트를 유지한 채 오른쪽 패널에서 조정됩니다.
+        </div>
 
-        <div className="flex items-center gap-1">
+        <div className="ml-auto flex items-center gap-1">
           <Button
             variant="ghost"
             size="icon"

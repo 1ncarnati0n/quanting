@@ -341,6 +341,7 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
     indicators,
     priceScale,
     compare,
+    workspaceView,
     symbol,
     market,
     priceAlerts,
@@ -388,6 +389,23 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
       localStorage.setItem(SETTINGS_INDICATOR_MODE_STORAGE_KEY, indicatorViewMode);
     } catch {}
   }, [indicatorViewMode]);
+
+  useEffect(() => {
+    const focusAlertsSection = () => {
+      setActiveTab("indicators");
+      setOpenSections((prev) => ({ ...prev, alerts: true }));
+      window.requestAnimationFrame(() => {
+        document.getElementById("alerts-header")?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      });
+    };
+
+    window.addEventListener("quanting:settings-focus-alerts", focusAlertsSection as EventListener);
+    return () =>
+      window.removeEventListener("quanting:settings-focus-alerts", focusAlertsSection as EventListener);
+  }, [setActiveTab]);
 
   const applyLayoutPreset = (presetKey: LayoutPresetKey) => {
     setIndicator("layout", LAYOUT_PRESETS[presetKey].values);
@@ -470,6 +488,7 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
         market: state.market,
         theme: state.theme,
         chartType: state.chartType,
+        workspaceView: state.workspaceView,
         indicators: state.indicators,
         favorites: state.favorites,
         priceScale: state.priceScale,
@@ -510,6 +529,7 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
           market: settings.market ?? state.market,
           theme: settings.theme ?? state.theme,
           chartType: settings.chartType ?? state.chartType,
+          workspaceView: settings.workspaceView ?? state.workspaceView,
           indicators: settings.indicators ?? state.indicators,
           favorites: settings.favorites ?? state.favorites,
           priceScale: settings.priceScale ?? state.priceScale,
@@ -539,7 +559,7 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
     >
       <PanelHeader
         title="지표 설정"
-        subtitle={instrumentLine}
+        subtitle={`${instrumentLine} · ${workspaceView === "strategy" ? "Strategy Lab" : "Dashboard"}`}
         badgeText={marketBadge.text}
         badgeColor={marketBadge.color}
         className="px-4 py-3"

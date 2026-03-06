@@ -91,17 +91,19 @@ export default function CollapsibleSidebar({
 
   return (
     <aside
+      data-side={side}
       className="sidebar-shell relative hidden h-full shrink-0 overflow-hidden xl:flex"
       style={{
         width: resizable ? width : expandedWidth,
         borderColor: "var(--border)",
         boxShadow: "var(--shadow-elevated)",
       }}
+      aria-label={`${label} 패널`}
     >
       {resizable && (
         <button
           type="button"
-          className="group absolute inset-y-0 z-30 w-3 cursor-col-resize bg-transparent transition-colors hover:bg-[color-mix(in_srgb,var(--primary)_16%,transparent)]"
+          className="sidebar-shell__resizer group absolute inset-y-0 z-30 w-3 cursor-col-resize bg-transparent transition-colors hover:bg-[color-mix(in_srgb,var(--primary)_16%,transparent)]"
           style={{ [side === "right" ? "left" : "right"]: 0 } as CSSProperties}
           onMouseDown={startResize}
           onDoubleClick={resetWidth}
@@ -112,7 +114,7 @@ export default function CollapsibleSidebar({
         </button>
       )}
       <div
-        className="min-w-0 flex-1 overflow-hidden"
+        className="sidebar-shell__content min-w-0 flex-1 overflow-hidden"
         style={{
           paddingRight: resizable && side === "left" ? `${RESIZER_GUTTER_PX}px` : 0,
           paddingLeft: resizable && side === "right" ? `${RESIZER_GUTTER_PX}px` : 0,

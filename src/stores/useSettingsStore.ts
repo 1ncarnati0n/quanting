@@ -17,6 +17,7 @@ export type ChartType = "candlestick" | "heikinAshi" | "line" | "area" | "bar";
 export type PriceScaleMode = "normal" | "logarithmic";
 export type AlertCondition = "above" | "below";
 export type MultiChartLayout = 1 | 2 | 4;
+export type WorkspaceView = "dashboard" | "strategy";
 
 export interface FavoriteSymbol {
   symbol: string;
@@ -216,6 +217,7 @@ interface SettingsState {
   theme: Theme;
   chartType: ChartType;
   multiChartLayout: MultiChartLayout;
+  workspaceView: WorkspaceView;
   indicators: IndicatorConfig;
   favorites: FavoriteSymbol[];
   customSymbols: CustomSymbol[];
@@ -250,6 +252,7 @@ interface SettingsState {
   toggleTheme: () => void;
   setChartType: (chartType: ChartType) => void;
   setMultiChartLayout: (layout: MultiChartLayout) => void;
+  setWorkspaceView: (view: WorkspaceView) => void;
   setIndicator: <K extends IndicatorKey>(
     key: K,
     partial: Partial<IndicatorConfig[K]>,
@@ -375,6 +378,7 @@ const ALERT_HISTORY_STORAGE_KEY = "quanting-alert-history";
 const CUSTOM_SYMBOLS_STORAGE_KEY = "quanting-custom-symbols";
 const MAX_CUSTOM_SYMBOLS = 50;
 const MULTI_CHART_LAYOUT_STORAGE_KEY = "quanting-multi-layout";
+const WORKSPACE_VIEW_STORAGE_KEY = "quanting-workspace-view";
 const LAST_SYMBOL_STORAGE_KEY = "quanting-last-symbol";
 const INTERVAL_STORAGE_KEY = "quanting-interval";
 const MAX_RECENT_SYMBOLS = 12;
@@ -723,6 +727,20 @@ function saveInterval(interval: Interval) {
   } catch {}
 }
 
+function getSavedWorkspaceView(): WorkspaceView {
+  try {
+    const raw = localStorage.getItem(WORKSPACE_VIEW_STORAGE_KEY);
+    if (raw === "dashboard" || raw === "strategy") return raw;
+  } catch {}
+  return "dashboard";
+}
+
+function saveWorkspaceView(view: WorkspaceView) {
+  try {
+    localStorage.setItem(WORKSPACE_VIEW_STORAGE_KEY, view);
+  } catch {}
+}
+
 const INITIAL_LAST_SYMBOL = getSavedLastSymbol();
 const INITIAL_INTERVAL = getSavedInterval();
 
@@ -733,6 +751,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   theme: getSavedTheme(),
   chartType: getSavedChartType(),
   multiChartLayout: getSavedMultiChartLayout(),
+  workspaceView: getSavedWorkspaceView(),
   indicators: getSavedIndicators(),
   favorites: getSavedFavorites(),
   customSymbols: getSavedCustomSymbols(),
@@ -1009,6 +1028,10 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   setMultiChartLayout: (multiChartLayout) => {
     saveMultiChartLayout(multiChartLayout);
     set({ multiChartLayout });
+  },
+  setWorkspaceView: (workspaceView) => {
+    saveWorkspaceView(workspaceView);
+    set({ workspaceView });
   },
   setIndicator: (key, partial) =>
     set((state) => {

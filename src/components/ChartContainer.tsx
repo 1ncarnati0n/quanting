@@ -198,19 +198,20 @@ export default function ChartContainer() {
 
   return (
     <div
-      className="relative flex h-full w-full flex-col overflow-hidden rounded border"
+      className="chart-workspace relative isolate flex h-full w-full flex-col overflow-hidden rounded-[calc(var(--radius-lg)+0.15rem)] border"
       style={{
         borderColor: "var(--border)",
         background: "var(--card)",
       }}
     >
+      <div aria-hidden className="chart-workspace__backdrop" />
       {isLoading && (
         <div
-          className="h-0.5 w-full overflow-hidden"
+          className="chart-workspace__loading-track h-0.5 w-full overflow-hidden"
           style={{ background: "var(--secondary)" }}
         >
           <div
-            className="h-full animate-pulse"
+            className="chart-workspace__loading-bar h-full animate-pulse"
             style={{ background: "var(--primary)", width: "40%" }}
           />
         </div>

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
-import { useSettingsStore, type ChartType, type CompareSettings, type IndicatorConfig, type MultiChartLayout, type PriceScaleSettings, type SettingsTab } from "../stores/useSettingsStore";
+import { useSettingsStore, type ChartType, type CompareSettings, type IndicatorConfig, type MultiChartLayout, type PriceScaleSettings, type SettingsTab, type WorkspaceView } from "../stores/useSettingsStore";
 import { useDrawingStore, type DrawingItem } from "../stores/useDrawingStore";
 import { useReplayStore } from "../stores/useReplayStore";
 import { useChartStore } from "../stores/useChartStore";
@@ -27,6 +27,7 @@ interface WorkspaceSnapshot {
   theme: Theme;
   chartType: ChartType;
   multiChartLayout: MultiChartLayout;
+  workspaceView: WorkspaceView;
   settingsTab: SettingsTab;
   indicators: IndicatorConfig;
   priceScale: PriceScaleSettings;
@@ -89,6 +90,7 @@ function createWorkspaceSnapshot(name: string): WorkspaceSnapshot {
     theme: settings.theme,
     chartType: settings.chartType,
     multiChartLayout: settings.multiChartLayout,
+    workspaceView: settings.workspaceView,
     settingsTab: settings.settingsTab,
     indicators: cloneValue(settings.indicators),
     priceScale: { ...settings.priceScale },
@@ -113,6 +115,7 @@ function applyWorkspaceSnapshot(snapshot: WorkspaceSnapshot) {
   settings.setInterval(snapshot.interval);
   settings.setChartType(snapshot.chartType);
   settings.setMultiChartLayout(snapshot.multiChartLayout);
+  settings.setWorkspaceView(snapshot.workspaceView ?? "dashboard");
   settings.setSettingsTab(snapshot.settingsTab);
   settings.setPriceScale(snapshot.priceScale);
   settings.setCompare(snapshot.compare);
@@ -174,6 +177,30 @@ export default function CommandCenter({
           closeAllPanels();
           trackUxAction("command_hub", "open_symbol_search");
           window.dispatchEvent(new CustomEvent("quanting:open-symbol-search"));
+          setOpen(false);
+        },
+      },
+      {
+        id: "action.open-dashboard",
+        title: "대시보드 보기",
+        desc: "차트 워크스페이스로 전환한다",
+        group: "빠른 액션",
+        keywords: "dashboard 차트 workspace",
+        run: () => {
+          trackUxAction("command_hub", "open_dashboard");
+          useSettingsStore.getState().setWorkspaceView("dashboard");
+          setOpen(false);
+        },
+      },
+      {
+        id: "action.open-strategy-lab",
+        title: "전략 랩 보기",
+        desc: "전략 연구 워크스페이스로 전환한다",
+        group: "빠른 액션",
+        keywords: "strategy lab 백테스트 orb pair",
+        run: () => {
+          trackUxAction("command_hub", "open_strategy_lab");
+          useSettingsStore.getState().setWorkspaceView("strategy");
           setOpen(false);
         },
       },
@@ -372,7 +399,7 @@ export default function CommandCenter({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="w-[min(100%-2rem,720px)] p-0">
+      <DialogContent className="command-center-dialog w-[min(100%-2rem,720px)] p-0">
         <DialogHeader className="border-b border-[var(--border)] px-4 py-3">
           <DialogTitle className="flex items-center justify-between gap-3">
             <span>명령 허브</span>
@@ -394,7 +421,7 @@ export default function CommandCenter({
           </Button>
         </DialogHeader>
 
-        <Command className="h-[min(70vh,620px)] rounded-none border-0 bg-[var(--muted)]">
+        <Command className="command-center-dialog__command h-[min(70vh,620px)] rounded-none border-0 bg-[var(--muted)]">
           <div className="px-3 pb-2 pt-2">
             <CommandInput
               ref={inputRef}

@@ -40,6 +40,25 @@ const INDICATOR_PILLS: { key: PillIndicatorKey; label: string; color: string }[]
   { key: "obv", label: "OBV", color: "#14B8A6" },
 ];
 
+function StatusMetric({
+  label,
+  value,
+  accent,
+}: {
+  label: string;
+  value: string;
+  accent?: string;
+}) {
+  return (
+    <div className="status-strip__metric">
+      <span className="status-strip__metric-label">{label}</span>
+      <strong className="status-strip__metric-value" style={accent ? { color: accent } : undefined}>
+        {value}
+      </strong>
+    </div>
+  );
+}
+
 export default function StatusBar() {
   const { data } = useChartStore();
   const { interval, market, indicators } = useSettingsStore();
@@ -96,79 +115,71 @@ export default function StatusBar() {
   }, [data]);
 
   return (
-    <div
-      className="ds-type-label flex min-w-0 flex-wrap items-center gap-2 border-t px-3 py-1.5 md:flex-nowrap"
-      style={{
-        background: "var(--card)",
-        borderColor: "var(--border)",
-        color: "var(--muted-foreground)",
-      }}
-    >
-      <div className="min-w-0 flex-1">
+    <div className="status-strip ds-type-label grid min-w-0 gap-2 px-3 py-2.5 lg:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)_auto] lg:items-center">
+      <div className="status-strip__group min-w-0">
+        <div className="status-strip__eyebrow ds-type-caption">Signal Feed</div>
         {lastSignal ? (
-          <div className="flex min-w-0 items-center gap-2">
+          <div className="mt-1 flex min-w-0 items-center gap-2">
             <SignalBadge signalType={lastSignal.signalType} />
-            <span className="ds-type-label truncate" style={{ color: "var(--muted-foreground)" }}>
+            <span className="ds-type-label truncate text-[var(--muted-foreground)]">
               {formatTime(lastSignal.time)} · 진입 {formatPrice(lastSignal.price, market)}
               {lastRsi ? ` · RSI ${lastRsi.value.toFixed(1)}` : ""}
             </span>
           </div>
         ) : (
-          <span className="ds-type-label" style={{ color: "var(--muted-foreground)" }}>
+          <span className="mt-1 block ds-type-label text-[var(--muted-foreground)]">
             최근 신호 없음
           </span>
         )}
-        <div className="ds-type-caption mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+        <div className="ds-type-caption mt-1 text-[var(--muted-foreground)]">
           {getIntervalLabel(interval as Interval)} 차트
           {lastCandle ? ` · 종가 ${formatPrice(lastCandle.close, market)}` : ""}
         </div>
       </div>
 
-      <div className="hidden items-center gap-1 md:flex">
-        <span className="ds-type-caption" style={{ color: "var(--muted-foreground)" }}>
-          {enabledIndicators.length}개 활성
-        </span>
-        {visibleIndicators.map(({ key, label, color }) => (
-          <span
-            key={key}
-            className="ds-type-caption rounded px-1 py-0.5 font-medium"
-            style={{
-              background: `color-mix(in srgb, ${color} 18%, transparent)`,
-              color,
-              border: `1px solid color-mix(in srgb, ${color} 38%, transparent)`,
-            }}
-          >
-            {label}
+      <div className="status-strip__group hidden min-w-0 md:flex md:flex-col">
+        <div className="status-strip__eyebrow ds-type-caption">Indicator Stack</div>
+        <div className="status-strip__pill-row mt-1.5 flex min-w-0 flex-wrap items-center gap-1">
+          <span className="ds-type-caption text-[var(--muted-foreground)]">
+            {enabledIndicators.length}개 활성
           </span>
-        ))}
-        {hiddenIndicatorCount > 0 && (
-          <span className="ds-type-caption rounded border border-[var(--border)] px-1 py-0.5 text-[var(--muted-foreground)]">
-            +{hiddenIndicatorCount}
-          </span>
-        )}
+          {visibleIndicators.map(({ key, label, color }) => (
+            <span
+              key={key}
+              className="ds-type-caption rounded-full px-2 py-1 font-semibold"
+              style={{
+                background: `color-mix(in srgb, ${color} 16%, transparent)`,
+                color,
+                border: `1px solid color-mix(in srgb, ${color} 34%, transparent)`,
+              }}
+            >
+              {label}
+            </span>
+          ))}
+          {hiddenIndicatorCount > 0 && (
+            <span className="ds-type-caption rounded-full border border-[var(--border)] px-2 py-1 text-[var(--muted-foreground)]">
+              +{hiddenIndicatorCount}
+            </span>
+          )}
+        </div>
       </div>
 
-      <div className="hidden text-right lg:block">
+      <div className="status-strip__metrics flex flex-wrap items-center gap-1.5 lg:justify-end">
+        <StatusMetric label="인터벌" value={getIntervalLabel(interval as Interval)} />
         {lastCandle && (
-          <div
-            className="ds-type-label font-mono"
-            style={{
-              color: lastCandle.close >= lastCandle.open ? "var(--success)" : "var(--destructive)",
-            }}
-          >
-            {formatPrice(lastCandle.close, market)}
-          </div>
+          <StatusMetric
+            label="마감"
+            value={formatPrice(lastCandle.close, market)}
+            accent={lastCandle.close >= lastCandle.open ? "var(--success)" : "var(--destructive)"}
+          />
         )}
-        {lastCandle && (
-          <div className="ds-type-caption" style={{ color: "var(--muted-foreground)" }}>
-            {formatTime(lastCandle.time)}
-          </div>
-        )}
+        {lastCandle && <StatusMetric label="시각" value={formatTime(lastCandle.time)} />}
         {performance.trades > 0 && (
-          <div className="ds-type-caption mt-0.5 font-mono" style={{ color: "var(--muted-foreground)" }}>
-            성과 {performance.winRate.toFixed(1)}% · {performance.avgReturn >= 0 ? "+" : ""}
-            {performance.avgReturn.toFixed(2)}%
-          </div>
+          <StatusMetric
+            label="성과"
+            value={`${performance.winRate.toFixed(1)}% / ${performance.avgReturn >= 0 ? "+" : ""}${performance.avgReturn.toFixed(2)}%`}
+            accent={performance.avgReturn >= 0 ? "var(--success)" : "var(--destructive)"}
+          />
         )}
       </div>
     </div>

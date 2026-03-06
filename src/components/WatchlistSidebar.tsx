@@ -1,6 +1,6 @@
-import { memo, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useDeferredValue, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { fetchAnalysis, fetchWatchlistSnapshots, searchSymbols } from "../services/tauriApi";
-import { useSettingsStore } from "../stores/useSettingsStore";
+import { useSettingsStore, type WorkspaceView } from "../stores/useSettingsStore";
 import type { SymbolSearchResult, WatchlistSnapshot } from "../types";
 import {
   getIntervalLabel,
@@ -21,11 +21,19 @@ import StatePanel from "./patterns/StatePanel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import QuantingLogo from "./QuantingLogo";
 
 interface WatchlistSidebarProps {
   onClose?: () => void;
   onSelectSymbol?: () => void;
   embedded?: boolean;
+  showWorkspaceChrome?: boolean;
+  workspaceView?: WorkspaceView;
+  onSelectDashboard?: () => void;
+  onOpenMarkets?: () => void;
+  onSelectStrategy?: () => void;
+  onOpenAlerts?: () => void;
+  onOpenSettings?: () => void;
 }
 
 type MarketFilter = "all" | MarketType;
@@ -271,10 +279,45 @@ const Sparkline = memo(function Sparkline({
   );
 });
 
+function WorkspaceNavButton({
+  active = false,
+  label,
+  description,
+  onClick,
+  children,
+}: {
+  active?: boolean;
+  label: string;
+  description: string;
+  onClick?: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`workspace-sidebar__nav-item ${active ? "is-active" : ""}`}
+    >
+      <span className="workspace-sidebar__nav-icon">{children}</span>
+      <span className="min-w-0 flex-1 text-left">
+        <span className="workspace-sidebar__nav-label">{label}</span>
+        <span className="workspace-sidebar__nav-description">{description}</span>
+      </span>
+    </button>
+  );
+}
+
 export default function WatchlistSidebar({
   onClose,
   onSelectSymbol,
   embedded = false,
+  showWorkspaceChrome = false,
+  workspaceView = "dashboard",
+  onSelectDashboard,
+  onOpenMarkets,
+  onSelectStrategy,
+  onOpenAlerts,
+  onOpenSettings,
 }: WatchlistSidebarProps) {
   const {
     symbol,
@@ -687,7 +730,9 @@ export default function WatchlistSidebar({
 
   return (
     <aside
-      className={`panel-readable side-panel-shell flex h-full min-w-0 flex-col bg-[var(--card)] ${
+      className={`panel-readable side-panel-shell workspace-sidebar flex h-full min-w-0 flex-col bg-[var(--card)] ${
+        showWorkspaceChrome ? "workspace-sidebar--chrome" : ""
+      } ${
         embedded
           ? "w-full"
           : "w-[min(22rem,calc(100vw-1rem))] border-l border-[var(--border)] shadow-[var(--shadow-elevated)]"
@@ -695,40 +740,113 @@ export default function WatchlistSidebar({
       role="region"
       aria-label="관심종목 사이드바"
     >
-      <PanelHeader
-        title="관심종목"
-        subtitle={`${instrumentLine} · ${snapshotSubtitle}`}
-        className="px-4 py-3"
-        density="compact"
-        actionAlign="start"
-        actions={(
-          <>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-[var(--muted-foreground)]"
-              onClick={() => toggleFavorite(symbol, market)}
-              title={isCurrentFavorite ? "현재 종목 즐겨찾기 해제" : "현재 종목 즐겨찾기 추가"}
-              aria-pressed={isCurrentFavorite}
+      {showWorkspaceChrome ? (
+        <div className="workspace-sidebar__chrome border-b border-[var(--border)]">
+          <div className="workspace-sidebar__brand-panel">
+            <div className="workspace-sidebar__brand-mark">
+              <QuantingLogo size={18} color="currentColor" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="workspace-sidebar__brand-title">QuantAI</div>
+              <div className="workspace-sidebar__brand-subtitle">Pro Analyst</div>
+            </div>
+          </div>
+
+          <nav className="workspace-sidebar__nav" aria-label="워크스페이스 네비게이션">
+            <WorkspaceNavButton
+              active={workspaceView === "dashboard"}
+              label="Dashboard"
+              description="차트 워크스페이스"
+              onClick={onSelectDashboard}
             >
-              {isCurrentFavorite ? "★" : "☆"}
-            </Button>
-            {onClose && (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="7" height="7" rx="1.5" />
+                <rect x="14" y="3" width="7" height="7" rx="1.5" />
+                <rect x="14" y="14" width="7" height="7" rx="1.5" />
+                <rect x="3" y="14" width="7" height="7" rx="1.5" />
+              </svg>
+            </WorkspaceNavButton>
+            <WorkspaceNavButton
+              label="Markets"
+              description="심볼 검색 · 워치리스트"
+              onClick={onOpenMarkets}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 17l5-5 4 4 8-8" />
+                <path d="M14 8h6v6" />
+              </svg>
+            </WorkspaceNavButton>
+            <WorkspaceNavButton
+              active={workspaceView === "strategy"}
+              label="Strategy Lab"
+              description="백테스트 · 전술 연구"
+              onClick={onSelectStrategy}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 19h16" />
+                <path d="M6 16V9" />
+                <path d="M12 16V5" />
+                <path d="M18 16v-4" />
+              </svg>
+            </WorkspaceNavButton>
+            <WorkspaceNavButton
+              label="Alerts"
+              description="가격 알림 · 이벤트"
+              onClick={onOpenAlerts}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17h5" />
+                <path d="M10 17a2 2 0 0 0 4 0" />
+              </svg>
+            </WorkspaceNavButton>
+            <WorkspaceNavButton
+              label="Settings"
+              description="지표 · 화면 설정"
+              onClick={onOpenSettings}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="3" />
+                <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .92 1.7 1.7 0 0 1-3.2 0 1.7 1.7 0 0 0-1-.92 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.92-1 1.7 1.7 0 0 1 0-3.2 1.7 1.7 0 0 0 .92-1 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.92 1.7 1.7 0 0 1 3.2 0 1.7 1.7 0 0 0 1 .92 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9c.24.39.57.7.96.89a1.7 1.7 0 0 1 0 3.2c-.39.19-.72.5-.96.91Z" />
+              </svg>
+            </WorkspaceNavButton>
+          </nav>
+        </div>
+      ) : (
+        <PanelHeader
+          title="관심종목"
+          subtitle={`${instrumentLine} · ${snapshotSubtitle}`}
+          className="px-4 py-3"
+          density="compact"
+          actionAlign="start"
+          actions={(
+            <>
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={onClose}
                 className="text-[var(--muted-foreground)]"
-                title="관심종목 닫기"
+                onClick={() => toggleFavorite(symbol, market)}
+                title={isCurrentFavorite ? "현재 종목 즐겨찾기 해제" : "현재 종목 즐겨찾기 추가"}
+                aria-pressed={isCurrentFavorite}
               >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M18 6L6 18M6 6l12 12" />
-                </svg>
+                {isCurrentFavorite ? "★" : "☆"}
               </Button>
-            )}
-          </>
-        )}
-      />
+              {onClose && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={onClose}
+                  className="text-[var(--muted-foreground)]"
+                  title="관심종목 닫기"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M18 6L6 18M6 6l12 12" />
+                  </svg>
+                </Button>
+              )}
+            </>
+          )}
+        />
+      )}
       <span className="sr-only" role="status" aria-live="polite">
         {snapshotLoadingStage === "initial"
           ? "관심종목 스냅샷을 초기 로딩 중입니다."
@@ -737,7 +855,27 @@ export default function WatchlistSidebar({
             : "관심종목 스냅샷이 갱신되었습니다."}
       </span>
 
-      <div className="side-panel-stack px-3 pb-2.5 pt-3">
+      <div className={showWorkspaceChrome ? "workspace-sidebar__body side-panel-stack px-3 pb-3 pt-3" : "side-panel-stack px-3 pb-2.5 pt-3"}>
+        {showWorkspaceChrome && (
+          <div className="workspace-sidebar__section-head">
+            <div className="min-w-0 flex-1">
+              <div className="workspace-sidebar__section-label">Watchlist</div>
+              <div className="workspace-sidebar__section-subtitle">{snapshotSubtitle}</div>
+            </div>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-[var(--muted-foreground)]"
+                onClick={() => toggleFavorite(symbol, market)}
+                title={isCurrentFavorite ? "현재 종목 즐겨찾기 해제" : "현재 종목 즐겨찾기 추가"}
+                aria-pressed={isCurrentFavorite}
+              >
+                {isCurrentFavorite ? "★" : "☆"}
+              </Button>
+            </div>
+          </div>
+        )}
         <section className="side-panel-section side-panel-stack-tight">
           <Input
             type="text"

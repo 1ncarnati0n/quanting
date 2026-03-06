@@ -8,6 +8,7 @@ import CollapsibleSidebar from "./components/CollapsibleSidebar";
 import ShortcutsModal from "./components/ShortcutsModal";
 import SymbolSearch from "./components/SymbolSearch";
 import CommandCenter from "./components/CommandCenter";
+import StrategyPanel from "./components/strategy/StrategyPanel";
 import { useChartStore } from "./stores/useChartStore";
 import { useSettingsStore } from "./stores/useSettingsStore";
 import { useReplayStore } from "./stores/useReplayStore";
@@ -52,16 +53,15 @@ function App() {
   const markAlertTriggered = useSettingsStore((s) => s.markAlertTriggered);
   const showSettings = useSettingsStore((s) => s.showSettings);
   const setShowSettings = useSettingsStore((s) => s.setShowSettings);
+  const setSettingsTab = useSettingsStore((s) => s.setSettingsTab);
   const theme = useSettingsStore((s) => s.theme);
   const isFullscreen = useSettingsStore((s) => s.isFullscreen);
   const toggleFullscreen = useSettingsStore((s) => s.toggleFullscreen);
+  const workspaceView = useSettingsStore((s) => s.workspaceView);
+  const setWorkspaceView = useSettingsStore((s) => s.setWorkspaceView);
 
   const shellStyle: CSSProperties = {
     background: "var(--background)",
-    paddingTop: "1px",
-    paddingRight: "1px",
-    paddingBottom: "1px",
-    paddingLeft: "1px",
   };
 
   // Apply theme class (.dark) using shadcn token pattern
@@ -459,36 +459,105 @@ function App() {
     setShowSettings(!showSettings);
   };
 
+  const handleSelectDashboard = () => {
+    setWorkspaceView("dashboard");
+  };
+
+  const handleOpenMarkets = () => {
+    setWorkspaceView("dashboard");
+    setShowSettings(false);
+    setShowWatchlist(false);
+    window.dispatchEvent(new CustomEvent("quanting:open-symbol-search"));
+  };
+
+  const handleSelectStrategy = () => {
+    setWorkspaceView("strategy");
+    setShowSettings(false);
+    setShowWatchlist(false);
+  };
+
+  const handleOpenAlerts = () => {
+    setWorkspaceView("dashboard");
+    setSettingsTab("indicators");
+    if (!window.matchMedia("(min-width: 1280px)").matches) {
+      setShowSettings(true);
+    }
+    setShowWatchlist(false);
+    window.dispatchEvent(new CustomEvent("quanting:settings-focus-alerts"));
+  };
+
+  const handleOpenSettingsWorkspace = () => {
+    setWorkspaceView("dashboard");
+    setSettingsTab("appearance");
+    if (!window.matchMedia("(min-width: 1280px)").matches) {
+      setShowSettings(true);
+    }
+    setShowWatchlist(false);
+  };
+
   return (
-    <div className="flex h-full min-h-0 w-full flex-col" style={shellStyle}>
-      <div className="relative flex min-h-0 flex-1 w-full gap-[var(--layout-column-gap)]">
+    <div className="app-shell flex h-full min-h-0 w-full flex-col" style={shellStyle}>
+      <div aria-hidden className="app-shell__ambient app-shell__ambient--aurora-primary" />
+      <div aria-hidden className="app-shell__ambient app-shell__ambient--aurora-teal" />
+      <div aria-hidden className="app-shell__ambient app-shell__ambient--grid" />
+
+      <div className="workspace-frame relative flex min-h-0 flex-1 w-full gap-[var(--layout-column-gap)]">
         <CollapsibleSidebar
           side="left"
           label="WATCH"
           storageKey="quanting-sidebar-left"
-          expandedWidth={280}
+          expandedWidth={320}
           resizable
-          minWidth={236}
-          maxWidth={460}
+          minWidth={292}
+          maxWidth={420}
           defaultOpen
         >
-          <WatchlistSidebar embedded />
+          <WatchlistSidebar
+            embedded
+            showWorkspaceChrome
+            workspaceView={workspaceView}
+            onSelectDashboard={handleSelectDashboard}
+            onOpenMarkets={handleOpenMarkets}
+            onSelectStrategy={handleSelectStrategy}
+            onOpenAlerts={handleOpenAlerts}
+            onOpenSettings={handleOpenSettingsWorkspace}
+          />
         </CollapsibleSidebar>
 
-        <main className="flex min-h-0 min-w-0 flex-1 flex-col">
-          <div className="surface-card flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl">
-            <MarketHeader
-              onToggleWatchlist={handleToggleWatchlistPanel}
-              onToggleSettings={handleToggleSettingsPanel}
-            />
-            <div className="flex min-h-0 flex-1 flex-col gap-2 px-2 pb-2 pt-1.5 sm:gap-2.5 sm:px-2.5 sm:pb-2.5">
-              <div className="flex flex-1 min-h-0 overflow-hidden">
-                <ChartContainer />
+        <main className="workspace-main flex min-h-0 min-w-0 flex-1 flex-col">
+          <div className="surface-card surface-card--workspace flex min-h-0 flex-1 flex-col overflow-hidden rounded-[calc(var(--radius-xl)+0.3rem)]">
+            {workspaceView === "dashboard" ? (
+              <>
+                <MarketHeader
+                  onToggleWatchlist={handleToggleWatchlistPanel}
+                  onToggleSettings={handleToggleSettingsPanel}
+                />
+                <div className="flex min-h-0 flex-1 flex-col gap-2.5 px-2.5 pb-2.5 pt-2 sm:gap-3 sm:px-3 sm:pb-3">
+                  <div className="workspace-chart flex flex-1 min-h-0 overflow-hidden">
+                    <ChartContainer />
+                  </div>
+                  <div className="workspace-status overflow-hidden">
+                    <StatusBar />
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="strategy-workspace flex min-h-0 flex-1 flex-col p-3">
+                <div className="strategy-workspace__hero">
+                  <div className="strategy-workspace__eyebrow">Strategy Lab</div>
+                  <div className="strategy-workspace__title-row">
+                    <h2 className="strategy-workspace__title">Quant Research Workspace</h2>
+                    <span className="strategy-workspace__badge">Live Backtest</span>
+                  </div>
+                  <p className="strategy-workspace__subtitle">
+                    월간 포트폴리오, 액티브 시그널, ORB 전략을 한 화면에서 탐색하고 현재 차트 컨텍스트와 함께 연구합니다.
+                  </p>
+                </div>
+                <div className="strategy-workspace__panel min-h-0 flex-1 overflow-hidden">
+                  <StrategyPanel />
+                </div>
               </div>
-              <div className="overflow-hidden rounded-md">
-                <StatusBar />
-              </div>
-            </div>
+            )}
           </div>
         </main>
 
@@ -496,10 +565,10 @@ function App() {
           side="right"
           label="SET"
           storageKey="quanting-sidebar-right"
-          expandedWidth={340}
+          expandedWidth={304}
           resizable
-          minWidth={300}
-          maxWidth={620}
+          minWidth={288}
+          maxWidth={420}
         >
           <SettingsPanel onClose={() => setShowSettings(false)} embedded />
         </CollapsibleSidebar>

@@ -12,13 +12,13 @@ type ButtonSize = "default" | "sm" | "lg" | "icon";
 
 const VARIANT_CLASSES: Record<ButtonVariant, string> = {
   default:
-    "border-transparent bg-primary text-primary-foreground hover:brightness-[0.96]",
+    "border-transparent bg-primary text-primary-foreground shadow-[var(--accent-glow)] hover:brightness-[0.98]",
   secondary:
-    "border-border bg-secondary text-foreground hover:bg-muted",
+    "border-border bg-secondary text-foreground shadow-[var(--shadow-inset)] hover:bg-muted hover:shadow-[var(--shadow-soft)]",
   outline:
-    "border border-border bg-transparent text-foreground hover:bg-secondary",
+    "border border-border bg-transparent text-foreground shadow-[var(--shadow-inset)] hover:bg-secondary hover:shadow-[var(--shadow-soft)]",
   ghost:
-    "border-transparent bg-transparent text-muted-foreground hover:bg-secondary hover:text-foreground",
+    "border-transparent bg-transparent text-muted-foreground hover:bg-secondary hover:text-foreground hover:shadow-[var(--shadow-soft)]",
   destructive: "border-transparent bg-destructive text-white hover:brightness-95",
   link: "border-transparent bg-transparent text-primary underline-offset-4 hover:underline",
 };
@@ -46,7 +46,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         type={type}
         className={cn(
-          "inline-flex shrink-0 items-center justify-center gap-1.5 rounded-[var(--radius-sm)] border font-medium leading-none transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50",
+          "inline-flex shrink-0 items-center justify-center gap-1.5 rounded-[var(--radius-sm)] border font-medium leading-none backdrop-blur-sm transition-[background-color,color,border-color,box-shadow,transform] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:translate-y-px disabled:pointer-events-none disabled:opacity-50",
           VARIANT_CLASSES[variant],
           SIZE_CLASSES[size],
           className,

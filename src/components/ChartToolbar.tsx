@@ -49,7 +49,7 @@ export default function ChartToolbar() {
 
   return (
     <div
-      className="floating-toolbar pointer-events-auto absolute right-20 top-2.5 z-10 flex items-center gap-0.5 rounded-md px-1 py-1"
+      className="floating-toolbar dashboard-chart-toolbar pointer-events-auto absolute right-6 top-3 z-10 flex items-center gap-0.5 rounded-md px-1 py-1"
     >
       {/* Chart Type Dropdown */}
       <DropdownMenu
@@ -130,47 +130,8 @@ export default function ChartToolbar() {
         </svg>
       </button>
 
-      {/* Screenshot */}
-      <button
-        type="button"
-        onClick={() => dispatch("quanting:chart-screenshot")}
-        className="chart-toolbar-btn"
-        title="스크린샷 저장"
-        aria-label="차트 스크린샷 저장"
-      >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <rect x="3" y="3" width="18" height="18" rx="2" />
-          <circle cx="8.5" cy="8.5" r="1.5" />
-          <polyline points="21 15 16 10 5 21" />
-        </svg>
-      </button>
-
       <div className="floating-toolbar-divider self-stretch" />
 
-      {/* Zoom controls */}
-      <button
-        type="button"
-        onClick={() => dispatch("quanting:chart-zoom-in")}
-        className="chart-toolbar-btn"
-        title="줌 인 (+)"
-        aria-label="차트 확대"
-      >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <line x1="12" y1="5" x2="12" y2="19" />
-          <line x1="5" y1="12" x2="19" y2="12" />
-        </svg>
-      </button>
-      <button
-        type="button"
-        onClick={() => dispatch("quanting:chart-zoom-out")}
-        className="chart-toolbar-btn"
-        title="줌 아웃 (-)"
-        aria-label="차트 축소"
-      >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <line x1="5" y1="12" x2="19" y2="12" />
-        </svg>
-      </button>
       <button
         type="button"
         onClick={() => dispatch("quanting:chart-fit")}

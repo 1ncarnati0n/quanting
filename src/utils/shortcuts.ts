@@ -27,16 +27,14 @@ export const SHORTCUT_HELP_GROUPS: ShortcutHelpGroup[] = [
     title: "화면",
     items: [
       { id: "view.toggle_fullscreen", keys: ["F"], desc: "전체화면 전환" },
-      { id: "view.open_backtest_tab", keys: ["Ctrl/⌘", "Shift", "S"], desc: "설정 패널 백테스트 탭 열기" },
       { id: "view.escape", keys: ["Esc"], desc: "전체화면/패널 닫기" },
     ],
   },
   {
     title: "패널",
     items: [
-      { id: "panel.toggle_watchlist", keys: ["Ctrl/⌘", "B"], desc: "관심종목 패널 (좁은 화면)" },
-      { id: "panel.toggle_settings", keys: ["Ctrl/⌘", ","], desc: "설정 패널 (좁은 화면)" },
-      { id: "panel.open_command_hub", keys: ["Ctrl/⌘", "J"], desc: "명령 허브" },
+      { id: "panel.toggle_watchlist", keys: ["Ctrl/⌘", "B"], desc: "관심종목 패널" },
+      { id: "panel.toggle_settings", keys: ["Ctrl/⌘", ","], desc: "우측 분석 패널" },
       { id: "panel.open_symbol_search", keys: ["Ctrl/⌘", "K"], desc: "심볼 검색" },
       { id: "panel.open_symbol_search_alt", keys: ["Ctrl/⌘", "/"], desc: "심볼 검색 (보조)" },
     ],

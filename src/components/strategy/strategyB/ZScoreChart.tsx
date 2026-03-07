@@ -12,6 +12,7 @@ function readPalette() {
     bg: s.getPropertyValue("--chart-bg").trim() || "#0d1421",
     fg: s.getPropertyValue("--chart-foreground").trim() || "#9eb0c8",
     grid: s.getPropertyValue("--chart-grid").trim() || "#1b273b",
+    font: s.getPropertyValue("--font-sans").trim() || "\"Noto Sans KR\", \"Apple SD Gothic Neo\", \"Malgun Gothic\", \"Segoe UI\", sans-serif",
   };
 }
 
@@ -29,7 +30,7 @@ export default function ZScoreChart({ data }: ZScoreChartProps) {
       layout: {
         background: { color: palette.bg },
         textColor: palette.fg,
-        fontFamily: "ui-monospace, 'Cascadia Code', monospace",
+        fontFamily: palette.font,
         fontSize: 11,
       },
       grid: {

@@ -1,21 +1,22 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useShallow } from "zustand/react/shallow";
-import MarketHeader from "./components/MarketHeader";
 import ChartContainer from "./components/ChartContainer";
-import StatusBar from "./components/StatusBar";
-import SettingsPanel from "./components/SettingsPanel";
-import WatchlistSidebar from "./components/WatchlistSidebar";
-import CollapsibleSidebar from "./components/CollapsibleSidebar";
 import ShortcutsModal from "./components/ShortcutsModal";
 import SymbolSearch from "./components/SymbolSearch";
-import CommandCenter from "./components/CommandCenter";
-import StrategyPanel from "./components/strategy/StrategyPanel";
 import { useChartStore } from "./stores/useChartStore";
 import { useSettingsStore } from "./stores/useSettingsStore";
 import { useReplayStore } from "./stores/useReplayStore";
 import type { Candle } from "./types";
 import { buildAnalysisParams } from "./utils/analysisParams";
 import { isActiveDialogLayer, isEditableKeyboardTarget } from "./utils/shortcuts";
+import DashboardTopBar from "./components/dashboard/DashboardTopBar";
+import DashboardRightDock from "./components/dashboard/DashboardRightDock";
+import DashboardChartHeader from "./components/dashboard/DashboardChartHeader";
+import type {
+  DashboardDockFocusRequest,
+  DashboardDockFocusSection,
+  DashboardDockTab,
+} from "./components/dashboard/types";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 
 const BINANCE_STREAM_INTERVALS = new Set([
@@ -37,7 +38,8 @@ const BINANCE_STREAM_INTERVALS = new Set([
 ]);
 
 function App() {
-  const [showWatchlist, setShowWatchlist] = useState(false);
+  const [activeDockTab, setActiveDockTab] = useState<DashboardDockTab>("indicators");
+  const [dockFocusRequest, setDockFocusRequest] = useState<DashboardDockFocusRequest | null>(null);
   const pendingRealtimeCandleRef = useRef<Candle | null>(null);
   const realtimeFlushRafRef = useRef<number | null>(null);
   const { fetchData, data, updateRealtimeCandle } = useChartStore(
@@ -63,12 +65,9 @@ function App() {
     markAlertTriggered,
     showSettings,
     setShowSettings,
-    setSettingsTab,
     theme,
     isFullscreen,
     toggleFullscreen,
-    workspaceView,
-    setWorkspaceView,
   } = useSettingsStore(
     useShallow((state) => ({
       symbol: state.symbol,
@@ -79,12 +78,9 @@ function App() {
       markAlertTriggered: state.markAlertTriggered,
       showSettings: state.showSettings,
       setShowSettings: state.setShowSettings,
-      setSettingsTab: state.setSettingsTab,
       theme: state.theme,
       isFullscreen: state.isFullscreen,
       toggleFullscreen: state.toggleFullscreen,
-      workspaceView: state.workspaceView,
-      setWorkspaceView: state.setWorkspaceView,
     })),
   );
 
@@ -335,7 +331,6 @@ function App() {
           // Fullscreen exit handled by browser API
           return;
         }
-        setShowWatchlist(false);
         setShowSettings(false);
         window.dispatchEvent(new CustomEvent("quanting:close-sidebars"));
         return;
@@ -404,54 +399,64 @@ function App() {
       if (isMod && keyLower === "b") {
         if (e.repeat) return;
         e.preventDefault();
-        if (window.matchMedia("(min-width: 1280px)").matches) return;
-        setShowWatchlist((prev) => !prev);
-        setShowSettings(false);
+        setActiveDockTab("watchlist");
+        if (!window.matchMedia("(min-width: 1280px)").matches) {
+          setShowSettings(true);
+        }
       }
       if (isMod && keyLower === ",") {
         if (e.repeat) return;
         e.preventDefault();
-        if (window.matchMedia("(min-width: 1280px)").matches) return;
-        const store = useSettingsStore.getState();
-        setShowSettings(!store.showSettings);
-        setShowWatchlist(false);
+        setActiveDockTab("layout");
+        if (!window.matchMedia("(min-width: 1280px)").matches) {
+          const store = useSettingsStore.getState();
+          setShowSettings(!store.showSettings);
+        }
       }
       if (isMod && keyLower === "k") {
         if (e.repeat) return;
         e.preventDefault();
         setShowSettings(false);
-        setShowWatchlist(false);
         window.dispatchEvent(new CustomEvent("quanting:open-symbol-search"));
-      }
-      if (isMod && keyLower === "j") {
-        if (e.repeat) return;
-        e.preventDefault();
-        window.dispatchEvent(new CustomEvent("quanting:open-command-center"));
       }
       if (isMod && keyLower === "/") {
         if (e.repeat) return;
         e.preventDefault();
         setShowSettings(false);
-        setShowWatchlist(false);
         window.dispatchEvent(new CustomEvent("quanting:open-symbol-search"));
-      }
-      if (isMod && e.shiftKey && keyLower === "s") {
-        if (e.repeat) return;
-        e.preventDefault();
-        const store = useSettingsStore.getState();
-        if (store.settingsTab === "backtest" && store.showSettings) {
-          setShowSettings(false);
-        } else {
-          store.setSettingsTab("backtest");
-          setShowSettings(true);
-          setShowWatchlist(false);
-        }
       }
     };
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [setShowSettings, setShowWatchlist, toggleFullscreen]);
+  }, [setShowSettings, toggleFullscreen]);
+
+  const handleSelectDockTab = (tab: DashboardDockTab) => {
+    setActiveDockTab(tab);
+    if (!window.matchMedia("(min-width: 1280px)").matches) {
+      setShowSettings(true);
+    }
+  };
+
+  const handleToggleWatchlistPanel = () => {
+    setActiveDockTab("watchlist");
+    if (!window.matchMedia("(min-width: 1280px)").matches) {
+      setShowSettings(true);
+    }
+  };
+
+  const handleToggleDockPanel = () => {
+    if (window.matchMedia("(min-width: 1280px)").matches) return;
+    setShowSettings(!showSettings);
+  };
+
+  const openDockSection = (section: DashboardDockFocusSection, tab: DashboardDockTab) => {
+    setActiveDockTab(tab);
+    setDockFocusRequest({ section, nonce: Date.now() });
+    if (!window.matchMedia("(min-width: 1280px)").matches) {
+      setShowSettings(true);
+    }
+  };
 
   // Fullscreen mode: only render chart
   if (isFullscreen) {
@@ -465,171 +470,62 @@ function App() {
         </div>
         <ShortcutsModal />
         <SymbolSearch hideTrigger />
-        <CommandCenter
-          showWatchlist={showWatchlist}
-          setShowWatchlist={setShowWatchlist}
-          showSettings={showSettings}
-          setShowSettings={setShowSettings}
-        />
       </div>
     );
   }
 
-  const handleToggleWatchlistPanel = () => {
-    if (window.matchMedia("(min-width: 1280px)").matches) return;
-    setShowSettings(false);
-    setShowWatchlist((prev) => !prev);
-  };
-
-  const handleToggleSettingsPanel = () => {
-    if (window.matchMedia("(min-width: 1280px)").matches) return;
-    setShowWatchlist(false);
-    setShowSettings(!showSettings);
-  };
-
-  const handleSelectDashboard = () => {
-    setWorkspaceView("dashboard");
-  };
-
-  const handleOpenMarkets = () => {
-    setWorkspaceView("dashboard");
-    setShowSettings(false);
-    setShowWatchlist(false);
-    window.dispatchEvent(new CustomEvent("quanting:open-symbol-search"));
-  };
-
-  const handleSelectStrategy = () => {
-    setWorkspaceView("strategy");
-    setShowSettings(false);
-    setShowWatchlist(false);
-  };
-
-  const handleOpenAlerts = () => {
-    setWorkspaceView("dashboard");
-    setSettingsTab("indicators");
-    if (!window.matchMedia("(min-width: 1280px)").matches) {
-      setShowSettings(true);
-    }
-    setShowWatchlist(false);
-    window.dispatchEvent(new CustomEvent("quanting:settings-focus-alerts"));
-  };
-
-  const handleOpenSettingsWorkspace = () => {
-    setWorkspaceView("dashboard");
-    setSettingsTab("appearance");
-    if (!window.matchMedia("(min-width: 1280px)").matches) {
-      setShowSettings(true);
-    }
-    setShowWatchlist(false);
-  };
-
   return (
     <div className="app-shell flex h-full min-h-0 w-full flex-col" style={shellStyle}>
-      <div aria-hidden className="app-shell__ambient app-shell__ambient--aurora-primary" />
-      <div aria-hidden className="app-shell__ambient app-shell__ambient--aurora-teal" />
-      <div aria-hidden className="app-shell__ambient app-shell__ambient--grid" />
-
       <div className="workspace-frame relative flex min-h-0 flex-1 w-full gap-[var(--layout-column-gap)]">
-        <CollapsibleSidebar
-          side="left"
-          label="WATCH"
-          storageKey="quanting-sidebar-left"
-          expandedWidth={320}
-          resizable
-          minWidth={292}
-          maxWidth={420}
-          defaultOpen
-        >
-          <WatchlistSidebar
-            embedded
-            showWorkspaceChrome
-            workspaceView={workspaceView}
-            onSelectDashboard={handleSelectDashboard}
-            onOpenMarkets={handleOpenMarkets}
-            onSelectStrategy={handleSelectStrategy}
-            onOpenAlerts={handleOpenAlerts}
-            onOpenSettings={handleOpenSettingsWorkspace}
+        <div className="dashboard-workspace surface-card surface-card--workspace flex min-h-0 flex-1 flex-col overflow-hidden">
+          <DashboardTopBar
+            activeDockTab={activeDockTab}
+            onSelectDockTab={handleSelectDockTab}
+            onToggleWatchlist={handleToggleWatchlistPanel}
+            onToggleDock={handleToggleDockPanel}
+            onOpenAlerts={() => openDockSection("alerts", "indicators")}
+            onOpenDisplaySettings={() => handleSelectDockTab("layout")}
           />
-        </CollapsibleSidebar>
 
-        <main className="workspace-main flex min-h-0 min-w-0 flex-1 flex-col">
-          <div className="surface-card surface-card--workspace flex min-h-0 flex-1 flex-col overflow-hidden rounded-[calc(var(--radius-xl)+0.3rem)]">
-            {workspaceView === "dashboard" ? (
-              <>
-                <MarketHeader
-                  onToggleWatchlist={handleToggleWatchlistPanel}
-                  onToggleSettings={handleToggleSettingsPanel}
-                />
-                <div className="flex min-h-0 flex-1 flex-col gap-2.5 px-2.5 pb-2.5 pt-2 sm:gap-3 sm:px-3 sm:pb-3">
-                  <div className="workspace-chart flex flex-1 min-h-0 overflow-hidden">
-                    <ChartContainer />
-                  </div>
-                  <div className="workspace-status overflow-hidden">
-                    <StatusBar />
-                  </div>
-                </div>
-              </>
-            ) : (
-              <div className="strategy-workspace flex min-h-0 flex-1 flex-col p-3">
-                <div className="strategy-workspace__hero">
-                  <div className="strategy-workspace__eyebrow">Strategy Lab</div>
-                  <div className="strategy-workspace__title-row">
-                    <h2 className="strategy-workspace__title">Quant Research Workspace</h2>
-                    <span className="strategy-workspace__badge">Live Backtest</span>
-                  </div>
-                  <p className="strategy-workspace__subtitle">
-                    월간 포트폴리오, 액티브 시그널, ORB 전략을 한 화면에서 탐색하고 현재 차트 컨텍스트와 함께 연구합니다.
-                  </p>
-                </div>
-                <div className="strategy-workspace__panel min-h-0 flex-1 overflow-hidden">
-                  <StrategyPanel />
-                </div>
+          <div className="dashboard-shell flex min-h-0 flex-1">
+            <main className="dashboard-shell__main workspace-main flex min-h-0 min-w-0 flex-1 flex-col">
+              <DashboardChartHeader
+                onOpenIndicators={() => openDockSection("presets", "indicators")}
+                onOpenCompare={() => openDockSection("compare", "layout")}
+                onOpenDisplaySettings={() => handleSelectDockTab("layout")}
+              />
+              <div className="workspace-chart dashboard-shell__chart flex flex-1 min-h-0 overflow-hidden bg-[var(--card)]">
+                <ChartContainer />
               </div>
-            )}
+            </main>
+
+            <aside className="dashboard-shell__dock hidden min-h-0 shrink-0 xl:flex">
+              <DashboardRightDock
+                embedded
+                activeTab={activeDockTab}
+                focusRequest={dockFocusRequest}
+                onTabChange={handleSelectDockTab}
+              />
+            </aside>
           </div>
-        </main>
-
-        <CollapsibleSidebar
-          side="right"
-          label="SET"
-          storageKey="quanting-sidebar-right"
-          expandedWidth={304}
-          resizable
-          minWidth={288}
-          maxWidth={420}
-        >
-          <SettingsPanel onClose={() => setShowSettings(false)} embedded />
-        </CollapsibleSidebar>
-
-        <Sheet
-          open={showWatchlist}
-          onOpenChange={(open) => setShowWatchlist(open)}
-        >
-          <SheetContent side="left" className="w-[min(22rem,calc(100vw-1rem))]">
-            <WatchlistSidebar
-              onClose={() => setShowWatchlist(false)}
-              onSelectSymbol={() => setShowWatchlist(false)}
-            />
-          </SheetContent>
-        </Sheet>
+        </div>
 
         <Sheet
           open={showSettings}
           onOpenChange={(open) => setShowSettings(open)}
         >
           <SheetContent side="right" className="w-[min(24rem,calc(100vw-1rem))]">
-            <SettingsPanel onClose={() => setShowSettings(false)} />
+            <DashboardRightDock
+              activeTab={activeDockTab}
+              focusRequest={dockFocusRequest}
+              onTabChange={handleSelectDockTab}
+              onClose={() => setShowSettings(false)}
+            />
           </SheetContent>
         </Sheet>
 
         <ShortcutsModal />
         <SymbolSearch hideTrigger />
-        <CommandCenter
-          showWatchlist={showWatchlist}
-          setShowWatchlist={setShowWatchlist}
-          showSettings={showSettings}
-          setShowSettings={setShowSettings}
-        />
       </div>
     </div>
   );

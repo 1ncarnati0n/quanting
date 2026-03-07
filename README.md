@@ -1,105 +1,213 @@
 # Quanting
 
-멀티마켓(US/KR/Crypto/Forex) 기술적 분석을 위한 Tauri 데스크톱 앱입니다.  
-현재 버전은 **단일 차트 기반 멀티 지표 분석**, **퀀트 신호 필터**, **고급 워치리스트/스크리너**, **재무 오버레이**, **커스텀 인터벌 리샘플링**을 지원합니다.
+`Quanting`은 Tauri 기반 멀티마켓 트레이딩 워크스페이스입니다.  
+React/TypeScript 프론트엔드와 Rust 백엔드를 조합해 차트 분석, 관심종목 관리, 스크리닝, 전략 연구를 하나의 데스크톱 앱으로 제공합니다.
 
-## 핵심 기능
+## 워크스페이스
 
-- 멀티마켓: US 주식, KR 주식, Crypto, Forex
-- 차트 타입 5종: `Candlestick`, `Heikin Ashi`, `Line`, `Area`, `Bar`
-- 지표: BB, RSI, SMA, EMA, MACD, Stochastic, Volume, OBV, VWAP, ATR, Ichimoku, Supertrend, Parabolic SAR
-- 신호: BB+RSI 기본 신호 + MACD/Stochastic 확장 신호
-- 퀀트 필터: Regime / Momentum / Volatility + 강신호 유지 옵션
-- 차트 오버레이: 비교 심볼(Overlay), 볼륨 프로파일, 매수/매도 구간, 재무제표 오버레이
-- 가격 스케일: 기본 / 로그 + 자동 스케일
-- 드로잉/분석: 수평선, 추세선, 피보나치, 측정도구, 고급 패턴(피치포크/갠/엘리엇/하모닉)
-- 리플레이/알림: 바 리플레이, 가격 알림선/트리거/히스토리, 시스템 알림
-- 워치리스트: 스냅샷(가격/등락/H/L/스파크라인), 즐겨찾기/최근 심볼, 고도화 스크리너
-- 스크리너 고도화: 다중 조건, `ANY(OR)`/`ALL(AND)`, 정렬, 프리셋 저장
-- 프리셋 확장: 금/은 테마, 한국 ACE ETF 카테고리
-- 커스텀 인터벌 리샘플링: API 비지원 주기(`10m`, `45m`, `54m`, `2h`, `3h`, `6h`, `12h` 등) 재집계
+### 1. Dashboard
+
+- US 주식, KR 주식, Crypto, Forex 단일 UI 지원
+- 차트 타입: `Candlestick`, `Heikin Ashi`, `Line`, `Area`, `Bar`
+- 비교 심볼 오버레이, 가격 스케일(기본/로그), 전체화면, 크로스헤어 레전드
+- 바 리플레이, 가격 알림, 재무 오버레이, 시그널 존, 볼륨 프로파일
+- 드로잉 도구: 수평선, 추세선, 피보나치, 측정, 직사각형, 텍스트, 채널, 피치포크, 갠 팬, 엘리엇, 하모닉
+
+### 2. Watchlist & Screener
+
+- 즐겨찾기, 최근 심볼, 커스텀 심볼 관리
+- Yahoo 기반 심볼 검색
+- 프리셋 카테고리 기반 마켓 브라우징
+- 스냅샷 카드: 현재가, 등락, 고가/저가, 스파크라인
+- 스크리너 조건 조합: `ANY(OR)` / `ALL(AND)`
+- 스크리너 프리셋 저장 및 정렬 옵션
+
+### 3. Strategy Lab
+
+- `Strategy A`: GEM + Faber TAA + Sector Timing 조합의 월간 리밸런싱 백테스트
+- `Strategy B`: MACD + Bollinger 기반 액티브 신호, 페어 트레이딩 분석
+- `Strategy ORB`: 프리마켓 스캐너와 Opening Range Breakout 워크플로우
+- 멀티 심볼 캔들 수집, 성과 지표, 시그널 카드, Z-Score/에쿼티 커브 시각화
+
+### 4. 생산성 기능
+
+- `Command Center`를 통한 빠른 액션 실행
+- 워크스페이스 스냅샷 저장/복원
+- 워크스페이스 JSON import/export
+- 키보드 단축키 도움말 모달
+
+## 지표와 신호
+
+### 코어 지표
+
+- Bollinger Bands, RSI
+- SMA, EMA, HMA
+- MACD, Stochastic
+- Volume, OBV, VWAP, ATR
+- Ichimoku, Supertrend, Parabolic SAR
+- Donchian, Keltner
+- MFI, CMF, Choppiness, Williams %R, ADX
+- CVD, RVOL, STC
+- SMC 이벤트, Anchored VWAP, Auto Fibonacci
+
+### 퀀트 신호 전략
+
+- Supertrend + ADX
+- EMA Crossover
+- Stochastic + RSI
+- CMF + OBV Flow
+- TTM Squeeze
+- VWAP Breakout
+- Parabolic SAR reversal
+- MACD Histogram reversal
+- IBS Mean Reversion
+- RSI Divergence
+
+## 지원 마켓과 데이터 소스
+
+| 마켓 | 데이터 소스 | 비고 |
+| --- | --- | --- |
+| Crypto | Binance REST / WebSocket | 실시간 캔들 갱신 지원 |
+| US 주식 / ETF | Yahoo Finance | 차트, 검색, 재무 데이터 |
+| Forex | Yahoo Finance | 차트, 검색 |
+| KR 주식 / ETF | Yahoo Finance + 한국투자증권 Open API | 일봉/주봉/월봉은 KIS 자격 증명 필요 |
+
+참고:
+
+- `fetch_fundamentals`는 Crypto 심볼에서는 동작하지 않습니다.
+- KR 마켓은 분봉 계열과 장기 봉에서 사용하는 데이터 소스가 다를 수 있습니다.
+- 원본 API가 요청 인터벌을 직접 지원하지 않으면 백엔드가 하위 인터벌 캔들을 리샘플링합니다.
 
 ## 지원 인터벌
 
-- Crypto: `1m`, `2m`, `3m`, `5m`, `10m`, `15m`, `30m`, `45m`, `54m`, `1h`, `2h`, `3h`, `4h`, `6h`, `12h`, `1d`, `1w`, `1M`
-- US/KR/Forex: `1m`, `2m`, `3m`, `5m`, `10m`, `15m`, `30m`, `45m`, `54m`, `1h`, `2h`, `3h`, `4h`, `6h`, `12h`, `1d`, `1w`, `1M`
+UI 기준 지원 인터벌:
+
+- `1m`, `3m`, `5m`, `10m`, `15m`, `30m`, `1h`, `2h`, `4h`, `1d`, `1w`, `1M`
 
 참고:
-- 커스텀 인터벌은 백엔드에서 소스 캔들을 받아 OHLCV 리샘플링합니다.
-- Crypto WebSocket 실시간 갱신은 Binance 네이티브 인터벌에서만 사용하며, 커스텀 인터벌은 폴링 경로로 동작합니다.
 
-## 최근 구현 요약
+- `10m`, `2h`, `4h` 같은 구간은 마켓별로 리샘플링 경로를 탈 수 있습니다.
+- Crypto WebSocket 실시간 반영은 Binance 네이티브 스트림 인터벌에서만 사용됩니다.
 
-- shadcn/ui 기반 컴포넌트 치환(복합 컴포넌트 포함)
-- Forex 지원 추가 (`MarketType.forex`, Yahoo `=X` 심볼)
-- 금/은 + 한국 ACE ETF 프리셋 카테고리 추가
-- 재무제표 오버레이 추가 (`fetch_fundamentals`)
-- 워치리스트 스크리너 고도화(다중 조건/정렬/프리셋 저장)
-- 커스텀 인터벌 리샘플링 추가(분석/워치리스트 스냅샷 공통 적용)
-
-## 오픈소스 기술 스택
+## 기술 스택
 
 | 레이어 | 기술 |
-|---|---|
+| --- | --- |
 | Desktop Shell | Tauri 2, `@tauri-apps/api`, `@tauri-apps/cli`, `tauri-plugin-shell` |
-| Frontend | React 18, TypeScript 5, Vite 6 |
-| Styling | Tailwind CSS 4 + shadcn/ui 패턴 |
+| Frontend | React 19, TypeScript 5, Vite 7 |
+| Styling | Tailwind CSS 4, shadcn/ui 패턴, 커스텀 토큰 기반 CSS |
 | State | Zustand 5 |
 | Chart | TradingView `lightweight-charts` 5 |
-| Backend | Rust (Edition 2021), Tokio, reqwest |
-| Serialization | serde, serde_json |
-| Cache | rusqlite (in-memory SQLite), chrono(TTL) |
-| Data Source | Binance REST/WS, Yahoo Finance v8(chart) + v10(quoteSummary) |
+| Backend | Rust 2021, Tokio, reqwest |
+| Cache | rusqlite 기반 in-memory SQLite |
+| Data | Binance, Yahoo Finance, 한국투자증권 Open API |
 
-## 아키텍처
+## 아키텍처 개요
 
 ```text
-React UI (MarketHeader, ChartContainer, MainChart, WatchlistSidebar, SettingsPanel)
-  -> Zustand Stores (useSettingsStore, useChartStore, useDrawingStore, useReplayStore)
-  -> Tauri IPC invoke
-    -> Rust Commands
-       - fetch_analysis
-       - fetch_watchlist_snapshots
-       - fetch_fundamentals
-          -> API Client (Binance / Yahoo)
-          -> Cache (SQLite in-memory, interval TTL)
-          -> Interval Resolver + Resampling
-          -> TA Engine
-             - Indicators (BB/RSI/SMA/EMA/MACD/Stoch/OBV/VWAP/ATR/Ichimoku/Supertrend/PSAR)
-             - Signal Detection + Quant Filter
-          -> Frontend Response
+React UI
+  ├─ Dashboard Workspace
+  │   ├─ MarketHeader / ChartContainer / MainChart
+  │   ├─ WatchlistSidebar / SettingsPanel / CommandCenter
+  │   └─ Drawing / Replay / Alert / Fundamentals overlays
+  ├─ Strategy Lab
+  │   ├─ Strategy A (monthly allocation backtest)
+  │   ├─ Strategy B (active signals / pair trading)
+  │   └─ Strategy ORB (premarket scanner)
+  └─ Zustand stores
+      ├─ useSettingsStore
+      ├─ useChartStore
+      ├─ useDrawingStore
+      ├─ useReplayStore
+      └─ useStrategyStore
+          ↓
+      Tauri IPC invoke
+          ↓
+      Rust commands
+        ├─ fetch_analysis
+        ├─ fetch_watchlist_snapshots
+        ├─ fetch_fundamentals
+        ├─ fetch_multi_symbol_candles
+        ├─ fetch_premarket_snapshots
+        └─ search_symbols
+          ↓
+      API clients + cache + TA engine
 ```
 
-## 데이터 플로우
+## 시작하기
 
-### 1) 분석 차트 요청
+### 요구 사항
 
-1. 프론트에서 심볼/인터벌/지표 파라미터 변경
-2. `fetch_analysis` 호출
-3. 백엔드에서 요청 인터벌을 해석하고 소스 인터벌 결정
-4. 캐시 조회 후 미스 시 외부 API 조회
-5. 필요 시 OHLCV 리샘플링 수행
-6. TA 엔진 처리 후 차트 데이터 반환
+- Node.js `^20.19.0 || >=22.12.0`
+- Rust stable
+- 운영체제별 Tauri 빌드 전제 조건
+- KR 일봉/주봉/월봉 조회 시 한국투자증권 Open API 자격 증명
 
-### 2) 워치리스트 스냅샷 요청
+### 설치
 
-1. 화면 표시 대상 심볼 묶음 생성
-2. `fetch_watchlist_snapshots` 호출
-3. 인터벌 해석/리샘플링 적용
-4. 가격/등락/H/L/스파크라인 계산 후 반환
+```bash
+npm install
+```
 
-### 3) 재무 오버레이 요청
+### 환경 변수
 
-1. 오버레이 토글 ON
-2. `fetch_fundamentals` 호출
-3. Yahoo quoteSummary(`price/summaryDetail/defaultKeyStatistics/financialData`) 파싱
-4. 차트 우측 오버레이 카드에 표시
+한국 주식의 일봉/주봉/월봉 데이터를 사용하려면 `.env` 또는 사용자 홈 디렉터리 설정 파일 중 하나를 준비해야 합니다.
 
-## 주요 IPC 명령
+`.env` 예시:
 
-- `fetch_analysis`
-- `fetch_watchlist_snapshots`
-- `fetch_fundamentals`
+```bash
+KIS_APP_KEY=your_app_key_here
+KIS_APP_SECRET=your_app_secret_here
+```
+
+또는 `~/.quanting/kis_config.json`:
+
+```json
+{
+  "app_key": "your_app_key_here",
+  "app_secret": "your_app_secret_here"
+}
+```
+
+### 개발 실행
+
+데스크톱 앱 실행:
+
+```bash
+npm run tauri dev
+```
+
+프론트엔드만 실행:
+
+```bash
+npm run dev
+```
+
+### 빌드와 검증
+
+```bash
+npm run build
+npm run check
+npm run ux:verify
+npm run tauri build
+```
+
+## 주요 스크립트
+
+| 명령어 | 설명 |
+| --- | --- |
+| `npm run dev` | Vite 개발 서버 실행 |
+| `npm run tauri dev` | Tauri 데스크톱 앱 개발 실행 |
+| `npm run build` | TypeScript 컴파일 + 프론트엔드 빌드 |
+| `npm run check` | 프론트엔드 빌드 + Rust `cargo check` |
+| `npm run ux:verify` | UX gate + 접근성 점검 + 빌드 |
+| `npm run ux:gate` | UX 기준 점검 |
+| `npm run a11y:audit` | 접근성 감사 |
+| `npm run a11y:scenario` | 시나리오 기반 접근성 감사 |
+| `npm run perf:sim` | 실시간 차트 성능 시뮬레이션 |
+| `npm run perf:list-sim` | 워치리스트 성능 시뮬레이션 |
+| `npm run ux:qa-gate` | QA 기준 점검 |
+| `npm run ux:kpi` | UX KPI 재측정 |
 
 ## 프로젝트 구조
 
@@ -107,90 +215,64 @@ React UI (MarketHeader, ChartContainer, MainChart, WatchlistSidebar, SettingsPan
 src/
   App.tsx
   components/
-    MarketHeader.tsx
-    ChartContainer.tsx
-    MainChart.tsx
-    WatchlistSidebar.tsx
-    SettingsPanel.tsx
-    SymbolSearch.tsx
-    DrawingCanvas.tsx
-    DrawingToolbar.tsx
-    ReplayControls.tsx
-    SignalZonesOverlay.tsx
-    VolumeProfileOverlay.tsx
-    FundamentalsOverlay.tsx
-  stores/
-    useSettingsStore.ts
-    useChartStore.ts
-    useDrawingStore.ts
-    useReplayStore.ts
+    strategy/
+      strategyA/
+      strategyB/
+      strategyORB/
+    ui/
   services/
     tauriApi.ts
+  stores/
+    useChartStore.ts
+    useCrosshairStore.ts
+    useDrawingStore.ts
+    useReplayStore.ts
+    useSettingsStore.ts
+    useStrategyStore.ts
   utils/
-    constants.ts
-    formatters.ts
-  types/
-    index.ts
+    strategyA/
+    strategyB/
+    strategyORB/
 
 src-tauri/src/
-  commands/
-    analysis.rs
-  ta_engine/
-    bollinger.rs
-    rsi.rs
-    sma.rs
-    ema.rs
-    macd.rs
-    stochastic.rs
-    obv.rs
-    signal.rs
   api_client/
     binance.rs
     yahoo.rs
+    kis.rs
   cache/
-    sqlite.rs
+  commands/
+    analysis.rs
+    search.rs
+    strategy.rs
   models/
-    candle.rs
-    indicator.rs
-    signal.rs
-    params.rs
-    watchlist.rs
-    fundamental.rs
-  lib.rs
-  main.rs
+  ta_engine/
+
+scripts/
+  ux-gate.mjs
+  a11y-audit.mjs
+  a11y-scenario-audit.mjs
+  perf-realtime-sim.mjs
+  perf-watchlist-sim.mjs
+  ux-qa-gate.mjs
+  ux-kpi-remeasure.mjs
+
+docs/
+  UI/
+    ui.html
 ```
 
-## 단축키
+## 자주 쓰는 단축키
 
-- `Cmd/Ctrl + B`: 좌측 패널(워치리스트) 토글
-- `Cmd/Ctrl + ,`: 우측 패널(설정) 토글
-- `Cmd/Ctrl + K`: 심볼 검색 열기
-- `Esc`: 열린 패널/드로어 닫기
+- `Ctrl/Cmd + B`: 관심종목 패널 열기/닫기
+- `Ctrl/Cmd + ,`: 설정 패널 열기/닫기
+- `Ctrl/Cmd + J`: Command Center 열기
+- `Ctrl/Cmd + K` 또는 `Ctrl/Cmd + /`: 심볼 검색 열기
+- `Home`: 차트 맞춤
+- `R`: 바 리플레이 시작/종료
+- `F`: 전체화면 전환
+- `?`: 단축키 도움말 열기
 
-## 실행 방법
+## 참고
 
-### Prerequisites
-
-- Node.js 18+
-- Rust stable (`rustup`)
-
-### Development
-
-```bash
-npm install
-npm run tauri dev
-```
-
-### Build / Check
-
-```bash
-npm run build
-npm run check
-npm run tauri build
-```
-
-## 참고 문서
-
-- 기능 갭 분석: `docs/tradingview-feature-gap-analysis.md`
-- 구현 계획/진도: `docs/tradingview-feature-implementation-plan.md`
-- shadcn/ui 통합 계획: `docs/shadcn-ui-integration-plan.md`
+- UI 시안/프로토타입은 `docs/UI/ui.html`에서 확인할 수 있습니다.
+- README 내용은 현재 저장소 코드 기준으로 정리되어 있으며, 새 전략이나 지표가 추가되면 함께 갱신하는 것을 권장합니다.

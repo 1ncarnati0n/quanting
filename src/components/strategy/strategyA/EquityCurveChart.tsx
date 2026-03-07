@@ -14,6 +14,7 @@ function readPalette() {
     fg: s.getPropertyValue("--chart-foreground").trim() || "#9eb0c8",
     grid: s.getPropertyValue("--chart-grid").trim() || "#1b273b",
     line: s.getPropertyValue("--primary").trim() || "#2f7cff",
+    font: s.getPropertyValue("--font-sans").trim() || "\"Noto Sans KR\", \"Apple SD Gothic Neo\", \"Malgun Gothic\", \"Segoe UI\", sans-serif",
   };
 }
 
@@ -31,7 +32,7 @@ export default function EquityCurveChart({ data }: EquityCurveChartProps) {
       layout: {
         background: { color: palette.bg },
         textColor: palette.fg,
-        fontFamily: "ui-monospace, 'Cascadia Code', monospace",
+        fontFamily: palette.font,
         fontSize: 11,
       },
       grid: {

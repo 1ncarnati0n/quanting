@@ -2,10 +2,8 @@ import { useCallback, useMemo, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
 import MainChart from "./MainChart";
 import CrosshairLegend from "./CrosshairLegend";
-import ChartToolbar from "./ChartToolbar";
 import ChartContextMenu from "./ChartContextMenu";
 import DrawingCanvas from "./DrawingCanvas";
-import DrawingToolbar from "./DrawingToolbar";
 import ReplayControls from "./ReplayControls";
 import SignalZonesOverlay from "./SignalZonesOverlay";
 import VolumeProfileOverlay from "./VolumeProfileOverlay";
@@ -253,9 +251,8 @@ export default function ChartContainer() {
 
   return (
     <div
-      className="chart-workspace relative isolate flex h-full w-full flex-col overflow-hidden rounded-[calc(var(--radius-lg)+0.15rem)] border"
+      className="chart-workspace relative isolate flex h-full w-full flex-col overflow-hidden"
       style={{
-        borderColor: "var(--border)",
         background: "var(--card)",
       }}
     >
@@ -272,8 +269,6 @@ export default function ChartContainer() {
         </div>
       )}
       <CrosshairLegend />
-      {multiChartLayout === 1 && <DrawingToolbar />}
-      <ChartToolbar />
       <ChartContextMenu />
       <ReplayControls />
       {multiChartLayout === 1 && <SignalZonesOverlay chart={chartApi} data={data} />}
@@ -307,7 +302,7 @@ export default function ChartContainer() {
         </div>
       )}
       <div
-        className={multiChartLayout === 1 ? "flex-1 min-h-0 pt-10" : "flex-1 min-h-0 grid gap-1 p-1 pt-10"}
+        className={multiChartLayout === 1 ? "flex-1 min-h-0 pt-4" : "flex-1 min-h-0 grid gap-1 p-1 pt-4"}
         style={
           multiChartLayout === 1
             ? undefined

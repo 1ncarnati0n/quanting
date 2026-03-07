@@ -3,7 +3,6 @@ import { useShallow } from "zustand/react/shallow";
 import { useCrosshairStore } from "../stores/useCrosshairStore";
 import { useSettingsStore } from "../stores/useSettingsStore";
 import { formatPrice } from "../utils/formatters";
-import { COLORS } from "../utils/constants";
 
 const CHART_TYPE_LABELS: Record<string, string> = {
   candlestick: "캔들스틱",
@@ -42,55 +41,49 @@ export default function CrosshairLegend() {
   const indicatorEntries = useMemo(() => Object.entries(indicators), [indicators]);
 
   const hasData = open !== 0 || high !== 0 || low !== 0 || close !== 0;
-  const changeColor = close >= open ? COLORS.candleUp : COLORS.candleDown;
+  const changeColor = close >= open ? "var(--market-up)" : "var(--market-down)";
   const isLineType = chartType === "line" || chartType === "area";
 
   return (
-    <div
-      className="pointer-events-none absolute left-3 top-10 z-10 flex flex-col gap-0.5 rounded px-2 py-1"
-      style={{
-        background: "color-mix(in srgb, var(--background) 80%, transparent)",
-        backdropFilter: "blur(4px)",
-      }}
-    >
+    <div className="chart-crosshair-legend pointer-events-none absolute left-6 top-3 z-10 flex flex-wrap items-center gap-2 rounded-full px-3 py-1.5">
       <div className="ds-type-caption flex items-center gap-2">
-        <span className="font-semibold" style={{ color: "var(--primary)" }}>
+        <span className="font-semibold text-[var(--foreground)]">
           {symbol}
         </span>
-        <span style={{ color: "var(--muted-foreground)" }}>
+        <span className="text-[var(--muted-foreground)]">
           {CHART_TYPE_LABELS[chartType] ?? chartType}
         </span>
       </div>
 
       {hasData && (
-        <div className="ds-type-caption flex flex-wrap items-center gap-x-2 gap-y-0 font-mono">
+        <div className="chart-crosshair-legend__values ds-type-caption flex flex-wrap items-center gap-x-2 gap-y-0">
           {!isLineType && (
             <>
-              <span style={{ color: "var(--muted-foreground)" }}>O</span>
+              <span className="text-[var(--muted-foreground)]">O</span>
               <span style={{ color: changeColor }}>{formatPrice(open, market)}</span>
-              <span style={{ color: "var(--muted-foreground)" }}>H</span>
+              <span className="text-[var(--muted-foreground)]">H</span>
               <span style={{ color: changeColor }}>{formatPrice(high, market)}</span>
-              <span style={{ color: "var(--muted-foreground)" }}>L</span>
+              <span className="text-[var(--muted-foreground)]">L</span>
               <span style={{ color: changeColor }}>{formatPrice(low, market)}</span>
             </>
           )}
-          <span style={{ color: "var(--muted-foreground)" }}>C</span>
+          <span className="text-[var(--muted-foreground)]">C</span>
           <span style={{ color: changeColor }}>{formatPrice(close, market)}</span>
           {volume > 0 && (
             <>
-              <span style={{ color: "var(--muted-foreground)" }}>V</span>
-              <span style={{ color: "var(--foreground)" }}>{compactFormatter.format(volume)}</span>
+              <span className="text-[var(--muted-foreground)]">V</span>
+              <span className="text-[var(--foreground)]">{compactFormatter.format(volume)}</span>
             </>
           )}
         </div>
       )}
 
       {indicatorEntries.length > 0 && (
-        <div className="ds-type-caption flex flex-wrap gap-x-2" style={{ color: "var(--muted-foreground)" }}>
+        <div className="ds-type-caption flex flex-wrap gap-x-2 text-[var(--muted-foreground)]">
           {indicatorEntries.map(([key, val]) => (
             <span key={key}>
               <span className="font-medium uppercase">{key.replace(/-\d+$/, "").replace("-line", "")}</span>{" "}
-              <span className="font-mono" style={{ color: "var(--foreground)" }}>{val}</span>
+              <span className="chart-crosshair-legend__values text-[var(--foreground)]">{val}</span>
             </span>
           ))}
         </div>

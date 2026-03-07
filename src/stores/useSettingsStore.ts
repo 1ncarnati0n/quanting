@@ -179,10 +179,10 @@ const DEFAULT_INDICATORS: IndicatorConfig = {
   anchoredVwap: { enabled: false, anchorTime: null },
   autoFib: { enabled: false, ...INDICATOR_DEFAULTS.autoFib },
   layout: {
-    priceAreaRatio: 0.62,
-    volumeWeight: 1.2,
+    priceAreaRatio: 0.64,
+    volumeWeight: 0.82,
     rsiWeight: 1,
-    macdWeight: 1.2,
+    macdWeight: 1.1,
     stochasticWeight: 1,
     obvWeight: 1,
     atrWeight: 1,

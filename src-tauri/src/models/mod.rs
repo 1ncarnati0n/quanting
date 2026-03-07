@@ -61,4 +61,6 @@ pub struct AnalysisResponse {
     pub auto_fib: Option<AutoFibResult>,
     pub symbol: String,
     pub interval: String,
+    pub data_source: String,
+    pub source_interval: String,
 }

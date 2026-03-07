@@ -116,7 +116,7 @@ export default function MarketHeader({
 
             <div className="mt-3 min-w-0">
               <div className="flex min-w-0 flex-wrap items-end gap-x-3 gap-y-2">
-                <h1 className="text-token-foreground truncate text-[22px] font-semibold leading-none tracking-[-0.035em] sm:text-[28px]">
+                <h1 className="text-token-foreground truncate text-[1.4667rem] font-semibold leading-none tracking-[-0.035em] sm:text-[1.8667rem]">
                   {instrument.primary}
                 </h1>
                 {instrument.secondary && (
@@ -134,7 +134,7 @@ export default function MarketHeader({
           <div className="market-header__price-panel w-full xl:max-w-[22rem]">
             <div className="market-header__price-eyebrow ds-type-caption">Last Price</div>
             <div className="mt-2 flex flex-wrap items-end gap-x-3 gap-y-2">
-              <span className="price-display text-token-foreground font-mono text-[28px] font-semibold tracking-[-0.035em] sm:text-[34px]">
+              <span className="price-display text-token-foreground font-mono text-[1.8667rem] font-semibold tracking-[-0.035em] sm:text-[2.2667rem]">
                 {lastCandle ? formatPrice(lastCandle.close, market) : "-"}
               </span>
               <span className="ds-market-delta ds-type-label font-mono font-semibold">

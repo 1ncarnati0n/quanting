@@ -17,8 +17,9 @@ import {
   CONTROL_CHIP_BUTTON_CLASS,
   CONTROL_CHIP_GROUP_CLASS,
 } from "./patterns/controlTokens";
+import { TIME_RANGE_STORAGE_KEY } from "../utils/timeRange";
 
-const CORE_INTERVALS: readonly Interval[] = ["1d", "1w", "1M"];
+const CORE_INTERVALS: readonly Interval[] = ["1d", "1w", "1M", "1Y"];
 
 export default function IntervalSelector() {
   const { interval, market, setInterval } = useSettingsStore(
@@ -71,12 +72,26 @@ export default function IntervalSelector() {
     }
   }, [intradayActive, intradayMenuOpen]);
 
+  const applyInterval = (nextInterval: Interval) => {
+    if (nextInterval === "1Y") {
+      try {
+        localStorage.setItem(TIME_RANGE_STORAGE_KEY, "all");
+      } catch {}
+      window.dispatchEvent(
+        new CustomEvent("quanting:chart-set-time-range", {
+          detail: { id: "all", range: null },
+        }),
+      );
+    }
+    setInterval(nextInterval);
+  };
+
   const handlePrimaryIntradayClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     if (!primaryIntradayInterval) return;
     event.preventDefault();
     if (!intradayActive) {
       setIntradayMenuOpen(false);
-      setInterval(primaryIntradayInterval);
+      applyInterval(primaryIntradayInterval);
       return;
     }
     setIntradayMenuOpen((prev) => !prev);
@@ -112,7 +127,7 @@ export default function IntervalSelector() {
                     aria-checked={active}
                     data-dropdown-active={active ? "true" : undefined}
                     onSelect={() => {
-                      setInterval(iv);
+                      applyInterval(iv);
                       setIntradayMenuOpen(false);
                     }}
                     className="justify-between"
@@ -134,7 +149,7 @@ export default function IntervalSelector() {
         value={coreIntervals.includes(interval) ? interval : ""}
         onValueChange={(value) => {
           if (!value) return;
-          setInterval(value as Interval);
+          applyInterval(value as Interval);
         }}
       >
         {coreIntervals.map((iv) => (

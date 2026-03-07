@@ -1,3 +1,4 @@
+use chrono::{Datelike, TimeZone, Utc};
 use tauri::State;
 
 use crate::api_client::{BinanceClient, KisClient, YahooClient};
@@ -10,6 +11,29 @@ use crate::ta_engine;
 
 const ANALYSIS_OUTPUT_LIMIT: u32 = 500;
 const MAX_WATCHLIST_ITEMS: usize = 24;
+
+#[derive(Debug, Clone, Copy)]
+enum MarketDataSource {
+    Binance,
+    Yahoo,
+    Kis,
+}
+
+impl MarketDataSource {
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::Binance => "binance",
+            Self::Yahoo => "yahoo",
+            Self::Kis => "kis",
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+struct SourceFetchResult {
+    candles: Vec<Candle>,
+    data_source: MarketDataSource,
+}
 
 #[derive(Debug, Clone)]
 struct IntervalPlan {
@@ -43,7 +67,7 @@ fn native_intervals(market: &MarketType) -> &'static [&'static str] {
     }
 }
 
-fn interval_seconds(interval: &str) -> Option<i64> {
+fn parse_interval_parts(interval: &str) -> Option<(i64, char)> {
     let normalized = interval.trim();
     if normalized.is_empty() {
         return None;
@@ -63,17 +87,26 @@ fn interval_seconds(interval: &str) -> Option<i64> {
     if digits.is_empty() {
         return None;
     }
+
     let value = digits.parse::<i64>().ok()?;
+    let unit = unit?;
     if value <= 0 {
         return None;
     }
 
+    Some((value, unit))
+}
+
+fn interval_seconds(interval: &str) -> Option<i64> {
+    let (value, unit) = parse_interval_parts(interval)?;
+
     match unit {
-        Some('m') => Some(value * 60),
-        Some('h') => Some(value * 3_600),
-        Some('d') => Some(value * 86_400),
-        Some('w') => Some(value * 604_800),
-        Some('M') => Some(value * 2_592_000),
+        'm' => Some(value * 60),
+        'h' => Some(value * 3_600),
+        'd' => Some(value * 86_400),
+        'w' => Some(value * 604_800),
+        'M' => Some(value * 2_592_000),
+        'Y' => Some(value * 31_536_000),
         _ => None,
     }
 }
@@ -89,6 +122,16 @@ fn resolve_interval_plan(interval: &str, market: &MarketType) -> IntervalPlan {
     };
 
     let native = native_intervals(market);
+    if let Some((value, unit)) = parse_interval_parts(&requested) {
+        if unit == 'Y' && native.iter().any(|candidate| *candidate == "1M") {
+            return IntervalPlan {
+                requested: requested.clone(),
+                source: "1M".to_string(),
+                factor: (value.max(1) as u32).saturating_mul(12),
+                needs_resample: true,
+            };
+        }
+    }
     if native.iter().any(|candidate| *candidate == requested) {
         return IntervalPlan {
             requested: requested.clone(),
@@ -160,9 +203,151 @@ fn requested_source_limit(output_limit: u32, plan: &IntervalPlan, market: &Marke
     }
 }
 
+fn is_intraday_source_interval(interval: &str) -> bool {
+    matches!(interval, "1m" | "2m" | "5m" | "15m" | "30m" | "1h")
+}
+
+fn resolve_source_order(market: &MarketType, source_interval: &str) -> Vec<MarketDataSource> {
+    match market {
+        MarketType::Crypto => vec![MarketDataSource::Binance],
+        MarketType::Forex | MarketType::UsStock => vec![MarketDataSource::Yahoo],
+        MarketType::KrStock => {
+            if is_intraday_source_interval(source_interval) {
+                vec![MarketDataSource::Yahoo]
+            } else {
+                vec![MarketDataSource::Kis, MarketDataSource::Yahoo]
+            }
+        }
+    }
+}
+
+async fn fetch_candles_from_source(
+    source: MarketDataSource,
+    symbol: &str,
+    plan: &IntervalPlan,
+    source_limit: u32,
+    binance_client: &BinanceClient,
+    yahoo_client: &YahooClient,
+    kis_client: &KisClient,
+) -> Result<Vec<Candle>, String> {
+    match source {
+        MarketDataSource::Binance => {
+            binance_client
+                .fetch_klines(symbol, &plan.source, source_limit)
+                .await
+        }
+        MarketDataSource::Yahoo => {
+            yahoo_client
+                .fetch_klines(symbol, &plan.source, source_limit)
+                .await
+        }
+        MarketDataSource::Kis => {
+            kis_client
+                .fetch_klines(symbol, &plan.source, source_limit)
+                .await
+        }
+    }
+}
+
+async fn load_source_candles(
+    cache: &CacheDb,
+    cache_key_symbol: &str,
+    symbol: &str,
+    market: &MarketType,
+    plan: &IntervalPlan,
+    source_limit: u32,
+    binance_client: &BinanceClient,
+    yahoo_client: &YahooClient,
+    kis_client: &KisClient,
+) -> Result<SourceFetchResult, String> {
+    let mut errors = Vec::new();
+
+    for source in resolve_source_order(market, &plan.source) {
+        if let Some(cached) = cache.get(cache_key_symbol, &plan.source, source.as_str()) {
+            return Ok(SourceFetchResult {
+                candles: cached,
+                data_source: source,
+            });
+        }
+
+        match fetch_candles_from_source(
+            source,
+            symbol,
+            plan,
+            source_limit,
+            binance_client,
+            yahoo_client,
+            kis_client,
+        )
+        .await
+        {
+            Ok(candles) => {
+                let _ = cache.set(cache_key_symbol, &plan.source, source.as_str(), &candles);
+                return Ok(SourceFetchResult {
+                    candles,
+                    data_source: source,
+                });
+            }
+            Err(error) => errors.push(format!("{}: {}", source.as_str(), error)),
+        }
+    }
+
+    Err(if errors.is_empty() {
+        "데이터 소스를 확인하지 못했습니다.".to_string()
+    } else {
+        errors.join(" | ")
+    })
+}
+
 fn resample_candles(candles: &[Candle], plan: &IntervalPlan) -> Vec<Candle> {
     if !plan.needs_resample || candles.is_empty() {
         return candles.to_vec();
+    }
+
+    if let Some((value, unit)) = parse_interval_parts(&plan.requested) {
+        if unit == 'Y' {
+            let year_span = value.max(1);
+            let mut output: Vec<Candle> = Vec::new();
+            for candle in candles {
+                let Some(timestamp) = Utc.timestamp_opt(candle.time, 0).single() else {
+                    continue;
+                };
+                let year = i64::from(timestamp.year());
+                let bucket_year = year - ((year - 1970).rem_euclid(year_span));
+                let Some(bucket_start) = Utc
+                    .with_ymd_and_hms(bucket_year as i32, 1, 1, 0, 0, 0)
+                    .single()
+                    .map(|dt| dt.timestamp())
+                else {
+                    continue;
+                };
+
+                if let Some(last) = output.last_mut() {
+                    if last.time == bucket_start {
+                        if candle.high > last.high {
+                            last.high = candle.high;
+                        }
+                        if candle.low < last.low {
+                            last.low = candle.low;
+                        }
+                        last.close = candle.close;
+                        last.volume += candle.volume;
+                        continue;
+                    }
+                }
+
+                output.push(Candle {
+                    time: bucket_start,
+                    open: candle.open,
+                    high: candle.high,
+                    low: candle.low,
+                    close: candle.close,
+                    volume: candle.volume,
+                });
+            }
+
+            return output;
+        }
     }
 
     let Some(bucket_seconds) = interval_seconds(&plan.requested) else {
@@ -213,44 +398,23 @@ pub async fn fetch_analysis(
     let plan = resolve_interval_plan(&params.interval, &params.market);
     let source_limit = requested_source_limit(ANALYSIS_OUTPUT_LIMIT, &plan, &params.market);
 
-    if let Some(cached_source_candles) = cache.get(&cache_key_symbol, &plan.source) {
-        let candles = resample_candles(&cached_source_candles, &plan);
-        let response = ta_engine::analyze(&candles, &params);
-        return Ok(response);
-    }
+    let source_result = load_source_candles(
+        cache.inner(),
+        &cache_key_symbol,
+        &params.symbol,
+        &params.market,
+        &plan,
+        source_limit,
+        binance_client.inner(),
+        yahoo_client.inner(),
+        kis_client.inner(),
+    )
+    .await?;
+    let candles = resample_candles(&source_result.candles, &plan);
 
-    let source_candles = match params.market {
-        MarketType::Crypto => {
-            binance_client
-                .fetch_klines(&params.symbol, &plan.source, source_limit)
-                .await?
-        }
-        MarketType::KrStock => {
-            let is_intraday = matches!(
-                plan.source.as_str(),
-                "1m" | "2m" | "5m" | "15m" | "30m" | "1h"
-            );
-            if is_intraday {
-                yahoo_client
-                    .fetch_klines(&params.symbol, &plan.source, source_limit)
-                    .await?
-            } else {
-                kis_client
-                    .fetch_klines(&params.symbol, &plan.source, source_limit)
-                    .await?
-            }
-        }
-        MarketType::Forex | MarketType::UsStock => {
-            yahoo_client
-                .fetch_klines(&params.symbol, &plan.source, source_limit)
-                .await?
-        }
-    };
-
-    let _ = cache.set(&cache_key_symbol, &plan.source, &source_candles);
-    let candles = resample_candles(&source_candles, &plan);
-
-    let response = ta_engine::analyze(&candles, &params);
+    let mut response = ta_engine::analyze(&candles, &params);
+    response.data_source = source_result.data_source.as_str().to_string();
+    response.source_interval = plan.source.clone();
     Ok(response)
 }
 
@@ -280,44 +444,23 @@ pub async fn fetch_watchlist_snapshots(
         let plan = resolve_interval_plan(&interval, &item.market);
         let source_limit = requested_source_limit(limit as u32, &plan, &item.market);
 
-        let source_candles = if let Some(cached) = cache.get(&cache_key_symbol, &plan.source) {
-            cached
-        } else {
-            let fetched_result = match item.market {
-                MarketType::Crypto => {
-                    binance_client
-                        .fetch_klines(&item.symbol, &plan.source, source_limit)
-                        .await
-                }
-                MarketType::KrStock => {
-                    let is_intraday = matches!(
-                        plan.source.as_str(),
-                        "1m" | "2m" | "5m" | "15m" | "30m" | "1h"
-                    );
-                    if is_intraday {
-                        yahoo_client
-                            .fetch_klines(&item.symbol, &plan.source, source_limit)
-                            .await
-                    } else {
-                        kis_client
-                            .fetch_klines(&item.symbol, &plan.source, source_limit)
-                            .await
-                    }
-                }
-                MarketType::Forex | MarketType::UsStock => {
-                    yahoo_client
-                        .fetch_klines(&item.symbol, &plan.source, source_limit)
-                        .await
-                }
-            };
-            let fetched = match fetched_result {
-                Ok(candles) => candles,
-                Err(_) => continue,
-            };
-            let _ = cache.set(&cache_key_symbol, &plan.source, &fetched);
-            fetched
+        let source_result = match load_source_candles(
+            cache.inner(),
+            &cache_key_symbol,
+            &item.symbol,
+            &item.market,
+            &plan,
+            source_limit,
+            binance_client.inner(),
+            yahoo_client.inner(),
+            kis_client.inner(),
+        )
+        .await
+        {
+            Ok(result) => result,
+            Err(_) => continue,
         };
-        let candles = resample_candles(&source_candles, &plan);
+        let candles = resample_candles(&source_result.candles, &plan);
 
         if candles.len() < 2 {
             continue;
@@ -354,6 +497,8 @@ pub async fn fetch_watchlist_snapshots(
             high,
             low,
             sparkline,
+            data_source: source_result.data_source.as_str().to_string(),
+            source_interval: plan.source.clone(),
         });
     }
 

@@ -14,6 +14,7 @@ export const CRYPTO_INTERVALS = [
   "1d",
   "1w",
   "1M",
+  "1Y",
 ] as const;
 export const STOCK_INTERVALS = [
   "1m",
@@ -28,6 +29,7 @@ export const STOCK_INTERVALS = [
   "1d",
   "1w",
   "1M",
+  "1Y",
 ] as const;
 export type Interval = (typeof CRYPTO_INTERVALS)[number] | (typeof STOCK_INTERVALS)[number];
 
@@ -48,6 +50,7 @@ const INTERVAL_LABELS: Record<Interval, string> = {
   "1d": "일",
   "1w": "주",
   "1M": "월",
+  "1Y": "년",
 };
 
 export function getIntervalLabel(interval: Interval): string {
@@ -70,25 +73,28 @@ export const DEFAULTS = {
 
 // --- Signal & Indicator Colors (theme-independent) ---
 export const COLORS = {
-  bbUpper: "#2563EB",
-  bbMiddle: "#F59E0B",
-  bbLower: "#2563EB",
+  bbUpper: "rgba(255, 152, 0, 0.68)",
+  bbMiddle: "#FF9800",
+  bbLower: "rgba(255, 152, 0, 0.68)",
   rsiLine: "#A78BFA",
   rsiOverbought: "#EF4444",
   rsiOversold: "#22C55E",
-  candleUp: "#22C55E",
-  candleDown: "#EF4444",
+  candleUp: "#089981",
+  candleDown: "#F23645",
+  lineSeries: "#2962FF",
+  areaTop: "rgba(41, 98, 255, 0.28)",
+  areaBottom: "rgba(41, 98, 255, 0.03)",
   // MACD
-  macdLine: "#2563EB",
-  macdSignal: "#EF4444",
-  macdHistUp: "#22C55E",
-  macdHistDown: "#EF4444",
+  macdLine: "#2962FF",
+  macdSignal: "#FF9800",
+  macdHistUp: "rgba(8,153,129,0.52)",
+  macdHistDown: "rgba(242,54,69,0.52)",
   // Stochastic
   stochK: "#F59E0B",
   stochD: "#A78BFA",
   // Volume
-  volumeUp: "rgba(34,197,94,0.5)",
-  volumeDown: "rgba(239,68,68,0.5)",
+  volumeUp: "rgba(8,153,129,0.52)",
+  volumeDown: "rgba(242,54,69,0.52)",
   // Donchian Channels
   donchianUpper: "#0EA5E9",
   donchianMiddle: "#F59E0B",

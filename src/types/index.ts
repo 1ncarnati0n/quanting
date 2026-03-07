@@ -315,6 +315,8 @@ export interface AnalysisResponse {
   autoFib: AutoFibResult | null;
   symbol: string;
   interval: string;
+  dataSource: "binance" | "yahoo" | "kis";
+  sourceInterval: string;
 }
 
 export type MarketType = "crypto" | "usStock" | "krStock" | "forex";
@@ -514,4 +516,6 @@ export interface WatchlistSnapshot {
   high: number;
   low: number;
   sparkline: number[];
+  dataSource: "binance" | "yahoo" | "kis";
+  sourceInterval: string;
 }

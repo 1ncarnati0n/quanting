@@ -8,8 +8,6 @@ interface DashboardTopBarProps {
   activeDockTab: DashboardDockTab;
   onSelectDockTab: (tab: DashboardDockTab) => void;
   onToggleWatchlist: () => void;
-  onToggleDock: () => void;
-  onOpenAlerts: () => void;
   onOpenDisplaySettings: () => void;
 }
 
@@ -40,16 +38,13 @@ export default function DashboardTopBar({
   activeDockTab,
   onSelectDockTab,
   onToggleWatchlist,
-  onToggleDock,
-  onOpenAlerts,
   onOpenDisplaySettings,
 }: DashboardTopBarProps) {
-  const { indicators, priceAlerts, symbol, market } = useSettingsStore(
+  const { indicators, theme, toggleTheme } = useSettingsStore(
     useShallow((state) => ({
       indicators: state.indicators,
-      priceAlerts: state.priceAlerts,
-      symbol: state.symbol,
-      market: state.market,
+      theme: state.theme,
+      toggleTheme: state.toggleTheme,
     })),
   );
 
@@ -63,34 +58,15 @@ export default function DashboardTopBar({
       }, 0),
     [indicators],
   );
-  const activeAlertCount = useMemo(
-    () => priceAlerts.filter((alert) => alert.active && alert.symbol === symbol && alert.market === market).length,
-    [market, priceAlerts, symbol],
-  );
 
   return (
     <header className="dashboard-topbar">
       <div className="dashboard-topbar__left">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={onToggleWatchlist}
-          className="dashboard-topbar__icon-button xl:hidden"
-          aria-label="관심종목 패널 열기"
-          title="관심종목 패널"
-        >
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <rect x="3" y="4" width="18" height="16" rx="2" />
-            <path d="M9 4v16" />
-          </svg>
-        </Button>
-
         <button type="button" className="dashboard-topbar__brand" onClick={onToggleWatchlist}>
           <span className="dashboard-topbar__brand-text">Quanting</span>
         </button>
 
         <nav className="dashboard-topbar__nav" aria-label="대시보드 섹션">
-          <NavButton label="실시간" active />
           <NavButton label="관심종목" active={activeDockTab === "watchlist"} onClick={onToggleWatchlist} />
           <NavButton
             label="차트 분석"
@@ -127,23 +103,33 @@ export default function DashboardTopBar({
           variant="ghost"
           size="icon"
           className="dashboard-topbar__icon-button"
-          onClick={onOpenAlerts}
-          aria-label="가격 알림"
-          title="가격 알림"
+          onClick={toggleTheme}
+          aria-label={theme === "dark" ? "라이트 모드로 전환" : "다크 모드로 전환"}
+          title={theme === "dark" ? "라이트 모드로 전환" : "다크 모드로 전환"}
         >
-          <span className="dashboard-topbar__icon-wrap">
+          {theme === "dark" ? (
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M10.27 21a2 2 0 0 0 3.46 0" />
-              <path d="M3.26 15a1 1 0 0 0 .92 1.5h15.64a1 1 0 0 0 .92-1.5L18 11.59V9a6 6 0 0 0-12 0v2.59L3.26 15Z" />
+              <circle cx="12" cy="12" r="5" />
+              <line x1="12" y1="1" x2="12" y2="3" />
+              <line x1="12" y1="21" x2="12" y2="23" />
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+              <line x1="1" y1="12" x2="3" y2="12" />
+              <line x1="21" y1="12" x2="23" y2="12" />
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
             </svg>
-            {activeAlertCount > 0 ? <span className="dashboard-topbar__icon-dot" /> : null}
-          </span>
+          ) : (
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+            </svg>
+          )}
         </Button>
 
         <Button
           variant="ghost"
           size="icon"
-          className="dashboard-topbar__icon-button hidden xl:inline-flex"
+          className="dashboard-topbar__icon-button"
           onClick={onOpenDisplaySettings}
           aria-label="표시 설정"
           title="표시 설정"
@@ -154,19 +140,6 @@ export default function DashboardTopBar({
           </svg>
         </Button>
 
-        <Button
-          variant="ghost"
-          size="icon"
-          className="dashboard-topbar__icon-button xl:hidden"
-          onClick={onToggleDock}
-          aria-label="우측 패널 열기"
-          title="우측 패널"
-        >
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <rect x="3" y="4" width="18" height="16" rx="2" />
-            <path d="M15 4v16" />
-          </svg>
-        </Button>
       </div>
     </header>
   );

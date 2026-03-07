@@ -38,4 +38,6 @@ pub struct WatchlistSnapshot {
     pub high: f64,
     pub low: f64,
     pub sparkline: Vec<f64>,
+    pub data_source: String,
+    pub source_interval: String,
 }

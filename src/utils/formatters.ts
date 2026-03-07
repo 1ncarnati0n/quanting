@@ -2,11 +2,11 @@ import type { MarketType } from "../types";
 
 export function formatPrice(price: number, market?: MarketType): string {
   if (market === "krStock") {
-    const man = price / 10000;
-    if (man >= 1) {
-      return man.toFixed(2) + "만원";
-    }
-    return "₩" + Math.round(price).toLocaleString("ko-KR");
+    const hasFraction = Math.abs(price % 1) > Number.EPSILON;
+    return `${price.toLocaleString("ko-KR", {
+      minimumFractionDigits: hasFraction ? 2 : 0,
+      maximumFractionDigits: hasFraction ? 2 : 0,
+    })}원`;
   }
   if (market === "usStock") {
     return "$" + price.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });

@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
@@ -12,7 +11,6 @@ import { useSettingsStore, type ChartType, type PriceScaleSettings } from "../..
 import { getIntervalLabel, getSymbolLabel, type Interval } from "../../utils/constants";
 import { formatPrice } from "../../utils/formatters";
 import {
-  formatCompactNumber,
   getInstrumentDisplay,
   getMarketBadgeMeta,
   summarizeCandles,
@@ -22,7 +20,6 @@ import type {
   DashboardDockFocusSection,
   DashboardDockTab,
 } from "./types";
-import type { MarketType } from "../../types";
 
 interface DashboardRightDockProps {
   activeTab: DashboardDockTab;
@@ -50,12 +47,6 @@ type SavedDashboardLayout = {
   chartType: ChartType;
   multiChartLayout: 1 | 2 | 4;
   priceScale: PriceScaleSettings;
-  compare: {
-    enabled: boolean;
-    symbol: string;
-    market: MarketType;
-    normalize: boolean;
-  };
   layout: {
     priceAreaRatio: number;
   };
@@ -100,25 +91,6 @@ const PRESET_LABELS: Record<IndicatorPresetId, { title: string; description: str
   },
 };
 
-function SnapshotRow({
-  label,
-  value,
-  accent,
-}: {
-  label: string;
-  value: string;
-  accent?: string;
-}) {
-  return (
-    <div className="dashboard-dock__snapshot-row">
-      <span className="dashboard-dock__snapshot-label">{label}</span>
-      <strong className="dashboard-dock__snapshot-value" style={accent ? { color: accent } : undefined}>
-        {value}
-      </strong>
-    </div>
-  );
-}
-
 function PresetCard({
   title,
   description,
@@ -154,7 +126,7 @@ function DockSection({
       className={`dashboard-dock__section border-t px-5 py-4 ${highlighted ? "is-highlighted" : ""}`}
       style={{ borderColor: "var(--border)" }}
     >
-      <div className="mb-3 text-[12px] font-semibold text-[var(--foreground)]">{title}</div>
+      <div className="mb-3 text-[0.8rem] font-semibold text-[var(--foreground)]">{title}</div>
       <div className="space-y-3">{children}</div>
     </section>
   );
@@ -186,13 +158,6 @@ function formatSavedTime(savedAt: number | null): string {
   }
 }
 
-function getCompareSuggestions(market: MarketType): string[] {
-  if (market === "crypto") return ["BTCUSDT", "ETHUSDT", "SOLUSDT"];
-  if (market === "krStock") return ["A005930", "A000660", "A035420"];
-  if (market === "forex") return ["USDKRW=X", "EURKRW=X", "JPYKRW=X"];
-  return ["SPY", "QQQ", "NVDA"];
-}
-
 export default function DashboardRightDock({
   activeTab,
   focusRequest,
@@ -206,7 +171,6 @@ export default function DashboardRightDock({
     theme,
     chartType,
     priceScale,
-    compare,
     multiChartLayout,
     indicators,
     priceAlerts,
@@ -215,7 +179,6 @@ export default function DashboardRightDock({
     setIndicator,
     setChartType,
     setPriceScale,
-    setCompare,
     setMultiChartLayout,
     addPriceAlert,
     removePriceAlert,
@@ -228,7 +191,6 @@ export default function DashboardRightDock({
       theme: state.theme,
       chartType: state.chartType,
       priceScale: state.priceScale,
-      compare: state.compare,
       multiChartLayout: state.multiChartLayout,
       indicators: state.indicators,
       priceAlerts: state.priceAlerts,
@@ -237,7 +199,6 @@ export default function DashboardRightDock({
       setIndicator: state.setIndicator,
       setChartType: state.setChartType,
       setPriceScale: state.setPriceScale,
-      setCompare: state.setCompare,
       setMultiChartLayout: state.setMultiChartLayout,
       addPriceAlert: state.addPriceAlert,
       removePriceAlert: state.removePriceAlert,
@@ -256,13 +217,12 @@ export default function DashboardRightDock({
   const [highlightedSection, setHighlightedSection] = useState<DashboardDockFocusSection | null>(null);
   const presetSectionRef = useRef<HTMLElement | null>(null);
   const alertSectionRef = useRef<HTMLElement | null>(null);
-  const compareSectionRef = useRef<HTMLElement | null>(null);
 
   const symbolLabel = getSymbolLabel(symbol);
   const instrument = getInstrumentDisplay(symbol, symbolLabel, market);
   const marketBadge = getMarketBadgeMeta(market);
   const candles = data?.candles ?? [];
-  const { lastCandle, high, low, change, changePct } = useMemo(() => summarizeCandles(candles), [candles]);
+  const { lastCandle, change, changePct } = useMemo(() => summarizeCandles(candles), [candles]);
   const changeColor = change >= 0 ? "var(--market-up)" : "var(--market-down)";
   const enabledIndicatorCount = useMemo(
     () =>
@@ -278,7 +238,6 @@ export default function DashboardRightDock({
     () => priceAlerts.filter((alert) => alert.symbol === symbol && alert.market === market),
     [market, priceAlerts, symbol],
   );
-  const compareSuggestions = useMemo(() => getCompareSuggestions(compare.market), [compare.market]);
 
   useEffect(() => {
     if (!notice) return undefined;
@@ -291,7 +250,6 @@ export default function DashboardRightDock({
     const targetMap: Record<DashboardDockFocusSection, HTMLElement | null> = {
       presets: presetSectionRef.current,
       alerts: alertSectionRef.current,
-      compare: compareSectionRef.current,
     };
     const target = targetMap[focusRequest.section];
     if (!target) return undefined;
@@ -386,7 +344,6 @@ export default function DashboardRightDock({
       chartType,
       multiChartLayout,
       priceScale,
-      compare,
       layout: {
         priceAreaRatio: indicators.layout.priceAreaRatio,
       },
@@ -432,7 +389,6 @@ export default function DashboardRightDock({
       store.setChartType(saved.chartType);
       store.setMultiChartLayout(saved.multiChartLayout);
       store.setPriceScale(saved.priceScale);
-      store.setCompare(saved.compare);
       store.setIndicator("layout", saved.layout);
 
       (Object.entries(saved.indicators) as Array<[CoreIndicatorKey, boolean]>).forEach(([key, enabled]) => {
@@ -443,11 +399,6 @@ export default function DashboardRightDock({
     } catch {
       announce("저장된 구성을 읽지 못했습니다.");
     }
-  };
-
-  const applyCompareOverlay = () => {
-    setCompare({ enabled: true });
-    announce(`${compare.symbol} 비교 오버레이를 적용했습니다.`);
   };
 
   const addRelativeAlert = (condition: "above" | "below", ratio: number) => {
@@ -469,7 +420,7 @@ export default function DashboardRightDock({
       style={{ background: "var(--panel-fill)" }}
     >
       <div className="dashboard-dock__header flex h-12 items-center justify-between border-b px-5" style={{ borderColor: "var(--border)" }}>
-        <div className="text-[15px] font-semibold text-[var(--foreground)]">
+        <div className="text-[1rem] font-semibold text-[var(--foreground)]">
           {activeTab === "watchlist" ? "관심종목" : "분석 패널"}
         </div>
         {onClose ? (
@@ -487,7 +438,7 @@ export default function DashboardRightDock({
             <div className="min-w-0">
               <div className="flex items-center gap-2">
                 <span
-                  className="inline-flex rounded-[6px] px-2 py-0.5 text-[11px] font-semibold"
+                  className="inline-flex rounded-[6px] px-2 py-0.5 text-[0.7333rem] font-semibold"
                   style={{
                     background: `color-mix(in srgb, ${marketBadge.color} 14%, var(--panel-control-fill))`,
                     color: marketBadge.color,
@@ -495,10 +446,10 @@ export default function DashboardRightDock({
                 >
                   {marketBadge.label}
                 </span>
-                <span className="text-[11px] text-[var(--muted-foreground)]">
+                <span className="text-[0.7333rem] text-[var(--muted-foreground)]">
                   {getIntervalLabel(interval as Interval)}
                 </span>
-                <span className="inline-flex items-center gap-1 text-[11px] text-[var(--muted-foreground)]">
+                <span className="inline-flex items-center gap-1 text-[0.7333rem] text-[var(--muted-foreground)]">
                   <span
                     className="h-1.5 w-1.5 rounded-full"
                     style={{ background: isLoading ? "var(--warning)" : "var(--market-up)" }}
@@ -506,30 +457,19 @@ export default function DashboardRightDock({
                   {isLoading ? "Sync" : "Live"}
                 </span>
               </div>
-              <div className="mt-1.5 text-[18px] font-semibold tracking-[-0.02em] text-[var(--foreground)]">{instrument.primary}</div>
-              <div className="mt-0.5 text-[12px] text-[var(--muted-foreground)]">
+              <div className="mt-1.5 text-[1.2rem] font-semibold tracking-[-0.02em] text-[var(--foreground)]">{instrument.primary}</div>
+              <div className="mt-0.5 text-[0.8rem] text-[var(--muted-foreground)]">
                 {instrument.secondary ?? symbol}
               </div>
             </div>
             <div className="text-right">
-              <div className="text-[28px] font-semibold leading-none tracking-[-0.04em] text-[var(--foreground)]">
+              <div className="text-[1.8667rem] font-semibold leading-none tracking-[-0.04em] text-[var(--foreground)]">
                 {lastCandle ? formatPrice(lastCandle.close, market) : "-"}
               </div>
-              <div className="mt-1 text-[12px] font-medium" style={{ color: changeColor }}>
+              <div className="mt-1 text-[0.8rem] font-medium" style={{ color: changeColor }}>
                 {lastCandle ? `${change >= 0 ? "+" : ""}${changePct.toFixed(2)}%` : "대기중"}
               </div>
             </div>
-          </div>
-
-          <div className="dashboard-dock__snapshot mt-3">
-            <SnapshotRow label="고가" value={high !== null ? formatPrice(high, market) : "-"} />
-            <SnapshotRow label="저가" value={low !== null ? formatPrice(low, market) : "-"} />
-            <SnapshotRow
-              label="변동"
-              value={lastCandle ? `${change >= 0 ? "+" : ""}${formatPrice(Math.abs(change), market)}` : "-"}
-              accent={changeColor}
-            />
-            <SnapshotRow label="거래량" value={formatCompactNumber(lastCandle?.volume ?? null)} />
           </div>
         </div>
       ) : null}
@@ -600,8 +540,8 @@ export default function DashboardRightDock({
                       }}
                     >
                       <div className="min-w-0">
-                        <div className="text-[13px] font-semibold text-[var(--foreground)]">{item.label}</div>
-                        <div className="text-[12px] text-[var(--muted-foreground)]">{item.description}</div>
+                        <div className="text-[0.8667rem] font-semibold text-[var(--foreground)]">{item.label}</div>
+                        <div className="text-[0.8rem] text-[var(--muted-foreground)]">{item.description}</div>
                       </div>
                       <Switch checked={indicators[item.key].enabled} onCheckedChange={() => toggleIndicator(item.key)} />
                     </div>
@@ -633,10 +573,10 @@ export default function DashboardRightDock({
                   {scopedAlerts.slice(0, 4).map((alert) => (
                     <div key={alert.id} className="dashboard-dock__alert-row">
                       <div>
-                        <div className="text-[13px] font-semibold text-[var(--foreground)]">
+                        <div className="text-[0.8667rem] font-semibold text-[var(--foreground)]">
                           {alert.condition === "above" ? "상향 도달" : "하향 도달"}
                         </div>
-                        <div className="text-[12px] text-[var(--muted-foreground)]">
+                        <div className="text-[0.8rem] text-[var(--muted-foreground)]">
                           {formatPrice(alert.price, market)}
                         </div>
                       </div>
@@ -758,7 +698,7 @@ export default function DashboardRightDock({
                 </div>
 
                 <div>
-                  <div className="mb-2 flex items-center justify-between text-[12px] text-[var(--muted-foreground)]">
+                  <div className="mb-2 flex items-center justify-between text-[0.8rem] text-[var(--muted-foreground)]">
                     <span>가격 영역 높이</span>
                     <span className="text-[var(--foreground)]">
                       {Math.round(indicators.layout.priceAreaRatio * 100)}%
@@ -775,11 +715,7 @@ export default function DashboardRightDock({
                 </div>
               </DockSection>
 
-              <DockSection
-                title="가격 축 · 비교"
-                sectionRef={compareSectionRef}
-                highlighted={highlightedSection === "compare"}
-              >
+              <DockSection title="가격 축">
                 <div className="grid grid-cols-2 gap-2">
                   <SegmentButton active={priceScale.mode === "normal"} activeTone="accent" onClick={() => setPriceScale({ mode: "normal" })}>
                     기본 축
@@ -796,77 +732,10 @@ export default function DashboardRightDock({
 
                 <div className="flex items-center justify-between rounded-[10px] border px-3 py-2.5" style={{ borderColor: "var(--border)", background: "var(--panel-control-fill)" }}>
                   <div>
-                    <div className="text-[13px] font-semibold text-[var(--foreground)]">자동 스케일</div>
-                    <div className="text-[12px] text-[var(--muted-foreground)]">가격 변동에 맞춰 축 자동 조정</div>
+                    <div className="text-[0.8667rem] font-semibold text-[var(--foreground)]">자동 스케일</div>
+                    <div className="text-[0.8rem] text-[var(--muted-foreground)]">가격 변동에 맞춰 축 자동 조정</div>
                   </div>
                   <Switch checked={priceScale.autoScale} onCheckedChange={(checked) => setPriceScale({ autoScale: checked })} />
-                </div>
-
-                <div className="flex items-center justify-between rounded-[10px] border px-3 py-2.5" style={{ borderColor: "var(--border)", background: "var(--panel-control-fill)" }}>
-                  <div>
-                    <div className="text-[13px] font-semibold text-[var(--foreground)]">비교 오버레이</div>
-                    <div className="text-[12px] text-[var(--muted-foreground)]">다른 심볼을 현재 차트 위에 겹쳐 표시</div>
-                  </div>
-                  <Switch checked={compare.enabled} onCheckedChange={(checked) => setCompare({ enabled: checked })} />
-                </div>
-
-                <div className="flex items-center justify-between rounded-[10px] border px-3 py-2.5" style={{ borderColor: "var(--border)", background: "var(--panel-control-fill)" }}>
-                  <div>
-                    <div className="text-[13px] font-semibold text-[var(--foreground)]">정규화 비교</div>
-                    <div className="text-[12px] text-[var(--muted-foreground)]">비교 심볼을 같은 기준선으로 환산</div>
-                  </div>
-                  <Switch checked={compare.normalize} onCheckedChange={(checked) => setCompare({ normalize: checked })} />
-                </div>
-
-                <Input
-                  type="text"
-                  size="sm"
-                  value={compare.symbol}
-                  onChange={(event) => setCompare({ symbol: event.target.value.toUpperCase() })}
-                  placeholder="비교 심볼"
-                  className="font-medium"
-                />
-
-                <div className="grid grid-cols-4 gap-2">
-                  {([
-                    { value: "usStock" as const, label: "US" },
-                    { value: "krStock" as const, label: "KR" },
-                    { value: "crypto" as const, label: "코인" },
-                    { value: "forex" as const, label: "FX" },
-                  ] as const).map((option) => (
-                    <SegmentButton
-                      key={option.value}
-                      size="sm"
-                      inactiveSurface="card"
-                      activeTone="accent"
-                      active={compare.market === option.value}
-                      onClick={() => setCompare({ market: option.value })}
-                    >
-                      {option.label}
-                    </SegmentButton>
-                  ))}
-                </div>
-
-                <div className="dashboard-dock__quick-symbols">
-                  {compareSuggestions.map((nextSymbol) => (
-                    <button
-                      key={nextSymbol}
-                      type="button"
-                      className={`dashboard-dock__quick-symbol ${compare.symbol === nextSymbol ? "is-active" : ""}`}
-                      onClick={() => setCompare({ symbol: nextSymbol })}
-                    >
-                      {nextSymbol}
-                    </button>
-                  ))}
-                </div>
-
-                <div className="grid grid-cols-2 gap-2">
-                  <Button variant="default" className="justify-center" onClick={applyCompareOverlay}>
-                    비교 적용
-                  </Button>
-                  <Button variant="secondary" className="justify-center" onClick={() => setCompare({ enabled: false })}>
-                    비교 해제
-                  </Button>
                 </div>
               </DockSection>
 

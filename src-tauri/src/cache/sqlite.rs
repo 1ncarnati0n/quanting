@@ -26,9 +26,9 @@ impl CacheDb {
         })
     }
 
-    pub fn get(&self, symbol: &str, interval: &str) -> Option<Vec<Candle>> {
+    pub fn get(&self, symbol: &str, interval: &str, source: &str) -> Option<Vec<Candle>> {
         let conn = self.conn.lock().ok()?;
-        let key = format!("{}:{}", symbol, interval);
+        let key = format!("{}:{}:{}", symbol, source, interval);
         let ttl = Self::ttl_seconds(interval);
         let now = chrono::Utc::now().timestamp();
 
@@ -46,9 +46,9 @@ impl CacheDb {
         }
     }
 
-    pub fn set(&self, symbol: &str, interval: &str, candles: &[Candle]) -> Result<(), String> {
+    pub fn set(&self, symbol: &str, interval: &str, source: &str, candles: &[Candle]) -> Result<(), String> {
         let conn = self.conn.lock().map_err(|e| e.to_string())?;
-        let key = format!("{}:{}", symbol, interval);
+        let key = format!("{}:{}:{}", symbol, source, interval);
         let data = serde_json::to_string(candles).map_err(|e| e.to_string())?;
         let now = chrono::Utc::now().timestamp();
 
@@ -62,30 +62,17 @@ impl CacheDb {
     }
 
     fn ttl_seconds(interval: &str) -> i64 {
-        if interval == "1M" {
-            return 2_592_000;
-        }
-
-        let mut digits = String::new();
-        let mut unit: Option<char> = None;
-        for ch in interval.chars() {
-            if ch.is_ascii_digit() {
-                digits.push(ch);
-            } else {
-                unit = Some(ch);
-                break;
+        match interval {
+            "1d" => 900,
+            "1w" => 3_600,
+            "1M" => 21_600,
+            _ => {
+                if interval.ends_with('m') || interval.ends_with('h') {
+                    30
+                } else {
+                    3_600
+                }
             }
         }
-
-        let value = digits.parse::<i64>().ok().unwrap_or(0);
-        let seconds = match unit {
-            Some('m') if value > 0 => value * 60,
-            Some('h') if value > 0 => value * 3_600,
-            Some('d') if value > 0 => value * 86_400,
-            Some('w') if value > 0 => value * 604_800,
-            _ => 3_600,
-        };
-
-        seconds.clamp(60, 2_592_000)
     }
 }

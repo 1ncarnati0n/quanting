@@ -23,7 +23,6 @@ import {
   MA_COLORS,
 } from "../utils/constants";
 import { formatPrice } from "../utils/formatters";
-import { DEFAULTS } from "../utils/constants";
 import {
   buildTimeRangeDetail,
   readSavedTimeRangeId,
@@ -37,9 +36,13 @@ import {
 } from "../stores/useSettingsStore";
 import { useCrosshairStore } from "../stores/useCrosshairStore";
 import { useReplayStore } from "../stores/useReplayStore";
-import { fetchAnalysis } from "../services/tauriApi";
+import { remToPx } from "../utils/typography";
 import { calculateRvol } from "../utils/rvol";
 import { computeIndicatorBandLayout } from "../utils/indicatorBandLayout";
+import {
+  LOWER_INDICATOR_LAYOUT_OPTIONS,
+  getActiveLowerIndicatorPaneConfigs,
+} from "../utils/lowerIndicatorPanes";
 
 const SIGNAL_MARKERS: Record<
   SignalType,
@@ -145,29 +148,52 @@ function clipByTime<T extends { time: number }>(items: T[], maxTime: number): T[
   return items.filter((item) => item.time <= maxTime);
 }
 
+function createAxisValueLabel(
+  series: ISeriesApi<SeriesType>,
+  price: number,
+  color: string,
+) {
+  if (!Number.isFinite(price)) return;
+  try {
+    series.createPriceLine({
+      price,
+      color,
+      lineVisible: false,
+      axisLabelVisible: true,
+      title: "",
+    });
+  } catch {}
+}
+
 type ChartPalette = {
   background: string;
   foreground: string;
   grid: string;
   border: string;
+  fontFamily: string;
+  fontSize: number;
 };
 
 function readChartPalette(): ChartPalette {
   if (typeof window === "undefined") {
     return {
-      background: "#0d1421",
-      foreground: "#9eb0c8",
-      grid: "#1b273b",
-      border: "#2a3a56",
+      background: "#131722",
+      foreground: "#B2B5BE",
+      grid: "#2A2E39",
+      border: "#2A2E39",
+      fontFamily: "\"Noto Sans KR\", \"Apple SD Gothic Neo\", \"Malgun Gothic\", \"Segoe UI\", sans-serif",
+      fontSize: remToPx(0.8),
     };
   }
   const styles = window.getComputedStyle(document.documentElement);
   const value = (name: string, fallback: string) => styles.getPropertyValue(name).trim() || fallback;
   return {
-    background: value("--chart-bg", "#0d1421"),
-    foreground: value("--chart-foreground", "#9eb0c8"),
-    grid: value("--chart-grid", "#1b273b"),
-    border: value("--chart-border", "#2a3a56"),
+    background: value("--chart-bg", "#131722"),
+    foreground: value("--chart-foreground", "#B2B5BE"),
+    grid: value("--chart-grid", "#2A2E39"),
+    border: value("--chart-border", "#2A2E39"),
+    fontFamily: value("--font-sans", "\"Noto Sans KR\", \"Apple SD Gothic Neo\", \"Malgun Gothic\", \"Segoe UI\", sans-serif"),
+    fontSize: remToPx(0.8),
   };
 }
 
@@ -185,7 +211,6 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
   const bbLowerRef = useRef<ISeriesApi<"Line"> | null>(null);
   const markersPluginRef = useRef<ISeriesMarkersPluginApi<Time> | null>(null);
   const dynamicSeriesRef = useRef<Map<string, ISeriesApi<SeriesType>>>(new Map());
-  const compareSeriesRef = useRef<ISeriesApi<"Line"> | null>(null);
   const alertLinesRef = useRef<IPriceLine[]>([]);
   const resizeRafRef = useRef<number | null>(null);
   const prevDataScopeRef = useRef<string | null>(null);
@@ -201,7 +226,6 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
   const market = useSettingsStore((s) => s.market);
   const indicators = useSettingsStore((s) => s.indicators);
   const priceScale = useSettingsStore((s) => s.priceScale);
-  const compare = useSettingsStore((s) => s.compare);
   const priceAlerts = useSettingsStore((s) => s.priceAlerts);
   const replayEnabled = useReplayStore((s) => s.enabled);
   const replayIndex = useReplayStore((s) => s.currentIndex);
@@ -274,125 +298,46 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
   const applyIndicatorScaleLayout = useCallback(() => {
     if (!chartRef.current) return;
     const chart = chartRef.current;
+    const bandConfigs = getActiveLowerIndicatorPaneConfigs(indicators);
 
-    const bandConfigs: { id: string; weight: number }[] = [];
-    if (indicators.volume.enabled) {
-      bandConfigs.push({ id: "volume", weight: Math.max(0.2, indicators.layout.volumeWeight) });
-    }
-    if (indicators.rsi.enabled) {
-      bandConfigs.push({ id: "rsi", weight: Math.max(0.2, indicators.layout.rsiWeight) });
-    }
-    if (indicators.macd.enabled) {
-      bandConfigs.push({ id: "macd", weight: Math.max(0.2, indicators.layout.macdWeight) });
-    }
-    if (indicators.stochastic.enabled) {
-      bandConfigs.push({ id: "stoch", weight: Math.max(0.2, indicators.layout.stochasticWeight) });
-    }
-    if (indicators.obv.enabled) {
-      bandConfigs.push({ id: "obv", weight: Math.max(0.2, indicators.layout.obvWeight) });
-    }
-    if (indicators.atr.enabled) {
-      bandConfigs.push({ id: "atr", weight: Math.max(0.2, indicators.layout.atrWeight) });
-    }
-    if (indicators.mfi.enabled) {
-      bandConfigs.push({ id: "mfi", weight: Math.max(0.2, indicators.layout.mfiWeight) });
-    }
-    if (indicators.cmf.enabled) {
-      bandConfigs.push({ id: "cmf", weight: Math.max(0.2, indicators.layout.cmfWeight) });
-    }
-    if (indicators.choppiness.enabled) {
-      bandConfigs.push({ id: "chop", weight: Math.max(0.2, indicators.layout.chopWeight) });
-    }
-    if (indicators.williamsR.enabled) {
-      bandConfigs.push({ id: "willr", weight: Math.max(0.2, indicators.layout.willrWeight) });
-    }
-    if (indicators.adx.enabled) {
-      bandConfigs.push({ id: "adx", weight: Math.max(0.2, indicators.layout.adxWeight) });
-    }
-    if (indicators.cvd.enabled) {
-      bandConfigs.push({ id: "cvd", weight: Math.max(0.2, indicators.layout.cvdWeight) });
-    }
-    if (indicators.rvol.enabled) {
-      bandConfigs.push({ id: "rvol", weight: Math.max(0.2, indicators.layout.rvolWeight) });
-    }
-    if (indicators.stc.enabled) {
-      bandConfigs.push({ id: "stc", weight: Math.max(0.2, indicators.layout.stcWeight) });
-    }
+    let mainBottomMargin = 0.03;
 
     if (bandConfigs.length === 0) {
       chart.priceScale("right").applyOptions({
-        scaleMargins: { top: MAIN_SCALE_TOP_MARGIN, bottom: 0.03 },
+        scaleMargins: { top: MAIN_SCALE_TOP_MARGIN, bottom: mainBottomMargin },
       });
-      return;
-    }
+    } else {
+      const paneLayout = computeIndicatorBandLayout(
+        bandConfigs,
+        indicators.layout.priceAreaRatio,
+        LOWER_INDICATOR_LAYOUT_OPTIONS,
+      );
 
-    const paneLayout = computeIndicatorBandLayout(
-      bandConfigs,
-      indicators.layout.priceAreaRatio,
-      {
-        minMainRegionTop: 0.35,
-        maxMainRegionTop: 0.85,
-        splitGap: 0.006,
-        oscBottomMargin: 0.02,
-        // Prevent pane collisions when many oscillators are enabled.
-        minBandHeight: 0.028,
-      },
-    );
-
-    if (!Number.isFinite(paneLayout.mainBottomMargin)) {
-      chart.priceScale("right").applyOptions({
-        scaleMargins: { top: MAIN_SCALE_TOP_MARGIN, bottom: 0.03 },
-      });
-      return;
-    }
-
-    chart.priceScale("right").applyOptions({
-      scaleMargins: {
-        top: MAIN_SCALE_TOP_MARGIN,
-        bottom: paneLayout.mainBottomMargin,
-      },
-    });
-
-    paneLayout.bands.forEach((band) => {
-      if (!Number.isFinite(band.top) || !Number.isFinite(band.height)) return;
-      const bottom = Math.max(0.001, 1 - (band.top + band.height));
-      try {
-        chart.priceScale(band.id).applyOptions({
-          scaleMargins: { top: band.top, bottom },
+      if (!Number.isFinite(paneLayout.mainBottomMargin)) {
+        chart.priceScale("right").applyOptions({
+          scaleMargins: { top: MAIN_SCALE_TOP_MARGIN, bottom: mainBottomMargin },
         });
-      } catch {}
-    });
-  }, [
-    indicators.layout.macdWeight,
-    indicators.layout.obvWeight,
-    indicators.layout.priceAreaRatio,
-    indicators.layout.rsiWeight,
-    indicators.layout.stochasticWeight,
-    indicators.layout.volumeWeight,
-    indicators.layout.atrWeight,
-    indicators.layout.mfiWeight,
-    indicators.layout.cmfWeight,
-    indicators.layout.chopWeight,
-    indicators.layout.willrWeight,
-    indicators.layout.adxWeight,
-    indicators.layout.cvdWeight,
-    indicators.layout.rvolWeight,
-    indicators.layout.stcWeight,
-    indicators.atr.enabled,
-    indicators.macd.enabled,
-    indicators.obv.enabled,
-    indicators.rsi.enabled,
-    indicators.stochastic.enabled,
-    indicators.volume.enabled,
-    indicators.mfi.enabled,
-    indicators.cmf.enabled,
-    indicators.choppiness.enabled,
-    indicators.williamsR.enabled,
-    indicators.adx.enabled,
-    indicators.cvd.enabled,
-    indicators.rvol.enabled,
-    indicators.stc.enabled,
-  ]);
+      } else {
+        mainBottomMargin = paneLayout.mainBottomMargin;
+        chart.priceScale("right").applyOptions({
+          scaleMargins: {
+            top: MAIN_SCALE_TOP_MARGIN,
+            bottom: mainBottomMargin,
+          },
+        });
+
+        paneLayout.bands.forEach((band) => {
+          if (!Number.isFinite(band.top) || !Number.isFinite(band.height)) return;
+          const bottom = Math.max(0.001, 1 - (band.top + band.height));
+          try {
+            chart.priceScale(band.id).applyOptions({
+              scaleMargins: { top: band.top, bottom },
+            });
+          } catch {}
+        });
+      }
+    }
+  }, [indicators]);
 
   // Stable refs to break dependency chains — prevents chart recreation on indicator changes
   const applyLayoutRef = useRef(applyIndicatorScaleLayout);
@@ -408,7 +353,6 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
       chartRef.current.remove();
     }
     dynamicSeriesRef.current.clear();
-    compareSeriesRef.current = null;
     alertLinesRef.current = [];
     prevDataScopeRef.current = null;
 
@@ -418,6 +362,8 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
       layout: {
         background: { type: ColorType.Solid, color: palette.background },
         textColor: palette.foreground,
+        fontFamily: palette.fontFamily,
+        fontSize: palette.fontSize,
       },
       grid: {
         vertLines: { color: palette.grid },
@@ -448,16 +394,16 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
 
     if (currentChartType === "line") {
       mainSeries = chart.addSeries(LineSeries, {
-        color: COLORS.candleUp,
+        color: COLORS.lineSeries,
         lineWidth: 2,
         priceLineVisible: true,
         crosshairMarkerVisible: true,
       });
     } else if (currentChartType === "area") {
       mainSeries = chart.addSeries(AreaSeries, {
-        lineColor: COLORS.candleUp,
-        topColor: "rgba(34,197,94,0.4)",
-        bottomColor: "rgba(34,197,94,0.04)",
+        lineColor: COLORS.lineSeries,
+        topColor: COLORS.areaTop,
+        bottomColor: COLORS.areaBottom,
         lineWidth: 2,
         priceLineVisible: true,
         crosshairMarkerVisible: true,
@@ -765,6 +711,8 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
       layout: {
         background: { type: ColorType.Solid, color: palette.background },
         textColor: palette.foreground,
+        fontFamily: palette.fontFamily,
+        fontSize: palette.fontSize,
       },
       grid: {
         vertLines: { color: palette.grid },
@@ -969,6 +917,7 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
         priceScaleId: "volume",
         priceLineVisible: false,
         lastValueVisible: false,
+        priceFormat: { type: "volume" },
       });
       series.setData(
         displayCandles.map((c) => ({
@@ -977,6 +926,14 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
           color: c.close >= c.open ? COLORS.volumeUp : COLORS.volumeDown,
         })),
       );
+      const lastVolumeCandle = displayCandles[displayCandles.length - 1];
+      if (lastVolumeCandle) {
+        createAxisValueLabel(
+          series as ISeriesApi<SeriesType>,
+          lastVolumeCandle.volume,
+          lastVolumeCandle.close >= lastVolumeCandle.open ? COLORS.candleUp : COLORS.candleDown,
+        );
+      }
       dynamicSeriesRef.current.set("volume", series as ISeriesApi<SeriesType>);
     }
 
@@ -1001,6 +958,18 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
                   : COLORS.rvolNeutral,
           })),
         );
+        const lastRvolPoint = rvolData[rvolData.length - 1];
+        if (lastRvolPoint) {
+          createAxisValueLabel(
+            series as ISeriesApi<SeriesType>,
+            lastRvolPoint.value,
+            lastRvolPoint.value >= 1.5
+              ? COLORS.rvolHigh
+              : lastRvolPoint.value < 0.5
+                ? COLORS.rvolLow
+                : COLORS.rvolNeutral,
+          );
+        }
         // baseline at 1.0
         series.createPriceLine({
           price: 1,
@@ -1042,6 +1011,14 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
       rsiSeries.setData(filteredRsi.map((r) => ({ time: r.time as Time, value: r.value })));
       overboughtSeries.setData(filteredRsi.map((r) => ({ time: r.time as Time, value: 70 })));
       oversoldSeries.setData(filteredRsi.map((r) => ({ time: r.time as Time, value: 30 })));
+      const lastRsiPoint = filteredRsi[filteredRsi.length - 1];
+      if (lastRsiPoint) {
+        createAxisValueLabel(
+          rsiSeries as ISeriesApi<SeriesType>,
+          lastRsiPoint.value,
+          COLORS.rsiLine,
+        );
+      }
       dynamicSeriesRef.current.set("rsi-line", rsiSeries as ISeriesApi<SeriesType>);
       dynamicSeriesRef.current.set("rsi-ob", overboughtSeries as ISeriesApi<SeriesType>);
       dynamicSeriesRef.current.set("rsi-os", oversoldSeries as ISeriesApi<SeriesType>);
@@ -1076,6 +1053,24 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
       );
       macdLine.setData(filteredMacd.data.map((p) => ({ time: p.time as Time, value: p.macd })));
       signalLine.setData(filteredMacd.data.map((p) => ({ time: p.time as Time, value: p.signal })));
+      const lastMacdPoint = filteredMacd.data[filteredMacd.data.length - 1];
+      if (lastMacdPoint) {
+        createAxisValueLabel(
+          macdHist as ISeriesApi<SeriesType>,
+          lastMacdPoint.histogram,
+          lastMacdPoint.histogram >= 0 ? COLORS.candleUp : COLORS.candleDown,
+        );
+        createAxisValueLabel(
+          macdLine as ISeriesApi<SeriesType>,
+          lastMacdPoint.macd,
+          COLORS.macdLine,
+        );
+        createAxisValueLabel(
+          signalLine as ISeriesApi<SeriesType>,
+          lastMacdPoint.signal,
+          COLORS.macdSignal,
+        );
+      }
       dynamicSeriesRef.current.set("macd-h", macdHist as ISeriesApi<SeriesType>);
       dynamicSeriesRef.current.set("macd-l", macdLine as ISeriesApi<SeriesType>);
       dynamicSeriesRef.current.set("macd-s", signalLine as ISeriesApi<SeriesType>);
@@ -1118,6 +1113,19 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
       dLine.setData(filteredStochastic.data.map((p) => ({ time: p.time as Time, value: p.d })));
       obLine.setData(filteredStochastic.data.map((p) => ({ time: p.time as Time, value: 80 })));
       osLine.setData(filteredStochastic.data.map((p) => ({ time: p.time as Time, value: 20 })));
+      const lastStochPoint = filteredStochastic.data[filteredStochastic.data.length - 1];
+      if (lastStochPoint) {
+        createAxisValueLabel(
+          kLine as ISeriesApi<SeriesType>,
+          lastStochPoint.k,
+          COLORS.stochK,
+        );
+        createAxisValueLabel(
+          dLine as ISeriesApi<SeriesType>,
+          lastStochPoint.d,
+          COLORS.stochD,
+        );
+      }
       dynamicSeriesRef.current.set("stoch-k", kLine as ISeriesApi<SeriesType>);
       dynamicSeriesRef.current.set("stoch-d", dLine as ISeriesApi<SeriesType>);
       dynamicSeriesRef.current.set("stoch-ob", obLine as ISeriesApi<SeriesType>);
@@ -1133,6 +1141,14 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
         lastValueVisible: false,
       });
       obvLine.setData(filteredObv.data.map((p) => ({ time: p.time as Time, value: p.value })));
+      const lastObvPoint = filteredObv.data[filteredObv.data.length - 1];
+      if (lastObvPoint) {
+        createAxisValueLabel(
+          obvLine as ISeriesApi<SeriesType>,
+          lastObvPoint.value,
+          "#14B8A6",
+        );
+      }
       dynamicSeriesRef.current.set("obv", obvLine as ISeriesApi<SeriesType>);
     }
 
@@ -1160,6 +1176,14 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
         title: "ATR",
       });
       atrLine.setData(filteredAtr.data.map((p) => ({ time: p.time as Time, value: p.value })));
+      const lastAtrPoint = filteredAtr.data[filteredAtr.data.length - 1];
+      if (lastAtrPoint) {
+        createAxisValueLabel(
+          atrLine as ISeriesApi<SeriesType>,
+          lastAtrPoint.value,
+          "#38BDF8",
+        );
+      }
       dynamicSeriesRef.current.set("atr", atrLine as ISeriesApi<SeriesType>);
     }
 
@@ -1373,6 +1397,14 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
       mfiLine.setData(filteredMfi.data.map((p) => ({ time: p.time as Time, value: p.value })));
       mfiOb.setData(filteredMfi.data.map((p) => ({ time: p.time as Time, value: 80 })));
       mfiOs.setData(filteredMfi.data.map((p) => ({ time: p.time as Time, value: 20 })));
+      const lastMfiPoint = filteredMfi.data[filteredMfi.data.length - 1];
+      if (lastMfiPoint) {
+        createAxisValueLabel(
+          mfiLine as ISeriesApi<SeriesType>,
+          lastMfiPoint.value,
+          COLORS.mfiLine,
+        );
+      }
       dynamicSeriesRef.current.set("mfi", mfiLine as ISeriesApi<SeriesType>);
       dynamicSeriesRef.current.set("mfi-ob", mfiOb as ISeriesApi<SeriesType>);
       dynamicSeriesRef.current.set("mfi-os", mfiOs as ISeriesApi<SeriesType>);
@@ -1398,6 +1430,14 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
       });
       cmfLine.setData(filteredCmf.data.map((p) => ({ time: p.time as Time, value: p.value })));
       cmfZero.setData(filteredCmf.data.map((p) => ({ time: p.time as Time, value: 0 })));
+      const lastCmfPoint = filteredCmf.data[filteredCmf.data.length - 1];
+      if (lastCmfPoint) {
+        createAxisValueLabel(
+          cmfLine as ISeriesApi<SeriesType>,
+          lastCmfPoint.value,
+          COLORS.cmfLine,
+        );
+      }
       dynamicSeriesRef.current.set("cmf", cmfLine as ISeriesApi<SeriesType>);
       dynamicSeriesRef.current.set("cmf-zero", cmfZero as ISeriesApi<SeriesType>);
     }
@@ -1432,6 +1472,14 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
       chopLine.setData(filteredChoppiness.data.map((p) => ({ time: p.time as Time, value: p.value })));
       chopHigh.setData(filteredChoppiness.data.map((p) => ({ time: p.time as Time, value: 61.8 })));
       chopLow.setData(filteredChoppiness.data.map((p) => ({ time: p.time as Time, value: 38.2 })));
+      const lastChopPoint = filteredChoppiness.data[filteredChoppiness.data.length - 1];
+      if (lastChopPoint) {
+        createAxisValueLabel(
+          chopLine as ISeriesApi<SeriesType>,
+          lastChopPoint.value,
+          COLORS.chopLine,
+        );
+      }
       dynamicSeriesRef.current.set("chop", chopLine as ISeriesApi<SeriesType>);
       dynamicSeriesRef.current.set("chop-hi", chopHigh as ISeriesApi<SeriesType>);
       dynamicSeriesRef.current.set("chop-lo", chopLow as ISeriesApi<SeriesType>);
@@ -1467,6 +1515,14 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
       willrLine.setData(filteredWillr.data.map((p) => ({ time: p.time as Time, value: p.value })));
       willrOb.setData(filteredWillr.data.map((p) => ({ time: p.time as Time, value: -20 })));
       willrOs.setData(filteredWillr.data.map((p) => ({ time: p.time as Time, value: -80 })));
+      const lastWillrPoint = filteredWillr.data[filteredWillr.data.length - 1];
+      if (lastWillrPoint) {
+        createAxisValueLabel(
+          willrLine as ISeriesApi<SeriesType>,
+          lastWillrPoint.value,
+          COLORS.willrLine,
+        );
+      }
       dynamicSeriesRef.current.set("willr", willrLine as ISeriesApi<SeriesType>);
       dynamicSeriesRef.current.set("willr-ob", willrOb as ISeriesApi<SeriesType>);
       dynamicSeriesRef.current.set("willr-os", willrOs as ISeriesApi<SeriesType>);
@@ -1511,6 +1567,24 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
       plusDiLine.setData(filteredAdx.data.map((p) => ({ time: p.time as Time, value: p.plusDi })));
       minusDiLine.setData(filteredAdx.data.map((p) => ({ time: p.time as Time, value: p.minusDi })));
       adx25.setData(filteredAdx.data.map((p) => ({ time: p.time as Time, value: 25 })));
+      const lastAdxPoint = filteredAdx.data[filteredAdx.data.length - 1];
+      if (lastAdxPoint) {
+        createAxisValueLabel(
+          adxLine as ISeriesApi<SeriesType>,
+          lastAdxPoint.adx,
+          COLORS.adxLine,
+        );
+        createAxisValueLabel(
+          plusDiLine as ISeriesApi<SeriesType>,
+          lastAdxPoint.plusDi,
+          COLORS.adxPlusDi,
+        );
+        createAxisValueLabel(
+          minusDiLine as ISeriesApi<SeriesType>,
+          lastAdxPoint.minusDi,
+          COLORS.adxMinusDi,
+        );
+      }
       dynamicSeriesRef.current.set("adx", adxLine as ISeriesApi<SeriesType>);
       dynamicSeriesRef.current.set("adx-plus", plusDiLine as ISeriesApi<SeriesType>);
       dynamicSeriesRef.current.set("adx-minus", minusDiLine as ISeriesApi<SeriesType>);
@@ -1528,6 +1602,14 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
         title: "CVD",
       });
       cvdLine.setData(filteredCvd.data.map((p) => ({ time: p.time as Time, value: p.value })));
+      const lastCvdPoint = filteredCvd.data[filteredCvd.data.length - 1];
+      if (lastCvdPoint) {
+        createAxisValueLabel(
+          cvdLine as ISeriesApi<SeriesType>,
+          lastCvdPoint.value,
+          COLORS.cvdLine,
+        );
+      }
       dynamicSeriesRef.current.set("cvd", cvdLine as ISeriesApi<SeriesType>);
     }
 
@@ -1561,6 +1643,14 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
       stcLine.setData(filteredStc.data.map((p) => ({ time: p.time as Time, value: p.value })));
       stcHigh.setData(filteredStc.data.map((p) => ({ time: p.time as Time, value: 75 })));
       stcLow.setData(filteredStc.data.map((p) => ({ time: p.time as Time, value: 25 })));
+      const lastStcPoint = filteredStc.data[filteredStc.data.length - 1];
+      if (lastStcPoint) {
+        createAxisValueLabel(
+          stcLine as ISeriesApi<SeriesType>,
+          lastStcPoint.value,
+          COLORS.stcLine,
+        );
+      }
       dynamicSeriesRef.current.set("stc", stcLine as ISeriesApi<SeriesType>);
       dynamicSeriesRef.current.set("stc-hi", stcHigh as ISeriesApi<SeriesType>);
       dynamicSeriesRef.current.set("stc-lo", stcLow as ISeriesApi<SeriesType>);
@@ -1688,11 +1778,12 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
       }
 
       const persistedRange = buildTimeRangeDetail(activeTimeRangeIdRef.current);
+      const shouldFitYearlyScope = data.interval === "1Y";
       if (persistedRange) {
         // 저장된 기간 버튼(예: 1일/5일/1개월)이 있으면 심볼/인터벌 변경 후에도 재적용
         applyRequestedTimeRange(chart, displayCandles, persistedRange);
       } else {
-        if (symbolChanged || !lastVisibleTimeRangeRef.current) {
+        if (shouldFitYearlyScope || symbolChanged || !lastVisibleTimeRangeRef.current) {
           // 심볼 변경 또는 최초 마운트 → 전체 기간 표시
           chart.timeScale().fitContent();
         } else {
@@ -1805,96 +1896,6 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
       } catch {}
     }
   }, [priceAlerts]);
-
-  useEffect(() => {
-    const chart = chartRef.current;
-    if (!chart || !data) return;
-
-    if (compareSeriesRef.current) {
-      try {
-        chart.removeSeries(compareSeriesRef.current);
-      } catch {}
-      compareSeriesRef.current = null;
-    }
-
-    if (!compare.enabled || !compare.symbol) return;
-    if (compare.symbol === data.symbol && compare.market === market) return;
-
-    let cancelled = false;
-
-    const cappedReplayIndex = replayEnabled
-      ? Math.min(Math.max(replayIndex, 0), data.candles.length - 1)
-      : data.candles.length - 1;
-    const replayMaxTime = data.candles[cappedReplayIndex]?.time ?? null;
-
-    fetchAnalysis({
-      symbol: compare.symbol,
-      interval: data.interval,
-      bbPeriod: DEFAULTS.bbPeriod,
-      bbMultiplier: DEFAULTS.bbMultiplier,
-      rsiPeriod: DEFAULTS.rsiPeriod,
-      market: compare.market,
-      smaPeriods: [],
-      emaPeriods: [],
-      macd: null,
-      stochastic: null,
-      showObv: false,
-      signalStrategies: indicators.signalStrategies,
-    })
-      .then((resp) => {
-        if (cancelled || !chartRef.current) return;
-        if (!resp.candles.length) return;
-        const scopedCandles =
-          replayMaxTime !== null
-            ? resp.candles.filter((candle) => candle.time <= replayMaxTime)
-            : resp.candles;
-        if (!scopedCandles.length) return;
-
-        const series = chartRef.current.addSeries(LineSeries, {
-          color: "#94A3B8",
-          lineWidth: 2,
-          priceLineVisible: false,
-          crosshairMarkerVisible: false,
-          title: `비교:${compare.symbol}`,
-          priceScaleId: compare.normalize ? "compare" : "right",
-        });
-
-        const base = scopedCandles[0].close;
-        const compareData = scopedCandles.map((c) => ({
-          time: c.time as Time,
-          value:
-            compare.normalize && Math.abs(base) > Number.EPSILON
-              ? ((c.close - base) / base) * 100
-              : c.close,
-        }));
-        series.setData(compareData);
-
-        if (compare.normalize) {
-          try {
-            chartRef.current.priceScale("compare").applyOptions({
-              visible: false,
-              scaleMargins: { top: 0.03, bottom: 0.03 },
-            });
-          } catch {}
-        }
-
-        compareSeriesRef.current = series;
-      })
-      .catch(() => {});
-
-    return () => {
-      cancelled = true;
-    };
-  }, [
-    compare.enabled,
-    compare.market,
-    compare.normalize,
-    compare.symbol,
-    data,
-    market,
-    replayEnabled,
-    replayIndex,
-  ]);
 
   return <div ref={containerRef} className="h-full w-full" />;
 }

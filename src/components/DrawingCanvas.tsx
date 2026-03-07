@@ -73,12 +73,13 @@ function makeInfiniteLine(
 }
 
 export default function DrawingCanvas({ chart, mainSeries }: DrawingCanvasProps) {
-  const { activeTool, drawings, addDrawing, selectedDrawingId } = useDrawingStore(
+  const { activeTool, drawings, addDrawing, selectedDrawingId, setActiveTool } = useDrawingStore(
     useShallow((state) => ({
       activeTool: state.activeTool,
       drawings: state.drawings,
       addDrawing: state.addDrawing,
       selectedDrawingId: state.selectedDrawingId,
+      setActiveTool: state.setActiveTool,
     })),
   );
   const [pendingPoints, setPendingPoints] = useState<DrawingPoint[]>([]);
@@ -134,6 +135,12 @@ export default function DrawingCanvas({ chart, mainSeries }: DrawingCanvasProps)
 
   const pointerEnabled = activeTool !== "none";
 
+  const finishDrawing = () => {
+    setPendingPoints([]);
+    setHoverPoint(null);
+    setActiveTool("none");
+  };
+
   const handleClick = (e: MouseEvent<HTMLDivElement>) => {
     if (!chart || !mainSeries || activeTool === "none") return;
     const point = readPointFromEvent(e, chart, mainSeries);
@@ -146,6 +153,7 @@ export default function DrawingCanvas({ chart, mainSeries }: DrawingCanvasProps)
         price: point.price,
         color: "#F59E0B",
       });
+      finishDrawing();
       return;
     }
 
@@ -160,6 +168,7 @@ export default function DrawingCanvas({ chart, mainSeries }: DrawingCanvasProps)
         text,
         color: "#38BDF8",
       });
+      finishDrawing();
       return;
     }
 
@@ -179,8 +188,7 @@ export default function DrawingCanvas({ chart, mainSeries }: DrawingCanvasProps)
         color: "#34D399",
         fillColor: "rgba(52,211,153,0.12)",
       });
-      setPendingPoints([]);
-      setHoverPoint(null);
+      finishDrawing();
       return;
     }
 
@@ -200,8 +208,7 @@ export default function DrawingCanvas({ chart, mainSeries }: DrawingCanvasProps)
         color: "#0EA5E9",
         fillColor: "rgba(14,165,233,0.10)",
       });
-      setPendingPoints([]);
-      setHoverPoint(null);
+      finishDrawing();
       return;
     }
 
@@ -218,8 +225,7 @@ export default function DrawingCanvas({ chart, mainSeries }: DrawingCanvasProps)
         points: [p1, p2, p3, p4, point],
         color: "#A855F7",
       });
-      setPendingPoints([]);
-      setHoverPoint(null);
+      finishDrawing();
       return;
     }
 
@@ -241,8 +247,7 @@ export default function DrawingCanvas({ chart, mainSeries }: DrawingCanvasProps)
         color: "#F43F5E",
         fillColor: "rgba(244,63,94,0.10)",
       });
-      setPendingPoints([]);
-      setHoverPoint(null);
+      finishDrawing();
       return;
     }
 
@@ -298,8 +303,7 @@ export default function DrawingCanvas({ chart, mainSeries }: DrawingCanvasProps)
         });
       }
 
-      setPendingPoints([]);
-      setHoverPoint(null);
+      finishDrawing();
     }
   };
 

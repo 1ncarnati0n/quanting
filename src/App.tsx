@@ -1,4 +1,12 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type MouseEvent as ReactMouseEvent,
+} from "react";
 import { useShallow } from "zustand/react/shallow";
 import ChartContainer from "./components/ChartContainer";
 import ShortcutsModal from "./components/ShortcutsModal";
@@ -17,7 +25,6 @@ import type {
   DashboardDockFocusSection,
   DashboardDockTab,
 } from "./components/dashboard/types";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
 
 const BINANCE_STREAM_INTERVALS = new Set([
   "1m",
@@ -37,11 +44,41 @@ const BINANCE_STREAM_INTERVALS = new Set([
   "1M",
 ]);
 
+const DASHBOARD_DOCK_WIDTH_STORAGE_KEY = "quanting-dashboard-dock-width";
+const DEFAULT_DOCK_WIDTH = 360;
+const MIN_DOCK_WIDTH = 304;
+const MAX_DOCK_WIDTH = 560;
+const DASHBOARD_RESIZER_WIDTH = 14;
+const MIN_CHART_PANEL_WIDTH = 720;
+
+function clampDockWidth(value: number, shellWidth?: number) {
+  const shellLimitedMax = shellWidth
+    ? Math.max(MIN_DOCK_WIDTH, shellWidth - MIN_CHART_PANEL_WIDTH - DASHBOARD_RESIZER_WIDTH)
+    : MAX_DOCK_WIDTH;
+  const boundedMax = Math.min(MAX_DOCK_WIDTH, shellLimitedMax);
+  return Math.min(boundedMax, Math.max(MIN_DOCK_WIDTH, value));
+}
+
+function readInitialDockWidth() {
+  try {
+    const raw = localStorage.getItem(DASHBOARD_DOCK_WIDTH_STORAGE_KEY);
+    const parsed = raw ? Number(raw) : DEFAULT_DOCK_WIDTH;
+    if (!Number.isFinite(parsed)) return DEFAULT_DOCK_WIDTH;
+    return clampDockWidth(parsed);
+  } catch {
+    return DEFAULT_DOCK_WIDTH;
+  }
+}
+
 function App() {
   const [activeDockTab, setActiveDockTab] = useState<DashboardDockTab>("indicators");
   const [dockFocusRequest, setDockFocusRequest] = useState<DashboardDockFocusRequest | null>(null);
+  const [dockWidth, setDockWidth] = useState<number>(readInitialDockWidth);
+  const [isDockResizing, setIsDockResizing] = useState(false);
   const pendingRealtimeCandleRef = useRef<Candle | null>(null);
   const realtimeFlushRafRef = useRef<number | null>(null);
+  const dashboardShellRef = useRef<HTMLDivElement | null>(null);
+  const dockResizeCleanupRef = useRef<(() => void) | null>(null);
   const { fetchData, data, updateRealtimeCandle } = useChartStore(
     useShallow((state) => ({
       fetchData: state.fetchData,
@@ -63,8 +100,6 @@ function App() {
     indicators,
     priceAlerts,
     markAlertTriggered,
-    showSettings,
-    setShowSettings,
     theme,
     isFullscreen,
     toggleFullscreen,
@@ -76,8 +111,6 @@ function App() {
       indicators: state.indicators,
       priceAlerts: state.priceAlerts,
       markAlertTriggered: state.markAlertTriggered,
-      showSettings: state.showSettings,
-      setShowSettings: state.setShowSettings,
       theme: state.theme,
       isFullscreen: state.isFullscreen,
       toggleFullscreen: state.toggleFullscreen,
@@ -85,7 +118,7 @@ function App() {
   );
 
   const shellStyle: CSSProperties = {
-    background: "var(--background)",
+    background: "var(--dashboard-chrome-bg)",
   };
 
   // Apply theme class (.dark) using shadcn token pattern
@@ -138,6 +171,27 @@ function App() {
   useEffect(() => {
     fetchData(fetchParams);
   }, [fetchParams, fetchData]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(DASHBOARD_DOCK_WIDTH_STORAGE_KEY, String(dockWidth));
+    } catch { }
+  }, [dockWidth]);
+
+  useEffect(() => {
+    const syncDockWidth = () => {
+      setDockWidth((prev) => clampDockWidth(prev, dashboardShellRef.current?.clientWidth));
+    };
+
+    syncDockWidth();
+    window.addEventListener("resize", syncDockWidth);
+
+    return () => {
+      window.removeEventListener("resize", syncDockWidth);
+      dockResizeCleanupRef.current?.();
+      dockResizeCleanupRef.current = null;
+    };
+  }, []);
 
   // Bar replay tick
   useEffect(() => {
@@ -331,7 +385,6 @@ function App() {
           // Fullscreen exit handled by browser API
           return;
         }
-        setShowSettings(false);
         window.dispatchEvent(new CustomEvent("quanting:close-sidebars"));
         return;
       }
@@ -400,62 +453,73 @@ function App() {
         if (e.repeat) return;
         e.preventDefault();
         setActiveDockTab("watchlist");
-        if (!window.matchMedia("(min-width: 1280px)").matches) {
-          setShowSettings(true);
-        }
       }
       if (isMod && keyLower === ",") {
         if (e.repeat) return;
         e.preventDefault();
         setActiveDockTab("layout");
-        if (!window.matchMedia("(min-width: 1280px)").matches) {
-          const store = useSettingsStore.getState();
-          setShowSettings(!store.showSettings);
-        }
       }
       if (isMod && keyLower === "k") {
         if (e.repeat) return;
         e.preventDefault();
-        setShowSettings(false);
         window.dispatchEvent(new CustomEvent("quanting:open-symbol-search"));
       }
       if (isMod && keyLower === "/") {
         if (e.repeat) return;
         e.preventDefault();
-        setShowSettings(false);
         window.dispatchEvent(new CustomEvent("quanting:open-symbol-search"));
       }
     };
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [setShowSettings, toggleFullscreen]);
+  }, [toggleFullscreen]);
 
   const handleSelectDockTab = (tab: DashboardDockTab) => {
     setActiveDockTab(tab);
-    if (!window.matchMedia("(min-width: 1280px)").matches) {
-      setShowSettings(true);
-    }
   };
 
   const handleToggleWatchlistPanel = () => {
     setActiveDockTab("watchlist");
-    if (!window.matchMedia("(min-width: 1280px)").matches) {
-      setShowSettings(true);
-    }
-  };
-
-  const handleToggleDockPanel = () => {
-    if (window.matchMedia("(min-width: 1280px)").matches) return;
-    setShowSettings(!showSettings);
   };
 
   const openDockSection = (section: DashboardDockFocusSection, tab: DashboardDockTab) => {
     setActiveDockTab(tab);
     setDockFocusRequest({ section, nonce: Date.now() });
-    if (!window.matchMedia("(min-width: 1280px)").matches) {
-      setShowSettings(true);
-    }
+  };
+
+  const resetDockWidth = () => {
+    setDockWidth(clampDockWidth(DEFAULT_DOCK_WIDTH, dashboardShellRef.current?.clientWidth));
+  };
+
+  const handleDockResizeStart = (event: ReactMouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    dockResizeCleanupRef.current?.();
+
+    const startX = event.clientX;
+    const startWidth = dockWidth;
+
+    const onMouseMove = (moveEvent: MouseEvent) => {
+      const delta = moveEvent.clientX - startX;
+      const nextWidth = startWidth - delta;
+      setDockWidth(clampDockWidth(nextWidth, dashboardShellRef.current?.clientWidth));
+    };
+
+    const cleanup = () => {
+      document.removeEventListener("mousemove", onMouseMove);
+      document.removeEventListener("mouseup", cleanup);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+      dockResizeCleanupRef.current = null;
+      setIsDockResizing(false);
+    };
+
+    dockResizeCleanupRef.current = cleanup;
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+    setIsDockResizing(true);
+    document.addEventListener("mousemove", onMouseMove);
+    document.addEventListener("mouseup", cleanup);
   };
 
   // Fullscreen mode: only render chart
@@ -465,6 +529,12 @@ function App() {
         className="fixed inset-0 z-50 flex flex-col"
         style={{ background: "var(--background)" }}
       >
+        <DashboardChartHeader
+          compact
+          onOpenIndicators={() => openDockSection("presets", "indicators")}
+          onOpenAlerts={() => openDockSection("alerts", "indicators")}
+          onOpenDisplaySettings={() => handleSelectDockTab("layout")}
+        />
         <div className="flex-1 min-h-0">
           <ChartContainer />
         </div>
@@ -477,21 +547,19 @@ function App() {
   return (
     <div className="app-shell flex h-full min-h-0 w-full flex-col" style={shellStyle}>
       <div className="workspace-frame relative flex min-h-0 flex-1 w-full gap-[var(--layout-column-gap)]">
-        <div className="dashboard-workspace surface-card surface-card--workspace flex min-h-0 flex-1 flex-col overflow-hidden">
+        <div className="dashboard-workspace flex min-h-0 flex-1 flex-col">
           <DashboardTopBar
             activeDockTab={activeDockTab}
             onSelectDockTab={handleSelectDockTab}
             onToggleWatchlist={handleToggleWatchlistPanel}
-            onToggleDock={handleToggleDockPanel}
-            onOpenAlerts={() => openDockSection("alerts", "indicators")}
             onOpenDisplaySettings={() => handleSelectDockTab("layout")}
           />
 
-          <div className="dashboard-shell flex min-h-0 flex-1">
+          <div ref={dashboardShellRef} className="dashboard-shell flex min-h-0 flex-1">
             <main className="dashboard-shell__main workspace-main flex min-h-0 min-w-0 flex-1 flex-col">
               <DashboardChartHeader
                 onOpenIndicators={() => openDockSection("presets", "indicators")}
-                onOpenCompare={() => openDockSection("compare", "layout")}
+                onOpenAlerts={() => openDockSection("alerts", "indicators")}
                 onOpenDisplaySettings={() => handleSelectDockTab("layout")}
               />
               <div className="workspace-chart dashboard-shell__chart flex flex-1 min-h-0 overflow-hidden bg-[var(--card)]">
@@ -499,7 +567,19 @@ function App() {
               </div>
             </main>
 
-            <aside className="dashboard-shell__dock hidden min-h-0 shrink-0 xl:flex">
+            <button
+              type="button"
+              className={`dashboard-shell__resizer ${isDockResizing ? "is-active" : ""}`}
+              onMouseDown={handleDockResizeStart}
+              onDoubleClick={resetDockWidth}
+              aria-label="우측 사이드바 너비 조절"
+              title="우측 사이드바 너비 조절 (더블클릭: 기본 너비)"
+            />
+
+            <aside
+              className="dashboard-shell__dock flex min-h-0 shrink-0"
+              style={{ width: dockWidth, flexBasis: dockWidth }}
+            >
               <DashboardRightDock
                 embedded
                 activeTab={activeDockTab}
@@ -509,20 +589,6 @@ function App() {
             </aside>
           </div>
         </div>
-
-        <Sheet
-          open={showSettings}
-          onOpenChange={(open) => setShowSettings(open)}
-        >
-          <SheetContent side="right" className="w-[min(24rem,calc(100vw-1rem))]">
-            <DashboardRightDock
-              activeTab={activeDockTab}
-              focusRequest={dockFocusRequest}
-              onTabChange={handleSelectDockTab}
-              onClose={() => setShowSettings(false)}
-            />
-          </SheetContent>
-        </Sheet>
 
         <ShortcutsModal />
         <SymbolSearch hideTrigger />

@@ -36,14 +36,14 @@ pub async fn fetch_multi_symbol_candles(
     for symbol in params.symbols.iter().take(MAX_STRATEGY_SYMBOLS) {
         let cache_key = format!("us:{}", symbol);
 
-        if let Some(cached) = cache.get(&cache_key, yahoo_interval) {
+        if let Some(cached) = cache.get(&cache_key, yahoo_interval, "yahoo") {
             data.insert(symbol.clone(), cached);
             continue;
         }
 
         match yahoo_client.fetch_klines(symbol, yahoo_interval, limit).await {
             Ok(candles) => {
-                let _ = cache.set(&cache_key, yahoo_interval, &candles);
+                let _ = cache.set(&cache_key, yahoo_interval, "yahoo", &candles);
                 data.insert(symbol.clone(), candles);
             }
             Err(e) => {

@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { createChart, LineSeries, type IChartApi, type ISeriesApi } from "lightweight-charts";
 import { useSettingsStore } from "@/stores/useSettingsStore";
+import { remToPx } from "@/utils/typography";
 
 interface ZScoreChartProps {
   data: { time: number; value: number }[];
@@ -31,7 +32,7 @@ export default function ZScoreChart({ data }: ZScoreChartProps) {
         background: { color: palette.bg },
         textColor: palette.fg,
         fontFamily: palette.font,
-        fontSize: 11,
+        fontSize: remToPx(0.7333),
       },
       grid: {
         vertLines: { color: palette.grid },

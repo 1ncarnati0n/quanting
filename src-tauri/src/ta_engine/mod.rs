@@ -289,5 +289,7 @@ pub fn analyze(candles: &[Candle], params: &AnalysisParams) -> AnalysisResponse 
         auto_fib: auto_fib_result,
         symbol: params.symbol.clone(),
         interval: params.interval.clone(),
+        data_source: String::new(),
+        source_interval: params.interval.clone(),
     }
 }

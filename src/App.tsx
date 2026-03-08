@@ -73,6 +73,7 @@ function readInitialDockWidth() {
 
 function App() {
   const [activeDockTab, setActiveDockTab] = useState<DashboardDockTab>("indicators");
+  const [isDockOpen, setIsDockOpen] = useState(true);
   const [dockFocusRequest, setDockFocusRequest] = useState<DashboardDockFocusRequest | null>(null);
   const [dockWidth, setDockWidth] = useState<number>(readInitialDockWidth);
   const [isDockResizing, setIsDockResizing] = useState(false);
@@ -459,6 +460,7 @@ function App() {
         if (e.repeat) return;
         e.preventDefault();
         setActiveDockTab("watchlist");
+        setIsDockOpen(true);
       }
       if (isMod && keyLower === ",") {
         if (e.repeat) return;
@@ -483,14 +485,12 @@ function App() {
 
   const handleSelectDockTab = (tab: DashboardDockTab) => {
     setActiveDockTab(tab);
-  };
-
-  const handleToggleWatchlistPanel = () => {
-    setActiveDockTab("watchlist");
+    setIsDockOpen(true);
   };
 
   const openDockSection = (section: DashboardDockFocusSection, tab: DashboardDockTab) => {
     setActiveDockTab(tab);
+    setIsDockOpen(true);
     setDockFocusRequest({ section, nonce: Date.now() });
   };
 
@@ -555,9 +555,8 @@ function App() {
         <div className="dashboard-workspace flex min-h-0 flex-1 flex-col">
           <DashboardTopBar
             activeDockTab={activeDockTab}
-            onSelectDockTab={handleSelectDockTab}
-            onToggleWatchlist={handleToggleWatchlistPanel}
-            onOpenDisplaySettings={() => window.dispatchEvent(new CustomEvent("quanting:open-chart-display-settings"))}
+            isDockOpen={isDockOpen}
+            onOpenDockTab={handleSelectDockTab}
           />
 
           <div ref={dashboardShellRef} className="dashboard-shell flex min-h-0 flex-1">
@@ -571,26 +570,30 @@ function App() {
               </div>
             </main>
 
-            <button
-              type="button"
-              className={`dashboard-shell__resizer ${isDockResizing ? "is-active" : ""}`}
-              onMouseDown={handleDockResizeStart}
-              onDoubleClick={resetDockWidth}
-              aria-label="우측 사이드바 너비 조절"
-              title="우측 사이드바 너비 조절 (더블클릭: 기본 너비)"
-            />
+            {isDockOpen ? (
+              <>
+                <button
+                  type="button"
+                  className={`dashboard-shell__resizer ${isDockResizing ? "is-active" : ""}`}
+                  onMouseDown={handleDockResizeStart}
+                  onDoubleClick={resetDockWidth}
+                  aria-label="우측 사이드바 너비 조절"
+                  title="우측 사이드바 너비 조절 (더블클릭: 기본 너비)"
+                />
 
-            <aside
-              className="dashboard-shell__dock flex min-h-0 shrink-0"
-              style={{ width: dockWidth, flexBasis: dockWidth }}
-            >
-              <DashboardRightDock
-                embedded
-                activeTab={activeDockTab}
-                focusRequest={dockFocusRequest}
-                onTabChange={handleSelectDockTab}
-              />
-            </aside>
+                <aside
+                  className="dashboard-shell__dock flex min-h-0 shrink-0"
+                  style={{ width: dockWidth, flexBasis: dockWidth }}
+                >
+                  <DashboardRightDock
+                    embedded
+                    activeTab={activeDockTab}
+                    focusRequest={dockFocusRequest}
+                    onClose={() => setIsDockOpen(false)}
+                  />
+                </aside>
+              </>
+            ) : null}
           </div>
         </div>
 

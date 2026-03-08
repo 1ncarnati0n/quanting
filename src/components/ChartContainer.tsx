@@ -370,13 +370,6 @@ export default function ChartContainer() {
                   className={`chart-pane__label${isCompact ? " is-compact" : ""}${isCramped ? " is-cramped" : ""}`}
                   style={{ top: metric.top + 7 }}
                 >
-                  <span className="chart-pane__label-title" style={{ color: pane.color }}>
-                    {pane.label}
-                  </span>
-                  {pane.summary.detail ? (
-                    <span className="chart-pane__label-meta">({pane.summary.detail})</span>
-                  ) : null}
-                  <span className="chart-pane__label-value">{pane.summary.value}</span>
                   <button
                     type="button"
                     className="chart-indicator-close-badge"
@@ -387,8 +380,17 @@ export default function ChartContainer() {
                       handleDisableLowerPane(pane.id);
                     }}
                   >
-                    x
+                    <span aria-hidden="true">&times;</span>
                   </button>
+                  <span className="chart-pane__label-copy">
+                    <span className="chart-pane__label-title">{pane.label}</span>
+                    {pane.summary.detail ? (
+                      <span className="chart-pane__label-meta">({pane.summary.detail})</span>
+                    ) : null}
+                  </span>
+                  <span className="chart-pane__label-value" style={{ color: pane.color }}>
+                    {pane.summary.value}
+                  </span>
                 </div>
 
                 {nextPane ? (

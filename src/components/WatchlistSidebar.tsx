@@ -5,10 +5,12 @@ import { useSettingsStore } from "../stores/useSettingsStore";
 import type { MarketType, SymbolSearchResult, WatchlistSnapshot } from "../types";
 import { getIntervalLabel, PRESET_CATEGORIES, type Interval, type PresetSymbol } from "../utils/constants";
 import { formatPrice } from "../utils/formatters";
-import { getInstrumentDisplay } from "../utils/marketView";
+import { getInstrumentDisplay, getInstrumentLogoMeta } from "../utils/marketView";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import PanelHeader from "./patterns/PanelHeader";
+import SegmentButton from "./patterns/SegmentButton";
 
 interface WatchlistSidebarProps {
   onClose?: () => void;
@@ -253,7 +255,7 @@ export default function WatchlistSidebar({
     <aside
       className={`dashboard-watchlist flex h-full min-h-0 flex-col ${embedded ? "" : "border-l"}`}
       style={{
-        background: "var(--panel-fill)",
+        background: embedded ? "transparent" : "var(--panel-fill)",
         borderColor: embedded ? "transparent" : "var(--border)",
       }}
     >
@@ -270,29 +272,35 @@ export default function WatchlistSidebar({
         </div>
       ) : null}
 
-      <div className="dashboard-watchlist__tabs border-b" style={{ borderColor: "var(--border)" }}>
-        <div className="flex h-10 items-center gap-4 px-4 text-[0.8667rem]">
-          {([
-            { value: "all" as const, label: "실시간" },
-            { value: "favorite" as const, label: "관심" },
-            { value: "recent" as const, label: "최근" },
-          ] as const).map((tab) => (
-            <button
-              key={tab.value}
-              type="button"
-              onClick={() => setListMode(tab.value)}
-              className={`dashboard-watchlist__tab border-0 bg-transparent pb-1 ${listMode === tab.value ? "is-active" : ""}`}
-              style={{
-                color: listMode === tab.value ? "var(--foreground)" : "var(--muted-foreground)",
-                fontWeight: listMode === tab.value ? 600 : 500,
-              }}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
+      <div className="dashboard-watchlist__controls">
+        <PanelHeader
+          title="관심종목"
+          subtitle="실시간 흐름과 저장한 종목을 빠르게 탐색합니다."
+          density="compact"
+          className="dashboard-watchlist__controls-head"
+        >
+          <div className="dashboard-watchlist__mode-frame grid grid-cols-3 gap-2">
+            {([
+              { value: "all" as const, label: "실시간" },
+              { value: "favorite" as const, label: "관심" },
+              { value: "recent" as const, label: "최근" },
+            ] as const).map((tab) => (
+              <SegmentButton
+                key={tab.value}
+                type="button"
+                size="sm"
+                active={listMode === tab.value}
+                activeTone="accent"
+                inactiveSurface="card"
+                onClick={() => setListMode(tab.value)}
+              >
+                {tab.label}
+              </SegmentButton>
+            ))}
+          </div>
+        </PanelHeader>
 
-        <div className="px-4 pb-3">
+        <div className="dashboard-watchlist__controls-card">
           <Input
             type="text"
             size="sm"
@@ -303,7 +311,7 @@ export default function WatchlistSidebar({
             className="dashboard-watchlist__search border-0 bg-[var(--panel-control-fill)] shadow-none focus-visible:ring-2"
           />
 
-          <div className="mt-2 flex flex-wrap gap-1.5">
+          <div className="dashboard-watchlist__filters">
             {([
               { value: "all" as const, label: "전체" },
               { value: "usStock" as const, label: "US" },
@@ -322,23 +330,24 @@ export default function WatchlistSidebar({
             ))}
           </div>
 
-          <div className="mt-2 text-[0.7333rem] text-[var(--muted-foreground)]">
-            {visibleItems.length}개 종목 · {activeUpdatedAt}
+          <div className="dashboard-watchlist__meta">
+            <span>{visibleItems.length}개 종목</span>
+            <span className="dashboard-watchlist__meta-dot" />
+            <span>{activeUpdatedAt}</span>
           </div>
         </div>
       </div>
 
       {(isApiSearching || apiSearchResults.length > 0) ? (
-        <div className="border-b px-4 py-3" style={{ borderColor: "var(--border)" }}>
-          <div className="mb-2 text-[0.7333rem] font-semibold text-[var(--muted-foreground)]">
+        <div className="dashboard-watchlist__search-results">
+          <div className="dashboard-watchlist__section-label">
             {isApiSearching ? "검색 중..." : "검색 결과"}
           </div>
-          <div className="space-y-1.5">
+          <div className="dashboard-watchlist__result-list">
             {apiSearchResults.map((item) => (
               <div
                 key={snapshotKey(item.symbol, item.market)}
-                className="flex items-center gap-2 rounded-[10px] border px-2.5 py-2"
-                style={{ borderColor: "var(--border)", background: "var(--card)" }}
+                className="dashboard-watchlist__result-card"
               >
                 <button type="button" className="min-w-0 flex-1 text-left" onClick={() => handleSelectSymbol(item)}>
                   <div className="truncate text-[0.8rem] font-semibold text-[var(--foreground)]">{item.symbol}</div>
@@ -361,12 +370,13 @@ export default function WatchlistSidebar({
       ) : null}
 
       <ScrollArea className="min-h-0 flex-1" viewportClassName="h-full">
-        <div>
+        <div className="dashboard-watchlist__list">
           {visibleItems.map((item) => {
             const active = item.symbol === symbol && item.market === market;
             const badge = marketBadge(item.market);
             const snapshot = snapshots[snapshotKey(item.symbol, item.market)];
             const instrument = getInstrumentDisplay(item.symbol, item.label, item.market);
+            const logoMeta = getInstrumentLogoMeta(item.symbol, item.label, item.market);
             const isFavorite = favorites.some((favorite) => favorite.symbol === item.symbol && favorite.market === item.market);
             const priceColor = snapshot
               ? snapshot.change >= 0
@@ -377,16 +387,30 @@ export default function WatchlistSidebar({
             return (
               <div
                 key={snapshotKey(item.symbol, item.market)}
-                className={`dashboard-watchlist__row flex h-12 items-center justify-between border-b px-4 ${active ? "is-active" : ""}`}
-                style={{
-                  borderColor: "var(--border)",
-                }}
+                className={`dashboard-watchlist__row ${active ? "is-active" : ""}`}
               >
-                <button type="button" className="min-w-0 flex-1 text-left" onClick={() => handleSelectSymbol(item)}>
-                  <div className="flex min-w-0 items-center gap-2">
-                    <span className="truncate text-[0.8667rem] font-medium text-[var(--foreground)]">{instrument.primary}</span>
+                <div className="dashboard-watchlist__logo" aria-hidden="true">
+                  <span
+                    className={`dashboard-watchlist__logo-mark${logoMeta.monogram.length >= 3 ? " is-wide" : ""}`}
+                    style={{
+                      background: logoMeta.background,
+                      color: logoMeta.foreground,
+                    }}
+                  >
+                    <span className="dashboard-watchlist__logo-text">{logoMeta.monogram}</span>
+                    <span className="dashboard-watchlist__logo-badge">{logoMeta.badge}</span>
+                  </span>
+                </div>
+                <button type="button" className="dashboard-watchlist__row-main" onClick={() => handleSelectSymbol(item)}>
+                  <div className="dashboard-watchlist__row-head">
+                    <span className="dashboard-watchlist__row-title">{instrument.primary}</span>
+                  </div>
+                  <div className="dashboard-watchlist__row-subtitle-wrap">
+                    <span className="dashboard-watchlist__row-subtitle">
+                      {instrument.secondary ?? item.symbol}
+                    </span>
                     <span
-                      className="dashboard-watchlist__market-chip shrink-0 rounded-[5px] px-1.5 py-0.5 text-[0.6667rem] font-semibold"
+                      className="dashboard-watchlist__market-chip"
                       style={{
                         background: `color-mix(in srgb, ${badge.color} 14%, transparent)`,
                         color: badge.color,
@@ -395,17 +419,14 @@ export default function WatchlistSidebar({
                       {badge.text}
                     </span>
                   </div>
-                  <div className="truncate text-[0.7333rem] text-[var(--muted-foreground)]">
-                    {instrument.secondary ?? item.symbol}
-                  </div>
                 </button>
 
-                <div className="ml-3 flex items-center gap-2">
-                  <div className="text-right">
-                    <div className="dashboard-watchlist__price text-[0.8rem] font-medium text-[var(--foreground)]">
+                <div className="dashboard-watchlist__row-side">
+                  <div className="dashboard-watchlist__row-price-block">
+                    <div className="dashboard-watchlist__price">
                       {snapshot ? formatPrice(snapshot.lastPrice, item.market) : "--"}
                     </div>
-                    <div className="dashboard-watchlist__delta text-[0.7333rem] font-medium" style={{ color: priceColor }}>
+                    <div className="dashboard-watchlist__delta" style={{ color: priceColor }}>
                       {snapshot ? `${snapshot.changePct >= 0 ? "+" : ""}${snapshot.changePct.toFixed(2)}%` : ""}
                     </div>
                   </div>
@@ -413,7 +434,7 @@ export default function WatchlistSidebar({
                   <button
                     type="button"
                     onClick={() => toggleFavorite(item.symbol, item.market)}
-                    className="dashboard-watchlist__action w-4 border-0 bg-transparent p-0 text-[0.7333rem]"
+                    className={`dashboard-watchlist__action-button ${isFavorite ? "is-favorite" : ""}`}
                     style={{ color: isFavorite ? "var(--warning)" : "var(--muted-foreground)" }}
                     aria-label={isFavorite ? "관심 해제" : "관심 추가"}
                     title={isFavorite ? "관심 해제" : "관심 추가"}
@@ -425,7 +446,7 @@ export default function WatchlistSidebar({
                     <button
                       type="button"
                       onClick={() => removeCustomSymbol(item.symbol, item.market)}
-                      className="dashboard-watchlist__action w-4 border-0 bg-transparent p-0 text-[0.7333rem] text-[var(--muted-foreground)]"
+                      className="dashboard-watchlist__action-button"
                       aria-label="커스텀 종목 제거"
                       title="커스텀 종목 제거"
                     >
@@ -438,18 +459,21 @@ export default function WatchlistSidebar({
           })}
 
           {visibleItems.length === 0 ? (
-            <div className="px-4 py-10 text-center text-[0.8rem] text-[var(--muted-foreground)]">
+            <div className="dashboard-watchlist__empty">
               표시할 종목이 없습니다.
             </div>
           ) : null}
         </div>
       </ScrollArea>
 
-      <div className="dashboard-watchlist__summary border-t px-4 py-3" style={{ borderColor: "var(--border)" }}>
-        <div className="mb-2 text-[0.7333rem] font-semibold tracking-[0.08em] text-[var(--muted-foreground)]">
-          시장 요약
-        </div>
-        <div className="space-y-2">
+      <div className="dashboard-watchlist__summary">
+        <PanelHeader
+          title="시장 요약"
+          subtitle="주요 벤치마크 흐름"
+          density="compact"
+          className="dashboard-watchlist__summary-head"
+        />
+        <div className="dashboard-watchlist__summary-list">
           {MARKET_INFO_ITEMS.map((item) => {
             const snapshot = snapshots[snapshotKey(item.symbol, item.market)];
             const changeColor = snapshot
@@ -458,13 +482,13 @@ export default function WatchlistSidebar({
                 : "var(--market-down)"
               : "var(--muted-foreground)";
             return (
-              <div key={snapshotKey(item.symbol, item.market)} className="flex items-center justify-between gap-3 text-[0.8rem]">
-                <span className="truncate text-[var(--foreground)]">{item.label}</span>
-                <span className="text-right">
-                  <span className="font-medium text-[var(--foreground)]">
+              <div key={snapshotKey(item.symbol, item.market)} className="dashboard-watchlist__summary-row">
+                <span className="dashboard-watchlist__summary-label">{item.label}</span>
+                <span className="dashboard-watchlist__summary-value">
+                  <span className="dashboard-watchlist__summary-price">
                     {snapshot ? formatPrice(snapshot.lastPrice, item.market) : "--"}
                   </span>
-                  <span className="ml-2 font-medium" style={{ color: changeColor }}>
+                  <span className="dashboard-watchlist__summary-delta" style={{ color: changeColor }}>
                     {snapshot ? `${snapshot.changePct >= 0 ? "+" : ""}${snapshot.changePct.toFixed(2)}%` : ""}
                   </span>
                 </span>

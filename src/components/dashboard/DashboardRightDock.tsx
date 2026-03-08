@@ -1,7 +1,6 @@
 import { type ReactNode, type RefObject } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import SegmentButton from "../patterns/SegmentButton";
 import WatchlistSidebar from "../WatchlistSidebar";
 import type { DashboardDockFocusRequest, DashboardDockTab } from "./types";
 
@@ -10,7 +9,6 @@ interface DashboardRightDockProps {
   embedded?: boolean;
   focusRequest?: DashboardDockFocusRequest | null;
   onClose?: () => void;
-  onTabChange: (tab: DashboardDockTab) => void;
 }
 
 function DockSection({
@@ -40,7 +38,6 @@ function DockSection({
 export default function DashboardRightDock({
   activeTab,
   onClose,
-  onTabChange,
 }: DashboardRightDockProps) {
   const headerTitle = activeTab === "watchlist" ? "관심종목" : "분석 패널";
   const headerSubtitle =
@@ -64,25 +61,9 @@ export default function DashboardRightDock({
         ) : null}
       </div>
 
-      <div className="dashboard-dock__mode-tabs">
-        <div className="dashboard-dock__tabs-frame grid grid-cols-2">
-          <SegmentButton active={activeTab === "watchlist"} activeTone="accent" onClick={() => onTabChange("watchlist")}>
-            관심종목
-          </SegmentButton>
-          <SegmentButton active={activeTab === "indicators"} activeTone="accent" onClick={() => onTabChange("indicators")}>
-            분석
-          </SegmentButton>
-        </div>
-      </div>
-
       {activeTab === "watchlist" ? (
         <div className="dashboard-dock__watchlist-host min-h-0 flex-1">
-          <WatchlistSidebar
-            embedded
-            onSelectSymbol={() => {
-              if (onClose) onClose();
-            }}
-          />
+          <WatchlistSidebar embedded />
         </div>
       ) : null}
 

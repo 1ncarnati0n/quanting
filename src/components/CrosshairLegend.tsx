@@ -277,17 +277,15 @@ export default function CrosshairLegend() {
         <div className="chart-crosshair-legend__rows">
           {overlayRows.map((row) => (
             <div key={row.key} className="chart-crosshair-legend__row">
-              <span className="chart-crosshair-legend__row-controls">
-                <button
-                  type="button"
-                  className="chart-indicator-close-badge"
-                  aria-label={`${row.label} 지표 비활성화`}
-                  title={`${row.label} 지표 비활성화`}
-                  onClick={() => disableOverlayRow(row.indicatorKeys)}
-                >
-                  x
-                </button>
-              </span>
+              <button
+                type="button"
+                className="chart-indicator-close-badge"
+                aria-label={`${row.label} 지표 비활성화`}
+                title={`${row.label} 지표 비활성화`}
+                onClick={() => disableOverlayRow(row.indicatorKeys)}
+              >
+                <span aria-hidden="true">&times;</span>
+              </button>
               <span className="chart-crosshair-legend__row-label">{row.label}</span>
               <span className="chart-crosshair-legend__row-values">
                 {row.tokens.map((token, index) => (

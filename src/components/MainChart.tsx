@@ -18,6 +18,7 @@ import {
 } from "lightweight-charts";
 import type { AnalysisResponse, MarketType, SignalType } from "../types";
 import {
+  CHART_COLOR_PRESETS,
   CHART_PRICE_SCALE_WIDTH,
   COLORS,
   MA_COLORS,
@@ -37,12 +38,12 @@ import {
 import { useCrosshairStore } from "../stores/useCrosshairStore";
 import { useReplayStore } from "../stores/useReplayStore";
 import { remToPx } from "../utils/typography";
-import { calculateRvol } from "../utils/rvol";
-import { computeIndicatorBandLayout } from "../utils/indicatorBandLayout";
 import {
-  LOWER_INDICATOR_LAYOUT_OPTIONS,
+  computeLowerIndicatorPaneRatios,
   getActiveLowerIndicatorPaneConfigs,
+  type LowerIndicatorPaneId,
 } from "../utils/lowerIndicatorPanes";
+import { buildIndicatorPaneModel } from "../utils/indicatorPaneSeries";
 
 const SIGNAL_MARKERS: Record<
   SignalType,
@@ -74,6 +75,7 @@ interface MainChartProps {
   data: AnalysisResponse | null;
   onChartReady?: (chart: IChartApi) => void;
   onMainSeriesReady?: (series: ISeriesApi<SeriesType> | null) => void;
+  showTimeScale?: boolean;
 }
 
 function toHeikinAshi(candles: AnalysisResponse["candles"]): AnalysisResponse["candles"] {
@@ -132,7 +134,12 @@ function calculateBollingerFromCandles(
   return output;
 }
 
-const MAIN_SCALE_TOP_MARGIN = 0.03;
+const MAIN_SCALE_TOP_MARGIN = 0.08;
+const MAIN_SCALE_BOTTOM_MARGIN = 0.07;
+const LOWER_SCALE_TOP_MARGIN = 0.12;
+const LOWER_SCALE_BOTTOM_MARGIN = 0.1;
+const LOWER_SCALE_VOLUME_TOP_MARGIN = 0.16;
+const LOWER_SCALE_VOLUME_BOTTOM_MARGIN = 0.08;
 
 function makePriceFormatter(market: MarketType) {
   return (price: number) => formatPrice(price, market);
@@ -141,6 +148,20 @@ function makePriceFormatter(market: MarketType) {
 function mapPriceScaleMode(mode: PriceScaleMode): 0 | 1 {
   if (mode === "logarithmic") return 1;
   return 0;
+}
+
+function getLowerPaneScaleMargins(paneId: LowerIndicatorPaneId) {
+  if (paneId === "volume") {
+    return {
+      top: LOWER_SCALE_VOLUME_TOP_MARGIN,
+      bottom: LOWER_SCALE_VOLUME_BOTTOM_MARGIN,
+    };
+  }
+
+  return {
+    top: LOWER_SCALE_TOP_MARGIN,
+    bottom: LOWER_SCALE_BOTTOM_MARGIN,
+  };
 }
 
 function clipByTime<T extends { time: number }>(items: T[], maxTime: number): T[] {
@@ -202,7 +223,12 @@ function isOhlcType(ct: ChartType): boolean {
   return ct === "candlestick" || ct === "heikinAshi" || ct === "bar";
 }
 
-export default function MainChart({ data, onChartReady, onMainSeriesReady }: MainChartProps) {
+export default function MainChart({
+  data,
+  onChartReady,
+  onMainSeriesReady,
+  showTimeScale = true,
+}: MainChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const mainSeriesRef = useRef<ISeriesApi<SeriesType> | null>(null);
@@ -220,8 +246,10 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
   const crosshairRafRef = useRef<number | null>(null);
   const userAdjustedViewportRef = useRef(false);
   const prevVisibleBarCountRef = useRef<number | null>(null);
+  const paneIndexByIdRef = useRef<Map<LowerIndicatorPaneId, number>>(new Map());
 
   const theme = useSettingsStore((s) => s.theme);
+  const chartColorStyle = useSettingsStore((s) => s.chartColorStyle);
   const chartType = useSettingsStore((s) => s.chartType);
   const market = useSettingsStore((s) => s.market);
   const indicators = useSettingsStore((s) => s.indicators);
@@ -229,6 +257,7 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
   const priceAlerts = useSettingsStore((s) => s.priceAlerts);
   const replayEnabled = useReplayStore((s) => s.enabled);
   const replayIndex = useReplayStore((s) => s.currentIndex);
+  const marketColors = CHART_COLOR_PRESETS[chartColorStyle];
 
   const clearDynamicSeries = useCallback(() => {
     if (!chartRef.current) return;
@@ -298,45 +327,43 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
   const applyIndicatorScaleLayout = useCallback(() => {
     if (!chartRef.current) return;
     const chart = chartRef.current;
-    const bandConfigs = getActiveLowerIndicatorPaneConfigs(indicators);
+    const lowerPaneConfigs = getActiveLowerIndicatorPaneConfigs(indicators);
+    const requiredPaneCount = lowerPaneConfigs.length + 1;
 
-    let mainBottomMargin = 0.03;
-
-    if (bandConfigs.length === 0) {
-      chart.priceScale("right").applyOptions({
-        scaleMargins: { top: MAIN_SCALE_TOP_MARGIN, bottom: mainBottomMargin },
-      });
-    } else {
-      const paneLayout = computeIndicatorBandLayout(
-        bandConfigs,
-        indicators.layout.priceAreaRatio,
-        LOWER_INDICATOR_LAYOUT_OPTIONS,
-      );
-
-      if (!Number.isFinite(paneLayout.mainBottomMargin)) {
-        chart.priceScale("right").applyOptions({
-          scaleMargins: { top: MAIN_SCALE_TOP_MARGIN, bottom: mainBottomMargin },
-        });
-      } else {
-        mainBottomMargin = paneLayout.mainBottomMargin;
-        chart.priceScale("right").applyOptions({
-          scaleMargins: {
-            top: MAIN_SCALE_TOP_MARGIN,
-            bottom: mainBottomMargin,
-          },
-        });
-
-        paneLayout.bands.forEach((band) => {
-          if (!Number.isFinite(band.top) || !Number.isFinite(band.height)) return;
-          const bottom = Math.max(0.001, 1 - (band.top + band.height));
-          try {
-            chart.priceScale(band.id).applyOptions({
-              scaleMargins: { top: band.top, bottom },
-            });
-          } catch {}
-        });
-      }
+    while (chart.panes().length < requiredPaneCount) {
+      chart.addPane();
     }
+
+    while (chart.panes().length > requiredPaneCount) {
+      chart.removePane(chart.panes().length - 1);
+    }
+
+    const ratioState = computeLowerIndicatorPaneRatios(
+      indicators.layout.priceAreaRatio,
+      lowerPaneConfigs,
+    );
+    const nextPaneIndexMap = new Map<LowerIndicatorPaneId, number>();
+
+    chart.priceScale("right", 0).applyOptions({
+      scaleMargins: { top: MAIN_SCALE_TOP_MARGIN, bottom: MAIN_SCALE_BOTTOM_MARGIN },
+    });
+    chart.panes()[0]?.setStretchFactor(ratioState.mainRatio);
+
+    lowerPaneConfigs.forEach((pane, index) => {
+      const paneIndex = index + 1;
+      const paneApi = chart.panes()[paneIndex];
+      if (!paneApi) return;
+      paneApi.setPreserveEmptyPane(false);
+      paneApi.setStretchFactor(ratioState.paneRatios.get(pane.id) ?? pane.weight);
+      const scaleMargins = getLowerPaneScaleMargins(pane.id);
+      chart.priceScale("right", paneIndex).applyOptions({
+        mode: 0,
+        scaleMargins,
+      });
+      nextPaneIndexMap.set(pane.id, paneIndex);
+    });
+
+    paneIndexByIdRef.current = nextPaneIndexMap;
   }, [indicators]);
 
   // Stable refs to break dependency chains — prevents chart recreation on indicator changes
@@ -378,7 +405,7 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
       },
       leftPriceScale: { visible: false },
       timeScale: {
-        visible: true,
+        visible: showTimeScale,
         borderColor: palette.border,
         timeVisible: true,
         secondsVisible: false,
@@ -410,18 +437,18 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
       });
     } else if (currentChartType === "bar") {
       mainSeries = chart.addSeries(BarSeries, {
-        upColor: COLORS.candleUp,
-        downColor: COLORS.candleDown,
+        upColor: marketColors.up,
+        downColor: marketColors.down,
       });
     } else {
       // candlestick or heikinAshi
       mainSeries = chart.addSeries(CandlestickSeries, {
-        upColor: COLORS.candleUp,
-        downColor: COLORS.candleDown,
-        borderUpColor: COLORS.candleUp,
-        borderDownColor: COLORS.candleDown,
-        wickUpColor: COLORS.candleUp,
-        wickDownColor: COLORS.candleDown,
+        upColor: marketColors.up,
+        downColor: marketColors.down,
+        borderUpColor: marketColors.up,
+        borderDownColor: marketColors.down,
+        wickUpColor: marketColors.up,
+        wickDownColor: marketColors.down,
       });
     }
 
@@ -517,7 +544,7 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
 
     applyLayoutRef.current();
     onChartReady?.(chart);
-  }, [onChartReady, onMainSeriesReady, chartType]);
+  }, [chartType, chartColorStyle, onChartReady, onMainSeriesReady, showTimeScale]);
 
   // Chart lifecycle
   useEffect(() => {
@@ -719,9 +746,9 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
         horzLines: { color: palette.grid },
       },
       rightPriceScale: { borderColor: palette.border },
-      timeScale: { borderColor: palette.border },
+      timeScale: { borderColor: palette.border, visible: showTimeScale },
     });
-  }, [theme]);
+  }, [showTimeScale, theme]);
 
   // Update priceFormatter when market changes
   useEffect(() => {
@@ -732,16 +759,40 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
   }, [market]);
 
   useEffect(() => {
+    if (!mainSeriesRef.current) return;
+    if (chartType === "bar") {
+      (mainSeriesRef.current as ISeriesApi<"Bar">).applyOptions({
+        upColor: marketColors.up,
+        downColor: marketColors.down,
+      });
+      return;
+    }
+    if (chartType === "candlestick" || chartType === "heikinAshi") {
+      (mainSeriesRef.current as ISeriesApi<"Candlestick">).applyOptions({
+        upColor: marketColors.up,
+        downColor: marketColors.down,
+        borderUpColor: marketColors.up,
+        borderDownColor: marketColors.down,
+        wickUpColor: marketColors.up,
+        wickDownColor: marketColors.down,
+      });
+    }
+  }, [chartType, marketColors.down, marketColors.up]);
+
+  useEffect(() => {
     if (!chartRef.current) return;
     chartRef.current.applyOptions({
       rightPriceScale: {
         mode: mapPriceScaleMode(priceScale.mode),
         autoScale: priceScale.autoScale,
       },
+      timeScale: {
+        visible: showTimeScale,
+      },
     });
     // Keep main/oscillator pane split stable even after rightPriceScale option updates.
     applyIndicatorScaleLayout();
-  }, [applyIndicatorScaleLayout, priceScale.autoScale, priceScale.mode]);
+  }, [applyIndicatorScaleLayout, priceScale.autoScale, priceScale.mode, showTimeScale]);
 
   useEffect(() => {
     applyIndicatorScaleLayout();
@@ -774,23 +825,10 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
       : data.candles;
     const displayCandles = chartType === "heikinAshi" ? toHeikinAshi(rawCandles) : rawCandles;
     const filteredSignals = clipByTime(data.signals, replayTime);
-    const filteredRsi = clipByTime(data.rsi, replayTime);
     const filteredSma = data.sma.map((ma) => ({ ...ma, data: clipByTime(ma.data, replayTime) }));
     const filteredEma = data.ema.map((ma) => ({ ...ma, data: clipByTime(ma.data, replayTime) }));
-    const filteredMacd = data.macd
-      ? { ...data.macd, data: clipByTime(data.macd.data, replayTime) }
-      : null;
-    const filteredStochastic = data.stochastic
-      ? { ...data.stochastic, data: clipByTime(data.stochastic.data, replayTime) }
-      : null;
-    const filteredObv = data.obv
-      ? { ...data.obv, data: clipByTime(data.obv.data, replayTime) }
-      : null;
     const filteredVwap = data.vwap
       ? { ...data.vwap, data: clipByTime(data.vwap.data, replayTime) }
-      : null;
-    const filteredAtr = data.atr
-      ? { ...data.atr, data: clipByTime(data.atr.data, replayTime) }
       : null;
     const filteredIchimoku = data.ichimoku
       ? { ...data.ichimoku, data: clipByTime(data.ichimoku.data, replayTime) }
@@ -808,27 +846,6 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
       ? { ...data.keltner, data: clipByTime(data.keltner.data, replayTime) }
       : null;
     const filteredHma = data.hma.map((ma) => ({ ...ma, data: clipByTime(ma.data, replayTime) }));
-    const filteredMfi = data.mfi
-      ? { ...data.mfi, data: clipByTime(data.mfi.data, replayTime) }
-      : null;
-    const filteredCmf = data.cmf
-      ? { ...data.cmf, data: clipByTime(data.cmf.data, replayTime) }
-      : null;
-    const filteredChoppiness = data.choppiness
-      ? { ...data.choppiness, data: clipByTime(data.choppiness.data, replayTime) }
-      : null;
-    const filteredWillr = data.williamsR
-      ? { ...data.williamsR, data: clipByTime(data.williamsR.data, replayTime) }
-      : null;
-    const filteredAdx = data.adx
-      ? { ...data.adx, data: clipByTime(data.adx.data, replayTime) }
-      : null;
-    const filteredCvd = data.cvd
-      ? { ...data.cvd, data: clipByTime(data.cvd.data, replayTime) }
-      : null;
-    const filteredStc = data.stc
-      ? { ...data.stc, data: clipByTime(data.stc.data, replayTime) }
-      : null;
     const filteredSmc = data.smc
       ? { ...data.smc, data: clipByTime(data.smc.data, replayTime) }
       : null;
@@ -882,6 +899,7 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
     }
 
     clearDynamicSeries();
+    applyIndicatorScaleLayout();
 
     if (indicators.sma.enabled && filteredSma.length > 0) {
       filteredSma.forEach((ma, idx) => {
@@ -912,246 +930,6 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
       });
     }
 
-    if (indicators.volume.enabled && displayCandles.length > 0) {
-      const series = chart.addSeries(HistogramSeries, {
-        priceScaleId: "volume",
-        priceLineVisible: false,
-        lastValueVisible: false,
-        priceFormat: { type: "volume" },
-      });
-      series.setData(
-        displayCandles.map((c) => ({
-          time: c.time as Time,
-          value: c.volume,
-          color: c.close >= c.open ? COLORS.volumeUp : COLORS.volumeDown,
-        })),
-      );
-      const lastVolumeCandle = displayCandles[displayCandles.length - 1];
-      if (lastVolumeCandle) {
-        createAxisValueLabel(
-          series as ISeriesApi<SeriesType>,
-          lastVolumeCandle.volume,
-          lastVolumeCandle.close >= lastVolumeCandle.open ? COLORS.candleUp : COLORS.candleDown,
-        );
-      }
-      dynamicSeriesRef.current.set("volume", series as ISeriesApi<SeriesType>);
-    }
-
-    // --- RVOL (Relative Volume) ---
-    if (indicators.rvol.enabled && displayCandles.length > 0) {
-      const rvolData = calculateRvol(displayCandles, indicators.rvol.period);
-      if (rvolData.length > 0) {
-        const series = chart.addSeries(HistogramSeries, {
-          priceScaleId: "rvol",
-          priceLineVisible: false,
-          lastValueVisible: false,
-        });
-        series.setData(
-          rvolData.map((p) => ({
-            time: p.time as Time,
-            value: p.value,
-            color:
-              p.value >= 1.5
-                ? COLORS.rvolHigh
-                : p.value < 0.5
-                  ? COLORS.rvolLow
-                  : COLORS.rvolNeutral,
-          })),
-        );
-        const lastRvolPoint = rvolData[rvolData.length - 1];
-        if (lastRvolPoint) {
-          createAxisValueLabel(
-            series as ISeriesApi<SeriesType>,
-            lastRvolPoint.value,
-            lastRvolPoint.value >= 1.5
-              ? COLORS.rvolHigh
-              : lastRvolPoint.value < 0.5
-                ? COLORS.rvolLow
-                : COLORS.rvolNeutral,
-          );
-        }
-        // baseline at 1.0
-        series.createPriceLine({
-          price: 1,
-          color: "rgba(148,163,184,0.3)",
-          lineWidth: 1,
-          lineStyle: 2,
-          axisLabelVisible: false,
-        });
-        dynamicSeriesRef.current.set("rvol", series as ISeriesApi<SeriesType>);
-      }
-    }
-
-    if (indicators.rsi.enabled && filteredRsi.length > 0) {
-      const rsiSeries = chart.addSeries(LineSeries, {
-        priceScaleId: "rsi",
-        color: COLORS.rsiLine,
-        lineWidth: 2,
-        priceLineVisible: false,
-        lastValueVisible: false,
-      });
-      const overboughtSeries = chart.addSeries(LineSeries, {
-        priceScaleId: "rsi",
-        color: COLORS.rsiOverbought,
-        lineWidth: 1,
-        lineStyle: 2,
-        priceLineVisible: false,
-        lastValueVisible: false,
-        crosshairMarkerVisible: false,
-      });
-      const oversoldSeries = chart.addSeries(LineSeries, {
-        priceScaleId: "rsi",
-        color: COLORS.rsiOversold,
-        lineWidth: 1,
-        lineStyle: 2,
-        priceLineVisible: false,
-        lastValueVisible: false,
-        crosshairMarkerVisible: false,
-      });
-      rsiSeries.setData(filteredRsi.map((r) => ({ time: r.time as Time, value: r.value })));
-      overboughtSeries.setData(filteredRsi.map((r) => ({ time: r.time as Time, value: 70 })));
-      oversoldSeries.setData(filteredRsi.map((r) => ({ time: r.time as Time, value: 30 })));
-      const lastRsiPoint = filteredRsi[filteredRsi.length - 1];
-      if (lastRsiPoint) {
-        createAxisValueLabel(
-          rsiSeries as ISeriesApi<SeriesType>,
-          lastRsiPoint.value,
-          COLORS.rsiLine,
-        );
-      }
-      dynamicSeriesRef.current.set("rsi-line", rsiSeries as ISeriesApi<SeriesType>);
-      dynamicSeriesRef.current.set("rsi-ob", overboughtSeries as ISeriesApi<SeriesType>);
-      dynamicSeriesRef.current.set("rsi-os", oversoldSeries as ISeriesApi<SeriesType>);
-    }
-
-    if (indicators.macd.enabled && filteredMacd?.data.length) {
-      const macdHist = chart.addSeries(HistogramSeries, {
-        priceScaleId: "macd",
-        priceLineVisible: false,
-        lastValueVisible: false,
-      });
-      const macdLine = chart.addSeries(LineSeries, {
-        priceScaleId: "macd",
-        color: COLORS.macdLine,
-        lineWidth: 2,
-        priceLineVisible: false,
-        lastValueVisible: false,
-      });
-      const signalLine = chart.addSeries(LineSeries, {
-        priceScaleId: "macd",
-        color: COLORS.macdSignal,
-        lineWidth: 1,
-        priceLineVisible: false,
-        lastValueVisible: false,
-      });
-      macdHist.setData(
-        filteredMacd.data.map((p) => ({
-          time: p.time as Time,
-          value: p.histogram,
-          color: p.histogram >= 0 ? COLORS.macdHistUp : COLORS.macdHistDown,
-        })),
-      );
-      macdLine.setData(filteredMacd.data.map((p) => ({ time: p.time as Time, value: p.macd })));
-      signalLine.setData(filteredMacd.data.map((p) => ({ time: p.time as Time, value: p.signal })));
-      const lastMacdPoint = filteredMacd.data[filteredMacd.data.length - 1];
-      if (lastMacdPoint) {
-        createAxisValueLabel(
-          macdHist as ISeriesApi<SeriesType>,
-          lastMacdPoint.histogram,
-          lastMacdPoint.histogram >= 0 ? COLORS.candleUp : COLORS.candleDown,
-        );
-        createAxisValueLabel(
-          macdLine as ISeriesApi<SeriesType>,
-          lastMacdPoint.macd,
-          COLORS.macdLine,
-        );
-        createAxisValueLabel(
-          signalLine as ISeriesApi<SeriesType>,
-          lastMacdPoint.signal,
-          COLORS.macdSignal,
-        );
-      }
-      dynamicSeriesRef.current.set("macd-h", macdHist as ISeriesApi<SeriesType>);
-      dynamicSeriesRef.current.set("macd-l", macdLine as ISeriesApi<SeriesType>);
-      dynamicSeriesRef.current.set("macd-s", signalLine as ISeriesApi<SeriesType>);
-    }
-
-    if (indicators.stochastic.enabled && filteredStochastic?.data.length) {
-      const kLine = chart.addSeries(LineSeries, {
-        priceScaleId: "stoch",
-        color: COLORS.stochK,
-        lineWidth: 2,
-        priceLineVisible: false,
-        lastValueVisible: false,
-      });
-      const dLine = chart.addSeries(LineSeries, {
-        priceScaleId: "stoch",
-        color: COLORS.stochD,
-        lineWidth: 1,
-        priceLineVisible: false,
-        lastValueVisible: false,
-      });
-      const obLine = chart.addSeries(LineSeries, {
-        priceScaleId: "stoch",
-        color: COLORS.rsiOverbought,
-        lineWidth: 1,
-        lineStyle: 2,
-        priceLineVisible: false,
-        lastValueVisible: false,
-        crosshairMarkerVisible: false,
-      });
-      const osLine = chart.addSeries(LineSeries, {
-        priceScaleId: "stoch",
-        color: COLORS.rsiOversold,
-        lineWidth: 1,
-        lineStyle: 2,
-        priceLineVisible: false,
-        lastValueVisible: false,
-        crosshairMarkerVisible: false,
-      });
-      kLine.setData(filteredStochastic.data.map((p) => ({ time: p.time as Time, value: p.k })));
-      dLine.setData(filteredStochastic.data.map((p) => ({ time: p.time as Time, value: p.d })));
-      obLine.setData(filteredStochastic.data.map((p) => ({ time: p.time as Time, value: 80 })));
-      osLine.setData(filteredStochastic.data.map((p) => ({ time: p.time as Time, value: 20 })));
-      const lastStochPoint = filteredStochastic.data[filteredStochastic.data.length - 1];
-      if (lastStochPoint) {
-        createAxisValueLabel(
-          kLine as ISeriesApi<SeriesType>,
-          lastStochPoint.k,
-          COLORS.stochK,
-        );
-        createAxisValueLabel(
-          dLine as ISeriesApi<SeriesType>,
-          lastStochPoint.d,
-          COLORS.stochD,
-        );
-      }
-      dynamicSeriesRef.current.set("stoch-k", kLine as ISeriesApi<SeriesType>);
-      dynamicSeriesRef.current.set("stoch-d", dLine as ISeriesApi<SeriesType>);
-      dynamicSeriesRef.current.set("stoch-ob", obLine as ISeriesApi<SeriesType>);
-      dynamicSeriesRef.current.set("stoch-os", osLine as ISeriesApi<SeriesType>);
-    }
-
-    if (indicators.obv.enabled && filteredObv?.data.length) {
-      const obvLine = chart.addSeries(LineSeries, {
-        priceScaleId: "obv",
-        color: "#14B8A6",
-        lineWidth: 2,
-        priceLineVisible: false,
-        lastValueVisible: false,
-      });
-      obvLine.setData(filteredObv.data.map((p) => ({ time: p.time as Time, value: p.value })));
-      const lastObvPoint = filteredObv.data[filteredObv.data.length - 1];
-      if (lastObvPoint) {
-        createAxisValueLabel(
-          obvLine as ISeriesApi<SeriesType>,
-          lastObvPoint.value,
-          "#14B8A6",
-        );
-      }
-      dynamicSeriesRef.current.set("obv", obvLine as ISeriesApi<SeriesType>);
-    }
-
     if (indicators.vwap.enabled && filteredVwap?.data.length) {
       const vwapLine = chart.addSeries(LineSeries, {
         color: "#06B6D4",
@@ -1163,28 +941,6 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
       });
       vwapLine.setData(filteredVwap.data.map((p) => ({ time: p.time as Time, value: p.value })));
       dynamicSeriesRef.current.set("vwap", vwapLine as ISeriesApi<SeriesType>);
-    }
-
-    if (indicators.atr.enabled && filteredAtr?.data.length) {
-      const atrLine = chart.addSeries(LineSeries, {
-        priceScaleId: "atr",
-        color: "#38BDF8",
-        lineWidth: 2,
-        priceLineVisible: false,
-        lastValueVisible: false,
-        crosshairMarkerVisible: false,
-        title: "ATR",
-      });
-      atrLine.setData(filteredAtr.data.map((p) => ({ time: p.time as Time, value: p.value })));
-      const lastAtrPoint = filteredAtr.data[filteredAtr.data.length - 1];
-      if (lastAtrPoint) {
-        createAxisValueLabel(
-          atrLine as ISeriesApi<SeriesType>,
-          lastAtrPoint.value,
-          "#38BDF8",
-        );
-      }
-      dynamicSeriesRef.current.set("atr", atrLine as ISeriesApi<SeriesType>);
     }
 
     if (indicators.ichimoku.enabled && filteredIchimoku?.data.length) {
@@ -1367,294 +1123,72 @@ export default function MainChart({ data, onChartReady, onMainSeriesReady }: Mai
       });
     }
 
-    // --- MFI (Oscillator, 0-100) ---
-    if (indicators.mfi.enabled && filteredMfi?.data.length) {
-      const mfiLine = chart.addSeries(LineSeries, {
-        priceScaleId: "mfi",
-        color: COLORS.mfiLine,
-        lineWidth: 2,
-        priceLineVisible: false,
-        lastValueVisible: false,
-      });
-      const mfiOb = chart.addSeries(LineSeries, {
-        priceScaleId: "mfi",
-        color: COLORS.rsiOverbought,
-        lineWidth: 1,
-        lineStyle: 2,
-        priceLineVisible: false,
-        lastValueVisible: false,
-        crosshairMarkerVisible: false,
-      });
-      const mfiOs = chart.addSeries(LineSeries, {
-        priceScaleId: "mfi",
-        color: COLORS.rsiOversold,
-        lineWidth: 1,
-        lineStyle: 2,
-        priceLineVisible: false,
-        lastValueVisible: false,
-        crosshairMarkerVisible: false,
-      });
-      mfiLine.setData(filteredMfi.data.map((p) => ({ time: p.time as Time, value: p.value })));
-      mfiOb.setData(filteredMfi.data.map((p) => ({ time: p.time as Time, value: 80 })));
-      mfiOs.setData(filteredMfi.data.map((p) => ({ time: p.time as Time, value: 20 })));
-      const lastMfiPoint = filteredMfi.data[filteredMfi.data.length - 1];
-      if (lastMfiPoint) {
-        createAxisValueLabel(
-          mfiLine as ISeriesApi<SeriesType>,
-          lastMfiPoint.value,
-          COLORS.mfiLine,
-        );
-      }
-      dynamicSeriesRef.current.set("mfi", mfiLine as ISeriesApi<SeriesType>);
-      dynamicSeriesRef.current.set("mfi-ob", mfiOb as ISeriesApi<SeriesType>);
-      dynamicSeriesRef.current.set("mfi-os", mfiOs as ISeriesApi<SeriesType>);
-    }
+    const lowerPaneConfigs = getActiveLowerIndicatorPaneConfigs(indicators);
+    lowerPaneConfigs.forEach((pane) => {
+      const paneIndex = paneIndexByIdRef.current.get(pane.id);
+      if (paneIndex === undefined) return;
 
-    // --- CMF (Oscillator, -1~+1) ---
-    if (indicators.cmf.enabled && filteredCmf?.data.length) {
-      const cmfLine = chart.addSeries(LineSeries, {
-        priceScaleId: "cmf",
-        color: COLORS.cmfLine,
-        lineWidth: 2,
-        priceLineVisible: false,
-        lastValueVisible: false,
-      });
-      const cmfZero = chart.addSeries(LineSeries, {
-        priceScaleId: "cmf",
-        color: "#6B7280",
-        lineWidth: 1,
-        lineStyle: 2,
-        priceLineVisible: false,
-        lastValueVisible: false,
-        crosshairMarkerVisible: false,
-      });
-      cmfLine.setData(filteredCmf.data.map((p) => ({ time: p.time as Time, value: p.value })));
-      cmfZero.setData(filteredCmf.data.map((p) => ({ time: p.time as Time, value: 0 })));
-      const lastCmfPoint = filteredCmf.data[filteredCmf.data.length - 1];
-      if (lastCmfPoint) {
-        createAxisValueLabel(
-          cmfLine as ISeriesApi<SeriesType>,
-          lastCmfPoint.value,
-          COLORS.cmfLine,
-        );
-      }
-      dynamicSeriesRef.current.set("cmf", cmfLine as ISeriesApi<SeriesType>);
-      dynamicSeriesRef.current.set("cmf-zero", cmfZero as ISeriesApi<SeriesType>);
-    }
+      const paneModel = buildIndicatorPaneModel(
+        pane.id,
+        data,
+        indicators,
+        replayEnabled,
+        replayIndex,
+      );
+      if (!paneModel) return;
 
-    // --- Choppiness Index (Oscillator, 0-100) ---
-    if (indicators.choppiness.enabled && filteredChoppiness?.data.length) {
-      const chopLine = chart.addSeries(LineSeries, {
-        priceScaleId: "chop",
-        color: COLORS.chopLine,
-        lineWidth: 2,
-        priceLineVisible: false,
-        lastValueVisible: false,
-      });
-      const chopHigh = chart.addSeries(LineSeries, {
-        priceScaleId: "chop",
-        color: "#6B7280",
-        lineWidth: 1,
-        lineStyle: 2,
-        priceLineVisible: false,
-        lastValueVisible: false,
-        crosshairMarkerVisible: false,
-      });
-      const chopLow = chart.addSeries(LineSeries, {
-        priceScaleId: "chop",
-        color: "#6B7280",
-        lineWidth: 1,
-        lineStyle: 2,
-        priceLineVisible: false,
-        lastValueVisible: false,
-        crosshairMarkerVisible: false,
-      });
-      chopLine.setData(filteredChoppiness.data.map((p) => ({ time: p.time as Time, value: p.value })));
-      chopHigh.setData(filteredChoppiness.data.map((p) => ({ time: p.time as Time, value: 61.8 })));
-      chopLow.setData(filteredChoppiness.data.map((p) => ({ time: p.time as Time, value: 38.2 })));
-      const lastChopPoint = filteredChoppiness.data[filteredChoppiness.data.length - 1];
-      if (lastChopPoint) {
-        createAxisValueLabel(
-          chopLine as ISeriesApi<SeriesType>,
-          lastChopPoint.value,
-          COLORS.chopLine,
-        );
-      }
-      dynamicSeriesRef.current.set("chop", chopLine as ISeriesApi<SeriesType>);
-      dynamicSeriesRef.current.set("chop-hi", chopHigh as ISeriesApi<SeriesType>);
-      dynamicSeriesRef.current.set("chop-lo", chopLow as ISeriesApi<SeriesType>);
-    }
+      paneModel.series.forEach((definition) => {
+        const series =
+          definition.kind === "histogram"
+            ? chart.addSeries(
+                HistogramSeries,
+                {
+                  priceLineVisible: false,
+                  lastValueVisible: false,
+                  priceFormat:
+                    definition.priceFormat === "volume"
+                      ? { type: "volume" }
+                      : undefined,
+                },
+                paneIndex,
+              )
+            : chart.addSeries(
+                LineSeries,
+                {
+                  color: definition.color,
+                  lineWidth: definition.lineWidth ?? 2,
+                  lineStyle: (definition.lineStyle ?? 0) as 0 | 1 | 2 | 3 | 4,
+                  priceLineVisible: false,
+                  lastValueVisible: false,
+                  crosshairMarkerVisible: false,
+                },
+                paneIndex,
+              );
 
-    // --- Williams %R (Oscillator, -100~0) ---
-    if (indicators.williamsR.enabled && filteredWillr?.data.length) {
-      const willrLine = chart.addSeries(LineSeries, {
-        priceScaleId: "willr",
-        color: COLORS.willrLine,
-        lineWidth: 2,
-        priceLineVisible: false,
-        lastValueVisible: false,
-      });
-      const willrOb = chart.addSeries(LineSeries, {
-        priceScaleId: "willr",
-        color: COLORS.rsiOverbought,
-        lineWidth: 1,
-        lineStyle: 2,
-        priceLineVisible: false,
-        lastValueVisible: false,
-        crosshairMarkerVisible: false,
-      });
-      const willrOs = chart.addSeries(LineSeries, {
-        priceScaleId: "willr",
-        color: COLORS.rsiOversold,
-        lineWidth: 1,
-        lineStyle: 2,
-        priceLineVisible: false,
-        lastValueVisible: false,
-        crosshairMarkerVisible: false,
-      });
-      willrLine.setData(filteredWillr.data.map((p) => ({ time: p.time as Time, value: p.value })));
-      willrOb.setData(filteredWillr.data.map((p) => ({ time: p.time as Time, value: -20 })));
-      willrOs.setData(filteredWillr.data.map((p) => ({ time: p.time as Time, value: -80 })));
-      const lastWillrPoint = filteredWillr.data[filteredWillr.data.length - 1];
-      if (lastWillrPoint) {
-        createAxisValueLabel(
-          willrLine as ISeriesApi<SeriesType>,
-          lastWillrPoint.value,
-          COLORS.willrLine,
+        series.setData(
+          definition.values.map((point) => ({
+            time: point.time as Time,
+            value: point.value,
+            color: point.color,
+          })),
         );
-      }
-      dynamicSeriesRef.current.set("willr", willrLine as ISeriesApi<SeriesType>);
-      dynamicSeriesRef.current.set("willr-ob", willrOb as ISeriesApi<SeriesType>);
-      dynamicSeriesRef.current.set("willr-os", willrOs as ISeriesApi<SeriesType>);
-    }
 
-    // --- ADX / DI+ / DI- (Oscillator, 3 lines) ---
-    if (indicators.adx.enabled && filteredAdx?.data.length) {
-      const adxLine = chart.addSeries(LineSeries, {
-        priceScaleId: "adx",
-        color: COLORS.adxLine,
-        lineWidth: 2,
-        priceLineVisible: false,
-        lastValueVisible: false,
-        title: "ADX",
-      });
-      const plusDiLine = chart.addSeries(LineSeries, {
-        priceScaleId: "adx",
-        color: COLORS.adxPlusDi,
-        lineWidth: 1,
-        priceLineVisible: false,
-        lastValueVisible: false,
-        title: "+DI",
-      });
-      const minusDiLine = chart.addSeries(LineSeries, {
-        priceScaleId: "adx",
-        color: COLORS.adxMinusDi,
-        lineWidth: 1,
-        priceLineVisible: false,
-        lastValueVisible: false,
-        title: "-DI",
-      });
-      const adx25 = chart.addSeries(LineSeries, {
-        priceScaleId: "adx",
-        color: "#6B7280",
-        lineWidth: 1,
-        lineStyle: 2,
-        priceLineVisible: false,
-        lastValueVisible: false,
-        crosshairMarkerVisible: false,
-      });
-      adxLine.setData(filteredAdx.data.map((p) => ({ time: p.time as Time, value: p.adx })));
-      plusDiLine.setData(filteredAdx.data.map((p) => ({ time: p.time as Time, value: p.plusDi })));
-      minusDiLine.setData(filteredAdx.data.map((p) => ({ time: p.time as Time, value: p.minusDi })));
-      adx25.setData(filteredAdx.data.map((p) => ({ time: p.time as Time, value: 25 })));
-      const lastAdxPoint = filteredAdx.data[filteredAdx.data.length - 1];
-      if (lastAdxPoint) {
-        createAxisValueLabel(
-          adxLine as ISeriesApi<SeriesType>,
-          lastAdxPoint.adx,
-          COLORS.adxLine,
-        );
-        createAxisValueLabel(
-          plusDiLine as ISeriesApi<SeriesType>,
-          lastAdxPoint.plusDi,
-          COLORS.adxPlusDi,
-        );
-        createAxisValueLabel(
-          minusDiLine as ISeriesApi<SeriesType>,
-          lastAdxPoint.minusDi,
-          COLORS.adxMinusDi,
-        );
-      }
-      dynamicSeriesRef.current.set("adx", adxLine as ISeriesApi<SeriesType>);
-      dynamicSeriesRef.current.set("adx-plus", plusDiLine as ISeriesApi<SeriesType>);
-      dynamicSeriesRef.current.set("adx-minus", minusDiLine as ISeriesApi<SeriesType>);
-      dynamicSeriesRef.current.set("adx-25", adx25 as ISeriesApi<SeriesType>);
-    }
+        const lastPoint = definition.values[definition.values.length - 1];
+        const labelColor = definition.lastValueColor ?? definition.color;
+        if (lastPoint && labelColor) {
+          createAxisValueLabel(
+            series as ISeriesApi<SeriesType>,
+            lastPoint.value,
+            labelColor,
+          );
+        }
 
-    // --- CVD (Oscillator, cumulative) ---
-    if (indicators.cvd.enabled && filteredCvd?.data.length) {
-      const cvdLine = chart.addSeries(LineSeries, {
-        priceScaleId: "cvd",
-        color: COLORS.cvdLine,
-        lineWidth: 2,
-        priceLineVisible: false,
-        lastValueVisible: false,
-        title: "CVD",
-      });
-      cvdLine.setData(filteredCvd.data.map((p) => ({ time: p.time as Time, value: p.value })));
-      const lastCvdPoint = filteredCvd.data[filteredCvd.data.length - 1];
-      if (lastCvdPoint) {
-        createAxisValueLabel(
-          cvdLine as ISeriesApi<SeriesType>,
-          lastCvdPoint.value,
-          COLORS.cvdLine,
+        dynamicSeriesRef.current.set(
+          `${pane.id}:${definition.key}`,
+          series as ISeriesApi<SeriesType>,
         );
-      }
-      dynamicSeriesRef.current.set("cvd", cvdLine as ISeriesApi<SeriesType>);
-    }
-
-    // --- STC (Oscillator, 0-100) ---
-    if (indicators.stc.enabled && filteredStc?.data.length) {
-      const stcLine = chart.addSeries(LineSeries, {
-        priceScaleId: "stc",
-        color: COLORS.stcLine,
-        lineWidth: 2,
-        priceLineVisible: false,
-        lastValueVisible: false,
       });
-      const stcHigh = chart.addSeries(LineSeries, {
-        priceScaleId: "stc",
-        color: "#6B7280",
-        lineWidth: 1,
-        lineStyle: 2,
-        priceLineVisible: false,
-        lastValueVisible: false,
-        crosshairMarkerVisible: false,
-      });
-      const stcLow = chart.addSeries(LineSeries, {
-        priceScaleId: "stc",
-        color: "#6B7280",
-        lineWidth: 1,
-        lineStyle: 2,
-        priceLineVisible: false,
-        lastValueVisible: false,
-        crosshairMarkerVisible: false,
-      });
-      stcLine.setData(filteredStc.data.map((p) => ({ time: p.time as Time, value: p.value })));
-      stcHigh.setData(filteredStc.data.map((p) => ({ time: p.time as Time, value: 75 })));
-      stcLow.setData(filteredStc.data.map((p) => ({ time: p.time as Time, value: 25 })));
-      const lastStcPoint = filteredStc.data[filteredStc.data.length - 1];
-      if (lastStcPoint) {
-        createAxisValueLabel(
-          stcLine as ISeriesApi<SeriesType>,
-          lastStcPoint.value,
-          COLORS.stcLine,
-        );
-      }
-      dynamicSeriesRef.current.set("stc", stcLine as ISeriesApi<SeriesType>);
-      dynamicSeriesRef.current.set("stc-hi", stcHigh as ISeriesApi<SeriesType>);
-      dynamicSeriesRef.current.set("stc-lo", stcLow as ISeriesApi<SeriesType>);
-    }
+    });
 
     // --- SMC: BOS/CHoCH line segments ---
     if (indicators.smc.enabled && filteredSmc?.data.length) {

@@ -74,11 +74,6 @@ export default function DashboardTopBar({
             active={activeDockTab === "indicators"}
             onClick={() => onSelectDockTab("indicators")}
           />
-          <NavButton
-            label="표시 설정"
-            active={activeDockTab === "layout"}
-            onClick={() => onSelectDockTab("layout")}
-          />
         </nav>
       </div>
 
@@ -131,8 +126,8 @@ export default function DashboardTopBar({
           size="icon"
           className="dashboard-topbar__icon-button"
           onClick={onOpenDisplaySettings}
-          aria-label="표시 설정"
-          title="표시 설정"
+          aria-label="차트 설정"
+          title="차트 설정"
         >
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <circle cx="12" cy="12" r="3" />

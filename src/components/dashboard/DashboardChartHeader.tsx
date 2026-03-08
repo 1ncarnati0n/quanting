@@ -7,6 +7,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import ChartIndicatorPanel from "./ChartIndicatorPanel";
+import ChartDisplaySettingsPanel from "./ChartDisplaySettingsPanel";
 import { useDrawingStore, type DrawingTool } from "../../stores/useDrawingStore";
 import { useChartStore } from "../../stores/useChartStore";
 import { useSettingsStore } from "../../stores/useSettingsStore";
@@ -49,7 +50,6 @@ const CHART_TYPE_LABELS = {
 interface DashboardChartHeaderProps {
   onOpenIndicators: () => void;
   onOpenAlerts: () => void;
-  onOpenDisplaySettings: () => void;
   compact?: boolean;
 }
 
@@ -236,7 +236,6 @@ function EditGlyph() {
 export default function DashboardChartHeader({
   onOpenIndicators: _onOpenIndicators,
   onOpenAlerts,
-  onOpenDisplaySettings,
   compact = false,
 }: DashboardChartHeaderProps) {
   const {
@@ -288,12 +287,15 @@ export default function DashboardChartHeader({
   );
   const [intradayMenuOpen, setIntradayMenuOpen] = useState(false);
   const [indicatorPanelOpen, setIndicatorPanelOpen] = useState(false);
+  const [displaySettingsOpen, setDisplaySettingsOpen] = useState(false);
   const [activeRangeId, setActiveRangeId] = useState<TimeRangeId>(() => readSavedTimeRangeId());
   const [preferredIntradayInterval, setPreferredIntradayInterval] = useState<Interval>(() =>
     INTRADAY_DROPDOWN_INTERVALS.includes(interval) ? interval : "1h",
   );
   const indicatorPanelAnchorRef = useRef<HTMLDivElement | null>(null);
   const indicatorPanelSurfaceRef = useRef<HTMLDivElement | null>(null);
+  const displaySettingsAnchorRef = useRef<HTMLDivElement | null>(null);
+  const displaySettingsSurfaceRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -314,24 +316,38 @@ export default function DashboardChartHeader({
   }, [interval]);
 
   useEffect(() => {
+    const openDisplaySettings = () => {
+      setIndicatorPanelOpen(false);
+      setDisplaySettingsOpen(true);
+    };
+
+    window.addEventListener("quanting:open-chart-display-settings", openDisplaySettings);
+    return () => window.removeEventListener("quanting:open-chart-display-settings", openDisplaySettings);
+  }, []);
+
+  useEffect(() => {
     if (compact || market === "crypto") return;
     void fetchFundamentals({ symbol, market });
   }, [compact, fetchFundamentals, market, symbol]);
 
   useEffect(() => {
-    if (!indicatorPanelOpen) return;
+    if (!indicatorPanelOpen && !displaySettingsOpen) return;
 
     const handlePointerDown = (event: MouseEvent) => {
       const target = event.target as Node | null;
       if (!target) return;
       if (indicatorPanelAnchorRef.current?.contains(target)) return;
       if (indicatorPanelSurfaceRef.current?.contains(target)) return;
+      if (displaySettingsAnchorRef.current?.contains(target)) return;
+      if (displaySettingsSurfaceRef.current?.contains(target)) return;
       setIndicatorPanelOpen(false);
+      setDisplaySettingsOpen(false);
     };
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setIndicatorPanelOpen(false);
+        setDisplaySettingsOpen(false);
       }
     };
 
@@ -341,7 +357,7 @@ export default function DashboardChartHeader({
       document.removeEventListener("mousedown", handlePointerDown);
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [indicatorPanelOpen]);
+  }, [displaySettingsOpen, indicatorPanelOpen]);
 
   const symbolLabel = getSymbolLabel(symbol);
   const supportedIntervals = useMemo(() => getIntervalsForMarket(market), [market]);
@@ -457,6 +473,16 @@ export default function DashboardChartHeader({
     applyInterval(resolvedPreferredIntradayInterval);
   };
 
+  const toggleIndicatorPanel = () => {
+    setDisplaySettingsOpen(false);
+    setIndicatorPanelOpen((prev) => !prev);
+  };
+
+  const toggleDisplaySettings = () => {
+    setIndicatorPanelOpen(false);
+    setDisplaySettingsOpen((prev) => !prev);
+  };
+
   return (
     <div className={`dashboard-chart-header${compact ? " is-compact" : ""}`}>
       {!compact ? (
@@ -490,7 +516,7 @@ export default function DashboardChartHeader({
                 <button
                   type="button"
                   className="dashboard-chart-header__summary-mini-button"
-                  onClick={onOpenDisplaySettings}
+                  onClick={() => setDisplaySettingsOpen(true)}
                   title="표시 설정 열기"
                   aria-label="표시 설정 열기"
                 >
@@ -662,13 +688,23 @@ export default function DashboardChartHeader({
             >
               <TrashGlyph />
             </HeaderToolButton>
-            <HeaderToolButton
-              title="표시 설정 열기"
-              ariaLabel="표시 설정 열기"
-              onClick={onOpenDisplaySettings}
-            >
-              <GearGlyph />
-            </HeaderToolButton>
+            <div className="dashboard-chart-header__menu-anchor" ref={displaySettingsAnchorRef}>
+              <HeaderToolButton
+                active={displaySettingsOpen}
+                title="표시 설정 열기"
+                ariaLabel="표시 설정 열기"
+                onClick={toggleDisplaySettings}
+              >
+                <GearGlyph />
+              </HeaderToolButton>
+              {displaySettingsOpen ? (
+                <ChartDisplaySettingsPanel
+                  anchorRef={displaySettingsAnchorRef}
+                  panelRef={displaySettingsSurfaceRef}
+                  onClose={() => setDisplaySettingsOpen(false)}
+                />
+              ) : null}
+            </div>
           </div>
         </div>
 
@@ -678,7 +714,7 @@ export default function DashboardChartHeader({
               active={indicatorPanelOpen}
               title="보조지표 패널 열기"
               ariaLabel="보조지표 패널 열기"
-              onClick={() => setIndicatorPanelOpen((prev) => !prev)}
+              onClick={toggleIndicatorPanel}
             >
               <PlusGlyph />
               <span>보조지표</span>

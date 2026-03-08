@@ -14,6 +14,7 @@ import SymbolSearch from "./components/SymbolSearch";
 import { useChartStore } from "./stores/useChartStore";
 import { useSettingsStore } from "./stores/useSettingsStore";
 import { useReplayStore } from "./stores/useReplayStore";
+import { CHART_COLOR_PRESETS } from "./utils/constants";
 import type { Candle } from "./types";
 import { buildAnalysisParams } from "./utils/analysisParams";
 import { isActiveDialogLayer, isEditableKeyboardTarget } from "./utils/shortcuts";
@@ -101,6 +102,7 @@ function App() {
     priceAlerts,
     markAlertTriggered,
     theme,
+    chartColorStyle,
     isFullscreen,
     toggleFullscreen,
   } = useSettingsStore(
@@ -112,6 +114,7 @@ function App() {
       priceAlerts: state.priceAlerts,
       markAlertTriggered: state.markAlertTriggered,
       theme: state.theme,
+      chartColorStyle: state.chartColorStyle,
       isFullscreen: state.isFullscreen,
       toggleFullscreen: state.toggleFullscreen,
     })),
@@ -128,7 +131,10 @@ function App() {
     const root = document.documentElement;
     root.classList.toggle("dark", theme === "dark");
     root.style.colorScheme = theme;
-  }, [theme]);
+    const marketPalette = CHART_COLOR_PRESETS[chartColorStyle];
+    root.style.setProperty("--market-up", marketPalette.up);
+    root.style.setProperty("--market-down", marketPalette.down);
+  }, [chartColorStyle, theme]);
 
   // Build fetch params — only values that the backend actually uses.
   // Indicator enabled states that don't affect backend params (e.g. RSI toggle,
@@ -457,7 +463,7 @@ function App() {
       if (isMod && keyLower === ",") {
         if (e.repeat) return;
         e.preventDefault();
-        setActiveDockTab("layout");
+        window.dispatchEvent(new CustomEvent("quanting:open-chart-display-settings"));
       }
       if (isMod && keyLower === "k") {
         if (e.repeat) return;
@@ -533,7 +539,6 @@ function App() {
           compact
           onOpenIndicators={() => openDockSection("presets", "indicators")}
           onOpenAlerts={() => openDockSection("alerts", "indicators")}
-          onOpenDisplaySettings={() => handleSelectDockTab("layout")}
         />
         <div className="flex-1 min-h-0">
           <ChartContainer />
@@ -552,7 +557,7 @@ function App() {
             activeDockTab={activeDockTab}
             onSelectDockTab={handleSelectDockTab}
             onToggleWatchlist={handleToggleWatchlistPanel}
-            onOpenDisplaySettings={() => handleSelectDockTab("layout")}
+            onOpenDisplaySettings={() => window.dispatchEvent(new CustomEvent("quanting:open-chart-display-settings"))}
           />
 
           <div ref={dashboardShellRef} className="dashboard-shell flex min-h-0 flex-1">
@@ -560,7 +565,6 @@ function App() {
               <DashboardChartHeader
                 onOpenIndicators={() => openDockSection("presets", "indicators")}
                 onOpenAlerts={() => openDockSection("alerts", "indicators")}
-                onOpenDisplaySettings={() => handleSelectDockTab("layout")}
               />
               <div className="workspace-chart dashboard-shell__chart flex flex-1 min-h-0 overflow-hidden bg-[var(--card)]">
                 <ChartContainer />

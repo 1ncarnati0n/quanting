@@ -3,9 +3,11 @@ import { useShallow } from "zustand/react/shallow";
 import { useChartStore } from "../stores/useChartStore";
 import { useCrosshairStore } from "../stores/useCrosshairStore";
 import { useSettingsStore, type IndicatorConfig } from "../stores/useSettingsStore";
-import { COLORS, MA_COLORS } from "../utils/constants";
+import { CHART_COLOR_PRESETS, COLORS, MA_COLORS } from "../utils/constants";
 import { formatPrice } from "../utils/formatters";
 import type { AnalysisResponse, MarketType } from "../types";
+
+type OverlayIndicatorKey = Exclude<keyof IndicatorConfig, "layout" | "signalStrategies">;
 
 type OverlayToken = {
   text: string;
@@ -15,28 +17,9 @@ type OverlayToken = {
 type OverlayRow = {
   key: string;
   label: string;
+  indicatorKeys: OverlayIndicatorKey[];
   tokens: OverlayToken[];
 };
-
-function EyeOffGlyph() {
-  return (
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-      <path d="M3 3l18 18" />
-      <path d="M10.58 10.58A2 2 0 0 0 12 14a2 2 0 0 0 1.42-.58" />
-      <path d="M9.36 5.37A10.94 10.94 0 0 1 12 5c5 0 9.27 3.11 11 7-1 2.22-2.74 4.07-4.91 5.25" />
-      <path d="M6.23 6.23C4.19 7.43 2.58 9.15 1.5 12c.64 1.48 1.59 2.85 2.79 4" />
-    </svg>
-  );
-}
-
-function CloseGlyph() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-      <path d="M6 6l12 12" />
-      <path d="M18 6 6 18" />
-    </svg>
-  );
-}
 
 function ChevronGlyph({ collapsed }: { collapsed: boolean }) {
   return (
@@ -111,6 +94,7 @@ function buildOverlayRows(
     rows.push({
       key: "moving-average",
       label: "이동평균선",
+      indicatorKeys: ["sma", "ema", "hma"],
       tokens: movingAverageTokens,
     });
   }
@@ -121,6 +105,7 @@ function buildOverlayRows(
     rows.push({
       key: "bollinger",
       label: "볼린저 밴드",
+      indicatorKeys: ["bb"],
       tokens: latestBand
         ? [
             { text: "중심선", color: COLORS.bbMiddle },
@@ -141,6 +126,7 @@ function buildOverlayRows(
     rows.push({
       key: "vwap",
       label: "VWAP",
+      indicatorKeys: ["vwap"],
       tokens: [{ text: "기본", color: "#14B8A6" }],
     });
   }
@@ -149,6 +135,7 @@ function buildOverlayRows(
     rows.push({
       key: "donchian",
       label: "돈치안 채널",
+      indicatorKeys: ["donchian"],
       tokens: [
         { text: formatParam(indicators.donchian.period), color: COLORS.donchianMiddle },
       ],
@@ -159,6 +146,7 @@ function buildOverlayRows(
     rows.push({
       key: "keltner",
       label: "켈트너 채널",
+      indicatorKeys: ["keltner"],
       tokens: [
         { text: formatParam(indicators.keltner.emaPeriod), color: COLORS.keltnerMiddle },
         { text: formatParam(indicators.keltner.atrMultiplier), color: COLORS.keltnerUpper },
@@ -170,6 +158,7 @@ function buildOverlayRows(
     rows.push({
       key: "supertrend",
       label: "슈퍼트렌드",
+      indicatorKeys: ["supertrend"],
       tokens: [{ text: "ON", color: "#22C55E" }],
     });
   }
@@ -178,6 +167,7 @@ function buildOverlayRows(
     rows.push({
       key: "psar",
       label: "PSAR",
+      indicatorKeys: ["psar"],
       tokens: [{ text: "ON", color: "#F97316" }],
     });
   }
@@ -187,6 +177,7 @@ function buildOverlayRows(
 
 export default function CrosshairLegend() {
   const [collapsed, setCollapsed] = useState(false);
+  const chartColorStyle = useSettingsStore((state) => state.chartColorStyle);
   const { time, open, high, low, close } = useCrosshairStore(
     useShallow((state) => ({
       time: state.time,
@@ -197,10 +188,11 @@ export default function CrosshairLegend() {
     })),
   );
   const data = useChartStore((state) => state.data);
-  const { market, indicators } = useSettingsStore(
+  const { market, indicators, setIndicator } = useSettingsStore(
     useShallow((state) => ({
       market: state.market,
       indicators: state.indicators,
+      setIndicator: state.setIndicator,
     })),
   );
   const candleContext = useMemo(() => {
@@ -236,6 +228,7 @@ export default function CrosshairLegend() {
     };
   }, [close, data?.candles, high, low, open, time]);
   const overlayRows = useMemo(() => buildOverlayRows(indicators, data, market), [data, indicators, market]);
+  const marketColors = CHART_COLOR_PRESETS[chartColorStyle];
 
   const ohlcMetrics = useMemo(() => {
     if (!candleContext) return [];
@@ -246,7 +239,7 @@ export default function CrosshairLegend() {
         label,
         value: formatPrice(value, market),
         delta: `${deltaPct >= 0 ? "+" : ""}${deltaPct.toFixed(2)}%`,
-        color: deltaPct >= 0 ? COLORS.candleUp : COLORS.candleDown,
+        color: deltaPct >= 0 ? marketColors.up : marketColors.down,
       };
     };
 
@@ -256,7 +249,13 @@ export default function CrosshairLegend() {
       toMetric("저가", candleContext.candle.low),
       toMetric("종가", candleContext.candle.close),
     ];
-  }, [candleContext, market]);
+  }, [candleContext, market, marketColors.down, marketColors.up]);
+
+  const disableOverlayRow = (indicatorKeys: OverlayIndicatorKey[]) => {
+    indicatorKeys.forEach((indicatorKey) => {
+      setIndicator(indicatorKey, { enabled: false } as never);
+    });
+  };
 
   return (
     <div className="chart-crosshair-legend absolute left-4 top-3 z-10">
@@ -275,16 +274,19 @@ export default function CrosshairLegend() {
       ) : null}
 
       {!collapsed && overlayRows.length > 0 ? (
-        <div className="chart-crosshair-legend__rows" aria-hidden="true">
+        <div className="chart-crosshair-legend__rows">
           {overlayRows.map((row) => (
             <div key={row.key} className="chart-crosshair-legend__row">
               <span className="chart-crosshair-legend__row-controls">
-                <span className="chart-crosshair-legend__control-chip">
-                  <EyeOffGlyph />
-                </span>
-                <span className="chart-crosshair-legend__control-chip">
-                  <CloseGlyph />
-                </span>
+                <button
+                  type="button"
+                  className="chart-indicator-close-badge"
+                  aria-label={`${row.label} 지표 비활성화`}
+                  title={`${row.label} 지표 비활성화`}
+                  onClick={() => disableOverlayRow(row.indicatorKeys)}
+                >
+                  x
+                </button>
               </span>
               <span className="chart-crosshair-legend__row-label">{row.label}</span>
               <span className="chart-crosshair-legend__row-values">

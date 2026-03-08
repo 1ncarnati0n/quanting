@@ -198,6 +198,18 @@ export const INDICATOR_DEFAULTS = {
 
 // --- Theme ---
 export type Theme = "dark" | "light";
+export type ChartColorStyle = "international" | "korean";
+
+export const CHART_COLOR_PRESETS: Record<ChartColorStyle, { up: string; down: string }> = {
+  international: {
+    up: "#089981",
+    down: "#F23645",
+  },
+  korean: {
+    up: "#F04452",
+    down: "#2962FF",
+  },
+};
 
 // --- Preset Symbols ---
 export interface PresetSymbol {

@@ -2,6 +2,8 @@ import { create } from "zustand";
 import {
   CRYPTO_INTERVALS,
   STOCK_INTERVALS,
+  CHART_COLOR_PRESETS,
+  COLORS,
   DEFAULT_SYMBOL,
   DEFAULT_INTERVAL,
   DEFAULT_MARKET,
@@ -9,7 +11,7 @@ import {
   INDICATOR_DEFAULTS,
   getIntervalsForMarket,
 } from "../utils/constants";
-import type { Interval, Theme } from "../utils/constants";
+import type { ChartColorStyle, Interval, Theme } from "../utils/constants";
 import type { MarketType } from "../types";
 
 export type SettingsTab = "indicators" | "layout" | "appearance" | "backtest";
@@ -66,7 +68,7 @@ export interface AlertHistoryItem {
 
 export interface IndicatorConfig {
   bb: { enabled: boolean; period: number; multiplier: number };
-  rsi: { enabled: boolean; period: number };
+  rsi: { enabled: boolean; period: number; color: string; lineWidth: number };
   sma: { enabled: boolean; periods: number[] };
   ema: { enabled: boolean; periods: number[] };
   macd: {
@@ -74,20 +76,31 @@ export interface IndicatorConfig {
     fastPeriod: number;
     slowPeriod: number;
     signalPeriod: number;
+    macdColor: string;
+    signalColor: string;
+    histogramUpColor: string;
+    histogramDownColor: string;
+    histogramOpacity: number;
+    macdLineWidth: number;
+    signalLineWidth: number;
   };
   stochastic: {
     enabled: boolean;
     kPeriod: number;
     dPeriod: number;
     smooth: number;
+    kColor: string;
+    dColor: string;
+    kLineWidth: number;
+    dLineWidth: number;
   };
-  volume: { enabled: boolean };
-  obv: { enabled: boolean };
+  volume: { enabled: boolean; upColor: string; downColor: string; opacity: number };
+  obv: { enabled: boolean; color: string; lineWidth: number };
   signalZones: { enabled: boolean };
   volumeProfile: { enabled: boolean; bins: number };
   fundamentals: { enabled: boolean };
   vwap: { enabled: boolean };
-  atr: { enabled: boolean };
+  atr: { enabled: boolean; color: string; lineWidth: number };
   ichimoku: { enabled: boolean };
   supertrend: { enabled: boolean };
   psar: { enabled: boolean };
@@ -99,14 +112,22 @@ export interface IndicatorConfig {
     atrPeriod: number;
     atrMultiplier: number;
   };
-  mfi: { enabled: boolean; period: number };
-  cmf: { enabled: boolean; period: number };
-  choppiness: { enabled: boolean; period: number };
-  williamsR: { enabled: boolean; period: number };
-  adx: { enabled: boolean; period: number };
-  cvd: { enabled: boolean };
-  rvol: { enabled: boolean; period: number };
-  stc: { enabled: boolean; tcLen: number; fastMa: number; slowMa: number };
+  mfi: { enabled: boolean; period: number; color: string; lineWidth: number };
+  cmf: { enabled: boolean; period: number; color: string; lineWidth: number };
+  choppiness: { enabled: boolean; period: number; color: string; lineWidth: number };
+  williamsR: { enabled: boolean; period: number; color: string; lineWidth: number };
+  adx: {
+    enabled: boolean;
+    period: number;
+    color: string;
+    plusDiColor: string;
+    minusDiColor: string;
+    lineWidth: number;
+    diLineWidth: number;
+  };
+  cvd: { enabled: boolean; color: string; lineWidth: number };
+  rvol: { enabled: boolean; period: number; highColor: string; neutralColor: string; lowColor: string };
+  stc: { enabled: boolean; tcLen: number; fastMa: number; slowMa: number; color: string; lineWidth: number };
   smc: { enabled: boolean; swingLength: number };
   anchoredVwap: { enabled: boolean; anchorTime: number | null };
   autoFib: { enabled: boolean; lookback: number; swingLength: number };
@@ -149,32 +170,63 @@ type ToggleableIndicatorKey = Exclude<IndicatorKey, "layout" | "signalStrategies
 
 const DEFAULT_INDICATORS: IndicatorConfig = {
   bb: { enabled: true, period: DEFAULTS.bbPeriod, multiplier: DEFAULTS.bbMultiplier },
-  rsi: { enabled: true, period: DEFAULTS.rsiPeriod },
+  rsi: { enabled: true, period: DEFAULTS.rsiPeriod, color: COLORS.rsiLine, lineWidth: 2 },
   sma: { enabled: false, periods: [...INDICATOR_DEFAULTS.sma.periods] },
   ema: { enabled: false, periods: [...INDICATOR_DEFAULTS.ema.periods] },
-  macd: { enabled: false, ...INDICATOR_DEFAULTS.macd },
-  stochastic: { enabled: false, ...INDICATOR_DEFAULTS.stochastic },
-  volume: { enabled: false },
-  obv: { enabled: false },
+  macd: {
+    enabled: false,
+    ...INDICATOR_DEFAULTS.macd,
+    macdColor: COLORS.macdLine,
+    signalColor: COLORS.macdSignal,
+    histogramUpColor: COLORS.macdHistUp,
+    histogramDownColor: COLORS.macdHistDown,
+    histogramOpacity: 0.52,
+    macdLineWidth: 2,
+    signalLineWidth: 1,
+  },
+  stochastic: {
+    enabled: false,
+    ...INDICATOR_DEFAULTS.stochastic,
+    kColor: COLORS.stochK,
+    dColor: COLORS.stochD,
+    kLineWidth: 2,
+    dLineWidth: 1,
+  },
+  volume: { enabled: false, upColor: COLORS.volumeUp, downColor: COLORS.volumeDown, opacity: 0.52 },
+  obv: { enabled: false, color: "#14B8A6", lineWidth: 2 },
   signalZones: { enabled: false },
   volumeProfile: { enabled: false, bins: 24 },
   fundamentals: { enabled: false },
   vwap: { enabled: false },
-  atr: { enabled: false },
+  atr: { enabled: false, color: "#38BDF8", lineWidth: 2 },
   ichimoku: { enabled: false },
   supertrend: { enabled: false },
   psar: { enabled: false },
   hma: { enabled: false, periods: [...INDICATOR_DEFAULTS.hma.periods] },
   donchian: { enabled: false, ...INDICATOR_DEFAULTS.donchian },
   keltner: { enabled: false, ...INDICATOR_DEFAULTS.keltner },
-  mfi: { enabled: false, ...INDICATOR_DEFAULTS.mfi },
-  cmf: { enabled: false, ...INDICATOR_DEFAULTS.cmf },
-  choppiness: { enabled: false, ...INDICATOR_DEFAULTS.choppiness },
-  williamsR: { enabled: false, ...INDICATOR_DEFAULTS.williamsR },
-  adx: { enabled: false, ...INDICATOR_DEFAULTS.adx },
-  cvd: { enabled: false },
-  rvol: { enabled: false, ...INDICATOR_DEFAULTS.rvol },
-  stc: { enabled: false, ...INDICATOR_DEFAULTS.stc },
+  mfi: { enabled: false, ...INDICATOR_DEFAULTS.mfi, color: COLORS.mfiLine, lineWidth: 2 },
+  cmf: { enabled: false, ...INDICATOR_DEFAULTS.cmf, color: COLORS.cmfLine, lineWidth: 2 },
+  choppiness: { enabled: false, ...INDICATOR_DEFAULTS.choppiness, color: COLORS.chopLine, lineWidth: 2 },
+  williamsR: { enabled: false, ...INDICATOR_DEFAULTS.williamsR, color: COLORS.willrLine, lineWidth: 2 },
+  adx: {
+    enabled: false,
+    ...INDICATOR_DEFAULTS.adx,
+    color: COLORS.adxLine,
+    plusDiColor: COLORS.adxPlusDi,
+    minusDiColor: COLORS.adxMinusDi,
+    lineWidth: 2,
+    diLineWidth: 1,
+  },
+  cvd: { enabled: false, color: COLORS.cvdLine, lineWidth: 2 },
+  rvol: {
+    enabled: false,
+    ...INDICATOR_DEFAULTS.rvol,
+    highColor: COLORS.rvolHigh,
+    neutralColor: COLORS.rvolNeutral,
+    lowColor: COLORS.rvolLow,
+  },
+  stc: { enabled: false, ...INDICATOR_DEFAULTS.stc, color: COLORS.stcLine, lineWidth: 2 },
   smc: { enabled: false, ...INDICATOR_DEFAULTS.smc },
   anchoredVwap: { enabled: false, anchorTime: null },
   autoFib: { enabled: false, ...INDICATOR_DEFAULTS.autoFib },
@@ -203,6 +255,8 @@ const DEFAULT_PRICE_SCALE: PriceScaleSettings = {
   autoScale: true,
 };
 
+const DEFAULT_CHART_COLOR_STYLE: ChartColorStyle = "international";
+
 const DEFAULT_COMPARE: CompareSettings = {
   enabled: false,
   symbol: "SPY",
@@ -215,6 +269,7 @@ interface SettingsState {
   interval: Interval;
   market: MarketType;
   theme: Theme;
+  chartColorStyle: ChartColorStyle;
   chartType: ChartType;
   multiChartLayout: MultiChartLayout;
   workspaceView: WorkspaceView;
@@ -250,6 +305,7 @@ interface SettingsState {
   markAlertTriggered: (alertId: string, triggeredPrice: number) => void;
   clearAlertHistory: () => void;
   toggleTheme: () => void;
+  setChartColorStyle: (style: ChartColorStyle) => void;
   setChartType: (chartType: ChartType) => void;
   setMultiChartLayout: (layout: MultiChartLayout) => void;
   setWorkspaceView: (view: WorkspaceView) => void;
@@ -268,6 +324,252 @@ function toFiniteNumber(value: unknown, fallback: number): number {
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
+}
+
+function toValidColor(value: unknown, fallback: string): string {
+  if (typeof value !== "string") return fallback;
+  const next = value.trim();
+  return /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(next) || /^rgba?\(/i.test(next) ? next : fallback;
+}
+
+function toLineWidth(value: unknown, fallback: number): number {
+  return clamp(Math.round(toFiniteNumber(value, fallback)), 1, 4);
+}
+
+function toOpacity(value: unknown, fallback: number): number {
+  return clamp(toFiniteNumber(value, fallback), 0.1, 1);
+}
+
+function colorWithOpacity(hex: string, opacity: number): string {
+  const alpha = Math.round(clamp(opacity, 0, 1) * 255)
+    .toString(16)
+    .padStart(2, "0")
+    .toUpperCase();
+  return `${hex}${alpha}`;
+}
+
+function applyChartColorStyleToIndicators(
+  indicators: IndicatorConfig,
+  chartColorStyle: ChartColorStyle,
+): IndicatorConfig {
+  const preset = CHART_COLOR_PRESETS[chartColorStyle];
+  return {
+    ...indicators,
+    macd: {
+      ...indicators.macd,
+      histogramUpColor: colorWithOpacity(preset.up, indicators.macd.histogramOpacity),
+      histogramDownColor: colorWithOpacity(preset.down, indicators.macd.histogramOpacity),
+    },
+    volume: {
+      ...indicators.volume,
+      upColor: colorWithOpacity(preset.up, indicators.volume.opacity),
+      downColor: colorWithOpacity(preset.down, indicators.volume.opacity),
+    },
+  };
+}
+
+function sanitizeRsiConfig(config: IndicatorConfig["rsi"] | undefined): IndicatorConfig["rsi"] {
+  const base = DEFAULT_INDICATORS.rsi;
+  return {
+    ...base,
+    ...config,
+    period: clamp(toFiniteNumber(config?.period, base.period), 2, 50),
+    color: toValidColor(config?.color, base.color),
+    lineWidth: toLineWidth(config?.lineWidth, base.lineWidth),
+  };
+}
+
+function sanitizeMacdConfig(config: IndicatorConfig["macd"] | undefined): IndicatorConfig["macd"] {
+  const base = DEFAULT_INDICATORS.macd;
+  return {
+    ...base,
+    ...config,
+    fastPeriod: clamp(toFiniteNumber(config?.fastPeriod, base.fastPeriod), 2, 50),
+    slowPeriod: clamp(toFiniteNumber(config?.slowPeriod, base.slowPeriod), 5, 100),
+    signalPeriod: clamp(toFiniteNumber(config?.signalPeriod, base.signalPeriod), 2, 50),
+    macdColor: toValidColor(config?.macdColor, base.macdColor),
+    signalColor: toValidColor(config?.signalColor, base.signalColor),
+    histogramUpColor: toValidColor(config?.histogramUpColor, base.histogramUpColor),
+    histogramDownColor: toValidColor(config?.histogramDownColor, base.histogramDownColor),
+    histogramOpacity: toOpacity(config?.histogramOpacity, base.histogramOpacity),
+    macdLineWidth: toLineWidth(config?.macdLineWidth, base.macdLineWidth),
+    signalLineWidth: toLineWidth(config?.signalLineWidth, base.signalLineWidth),
+  };
+}
+
+function sanitizeStochasticConfig(
+  config: IndicatorConfig["stochastic"] | undefined,
+): IndicatorConfig["stochastic"] {
+  const base = DEFAULT_INDICATORS.stochastic;
+  return {
+    ...base,
+    ...config,
+    kPeriod: clamp(toFiniteNumber(config?.kPeriod, base.kPeriod), 2, 50),
+    dPeriod: clamp(toFiniteNumber(config?.dPeriod, base.dPeriod), 2, 20),
+    smooth: clamp(toFiniteNumber(config?.smooth, base.smooth), 1, 10),
+    kColor: toValidColor(config?.kColor, base.kColor),
+    dColor: toValidColor(config?.dColor, base.dColor),
+    kLineWidth: toLineWidth(config?.kLineWidth, base.kLineWidth),
+    dLineWidth: toLineWidth(config?.dLineWidth, base.dLineWidth),
+  };
+}
+
+function sanitizeVolumeConfig(config: IndicatorConfig["volume"] | undefined): IndicatorConfig["volume"] {
+  const base = DEFAULT_INDICATORS.volume;
+  return {
+    ...base,
+    ...config,
+    upColor: toValidColor(config?.upColor, base.upColor),
+    downColor: toValidColor(config?.downColor, base.downColor),
+    opacity: toOpacity(config?.opacity, base.opacity),
+  };
+}
+
+function sanitizeSingleLineConfig<T extends { enabled: boolean; color: string; lineWidth: number }>(
+  config: T | undefined,
+  base: T,
+): T {
+  return {
+    ...base,
+    ...config,
+    color: toValidColor(config?.color, base.color),
+    lineWidth: toLineWidth(config?.lineWidth, base.lineWidth),
+  };
+}
+
+function sanitizeAdxConfig(config: IndicatorConfig["adx"] | undefined): IndicatorConfig["adx"] {
+  const base = DEFAULT_INDICATORS.adx;
+  return {
+    ...base,
+    ...config,
+    period: clamp(toFiniteNumber(config?.period, base.period), 2, 50),
+    color: toValidColor(config?.color, base.color),
+    plusDiColor: toValidColor(config?.plusDiColor, base.plusDiColor),
+    minusDiColor: toValidColor(config?.minusDiColor, base.minusDiColor),
+    lineWidth: toLineWidth(config?.lineWidth, base.lineWidth),
+    diLineWidth: toLineWidth(config?.diLineWidth, base.diLineWidth),
+  };
+}
+
+function sanitizeRvolConfig(config: IndicatorConfig["rvol"] | undefined): IndicatorConfig["rvol"] {
+  const base = DEFAULT_INDICATORS.rvol;
+  return {
+    ...base,
+    ...config,
+    period: clamp(toFiniteNumber(config?.period, base.period), 2, 100),
+    highColor: toValidColor(config?.highColor, base.highColor),
+    neutralColor: toValidColor(config?.neutralColor, base.neutralColor),
+    lowColor: toValidColor(config?.lowColor, base.lowColor),
+  };
+}
+
+function sanitizeIndicatorEntry<K extends IndicatorKey>(
+  key: K,
+  config: IndicatorConfig[K] | undefined,
+): IndicatorConfig[K] {
+  switch (key) {
+    case "layout":
+      return sanitizeLayoutConfig(config as IndicatorConfig["layout"]) as IndicatorConfig[K];
+    case "rsi":
+      return sanitizeRsiConfig(config as IndicatorConfig["rsi"]) as IndicatorConfig[K];
+    case "macd":
+      return sanitizeMacdConfig(config as IndicatorConfig["macd"]) as IndicatorConfig[K];
+    case "stochastic":
+      return sanitizeStochasticConfig(config as IndicatorConfig["stochastic"]) as IndicatorConfig[K];
+    case "volume":
+      return sanitizeVolumeConfig(config as IndicatorConfig["volume"]) as IndicatorConfig[K];
+    case "obv":
+      return sanitizeSingleLineConfig(
+        config as IndicatorConfig["obv"],
+        DEFAULT_INDICATORS.obv,
+      ) as IndicatorConfig[K];
+    case "atr":
+      return sanitizeSingleLineConfig(
+        config as IndicatorConfig["atr"],
+        DEFAULT_INDICATORS.atr,
+      ) as IndicatorConfig[K];
+    case "mfi":
+      return {
+        ...sanitizeSingleLineConfig(
+          config as IndicatorConfig["mfi"],
+          DEFAULT_INDICATORS.mfi,
+        ),
+        period: clamp(
+          toFiniteNumber((config as IndicatorConfig["mfi"] | undefined)?.period, DEFAULT_INDICATORS.mfi.period),
+          2,
+          50,
+        ),
+      } as IndicatorConfig[K];
+    case "cmf":
+      return {
+        ...sanitizeSingleLineConfig(
+          config as IndicatorConfig["cmf"],
+          DEFAULT_INDICATORS.cmf,
+        ),
+        period: clamp(
+          toFiniteNumber((config as IndicatorConfig["cmf"] | undefined)?.period, DEFAULT_INDICATORS.cmf.period),
+          2,
+          50,
+        ),
+      } as IndicatorConfig[K];
+    case "choppiness":
+      return {
+        ...sanitizeSingleLineConfig(
+          config as IndicatorConfig["choppiness"],
+          DEFAULT_INDICATORS.choppiness,
+        ),
+        period: clamp(
+          toFiniteNumber((config as IndicatorConfig["choppiness"] | undefined)?.period, DEFAULT_INDICATORS.choppiness.period),
+          2,
+          50,
+        ),
+      } as IndicatorConfig[K];
+    case "williamsR":
+      return {
+        ...sanitizeSingleLineConfig(
+          config as IndicatorConfig["williamsR"],
+          DEFAULT_INDICATORS.williamsR,
+        ),
+        period: clamp(
+          toFiniteNumber((config as IndicatorConfig["williamsR"] | undefined)?.period, DEFAULT_INDICATORS.williamsR.period),
+          2,
+          50,
+        ),
+      } as IndicatorConfig[K];
+    case "adx":
+      return sanitizeAdxConfig(config as IndicatorConfig["adx"]) as IndicatorConfig[K];
+    case "cvd":
+      return sanitizeSingleLineConfig(
+        config as IndicatorConfig["cvd"],
+        DEFAULT_INDICATORS.cvd,
+      ) as IndicatorConfig[K];
+    case "rvol":
+      return sanitizeRvolConfig(config as IndicatorConfig["rvol"]) as IndicatorConfig[K];
+    case "stc":
+      return {
+        ...sanitizeSingleLineConfig(
+          config as IndicatorConfig["stc"],
+          DEFAULT_INDICATORS.stc,
+        ),
+        tcLen: clamp(
+          toFiniteNumber((config as IndicatorConfig["stc"] | undefined)?.tcLen, DEFAULT_INDICATORS.stc.tcLen),
+          2,
+          30,
+        ),
+        fastMa: clamp(
+          toFiniteNumber((config as IndicatorConfig["stc"] | undefined)?.fastMa, DEFAULT_INDICATORS.stc.fastMa),
+          5,
+          50,
+        ),
+        slowMa: clamp(
+          toFiniteNumber((config as IndicatorConfig["stc"] | undefined)?.slowMa, DEFAULT_INDICATORS.stc.slowMa),
+          20,
+          100,
+        ),
+      } as IndicatorConfig[K];
+    default:
+      return (config ?? DEFAULT_INDICATORS[key]) as IndicatorConfig[K];
+  }
 }
 
 function sanitizeLayoutConfig(layout: IndicatorConfig["layout"] | undefined): IndicatorConfig["layout"] {
@@ -315,15 +617,15 @@ function getSavedIndicators(): IndicatorConfig {
     const saved = localStorage.getItem("bb-rsi-indicators");
     if (saved) {
       const parsed = JSON.parse(saved);
-      return {
+      const nextIndicators = {
         bb: { ...DEFAULT_INDICATORS.bb, ...parsed.bb },
-        rsi: { ...DEFAULT_INDICATORS.rsi, ...parsed.rsi },
+        rsi: sanitizeIndicatorEntry("rsi", { ...DEFAULT_INDICATORS.rsi, ...parsed.rsi }),
         sma: { ...DEFAULT_INDICATORS.sma, ...parsed.sma },
         ema: { ...DEFAULT_INDICATORS.ema, ...parsed.ema },
-        macd: { ...DEFAULT_INDICATORS.macd, ...parsed.macd },
-        stochastic: { ...DEFAULT_INDICATORS.stochastic, ...parsed.stochastic },
-        volume: { ...DEFAULT_INDICATORS.volume, ...parsed.volume },
-        obv: { ...DEFAULT_INDICATORS.obv, ...parsed.obv },
+        macd: sanitizeIndicatorEntry("macd", { ...DEFAULT_INDICATORS.macd, ...parsed.macd }),
+        stochastic: sanitizeIndicatorEntry("stochastic", { ...DEFAULT_INDICATORS.stochastic, ...parsed.stochastic }),
+        volume: sanitizeIndicatorEntry("volume", { ...DEFAULT_INDICATORS.volume, ...parsed.volume }),
+        obv: sanitizeIndicatorEntry("obv", { ...DEFAULT_INDICATORS.obv, ...parsed.obv }),
         signalZones: { ...DEFAULT_INDICATORS.signalZones, ...parsed.signalZones },
         volumeProfile: {
           ...DEFAULT_INDICATORS.volumeProfile,
@@ -331,21 +633,21 @@ function getSavedIndicators(): IndicatorConfig {
         },
         fundamentals: { ...DEFAULT_INDICATORS.fundamentals, ...parsed.fundamentals },
         vwap: { ...DEFAULT_INDICATORS.vwap, ...parsed.vwap },
-        atr: { ...DEFAULT_INDICATORS.atr, ...parsed.atr },
+        atr: sanitizeIndicatorEntry("atr", { ...DEFAULT_INDICATORS.atr, ...parsed.atr }),
         ichimoku: { ...DEFAULT_INDICATORS.ichimoku, ...parsed.ichimoku },
         supertrend: { ...DEFAULT_INDICATORS.supertrend, ...parsed.supertrend },
         psar: { ...DEFAULT_INDICATORS.psar, ...parsed.psar },
         hma: { ...DEFAULT_INDICATORS.hma, ...parsed.hma },
         donchian: { ...DEFAULT_INDICATORS.donchian, ...parsed.donchian },
         keltner: { ...DEFAULT_INDICATORS.keltner, ...parsed.keltner },
-        mfi: { ...DEFAULT_INDICATORS.mfi, ...parsed.mfi },
-        cmf: { ...DEFAULT_INDICATORS.cmf, ...parsed.cmf },
-        choppiness: { ...DEFAULT_INDICATORS.choppiness, ...parsed.choppiness },
-        williamsR: { ...DEFAULT_INDICATORS.williamsR, ...parsed.williamsR },
-        adx: { ...DEFAULT_INDICATORS.adx, ...parsed.adx },
-        cvd: { ...DEFAULT_INDICATORS.cvd, ...parsed.cvd },
-        rvol: { ...DEFAULT_INDICATORS.rvol, ...parsed.rvol },
-        stc: { ...DEFAULT_INDICATORS.stc, ...parsed.stc },
+        mfi: sanitizeIndicatorEntry("mfi", { ...DEFAULT_INDICATORS.mfi, ...parsed.mfi }),
+        cmf: sanitizeIndicatorEntry("cmf", { ...DEFAULT_INDICATORS.cmf, ...parsed.cmf }),
+        choppiness: sanitizeIndicatorEntry("choppiness", { ...DEFAULT_INDICATORS.choppiness, ...parsed.choppiness }),
+        williamsR: sanitizeIndicatorEntry("williamsR", { ...DEFAULT_INDICATORS.williamsR, ...parsed.williamsR }),
+        adx: sanitizeIndicatorEntry("adx", { ...DEFAULT_INDICATORS.adx, ...parsed.adx }),
+        cvd: sanitizeIndicatorEntry("cvd", { ...DEFAULT_INDICATORS.cvd, ...parsed.cvd }),
+        rvol: sanitizeIndicatorEntry("rvol", { ...DEFAULT_INDICATORS.rvol, ...parsed.rvol }),
+        stc: sanitizeIndicatorEntry("stc", { ...DEFAULT_INDICATORS.stc, ...parsed.stc }),
         smc: { ...DEFAULT_INDICATORS.smc, ...parsed.smc },
         anchoredVwap: { ...DEFAULT_INDICATORS.anchoredVwap, ...parsed.anchoredVwap },
         autoFib: { ...DEFAULT_INDICATORS.autoFib, ...parsed.autoFib },
@@ -355,12 +657,16 @@ function getSavedIndicators(): IndicatorConfig {
           ...parsed.signalStrategies,
         },
       };
+      return applyChartColorStyleToIndicators(nextIndicators, getSavedChartColorStyle());
     }
   } catch {}
-  return {
-    ...DEFAULT_INDICATORS,
-    layout: sanitizeLayoutConfig(DEFAULT_INDICATORS.layout),
-  };
+  return applyChartColorStyleToIndicators(
+    {
+      ...DEFAULT_INDICATORS,
+      layout: sanitizeLayoutConfig(DEFAULT_INDICATORS.layout),
+    },
+    getSavedChartColorStyle(),
+  );
 }
 
 function saveIndicators(indicators: IndicatorConfig) {
@@ -376,6 +682,7 @@ const COMPARE_STORAGE_KEY = "quanting-compare";
 const PRICE_ALERTS_STORAGE_KEY = "quanting-price-alerts";
 const ALERT_HISTORY_STORAGE_KEY = "quanting-alert-history";
 const CUSTOM_SYMBOLS_STORAGE_KEY = "quanting-custom-symbols";
+const CHART_COLOR_STYLE_STORAGE_KEY = "quanting-chart-color-style";
 const MAX_CUSTOM_SYMBOLS = 50;
 const MULTI_CHART_LAYOUT_STORAGE_KEY = "quanting-multi-layout";
 const WORKSPACE_VIEW_STORAGE_KEY = "quanting-workspace-view";
@@ -676,17 +983,26 @@ function uid(prefix: string): string {
 }
 
 function getSavedMultiChartLayout(): MultiChartLayout {
-  try {
-    const raw = localStorage.getItem(MULTI_CHART_LAYOUT_STORAGE_KEY);
-    if (raw === "2") return 2;
-    if (raw === "4") return 4;
-  } catch {}
   return 1;
 }
 
 function saveMultiChartLayout(layout: MultiChartLayout) {
   try {
-    localStorage.setItem(MULTI_CHART_LAYOUT_STORAGE_KEY, String(layout));
+    localStorage.setItem(MULTI_CHART_LAYOUT_STORAGE_KEY, String(layout === 1 ? 1 : 1));
+  } catch {}
+}
+
+function getSavedChartColorStyle(): ChartColorStyle {
+  try {
+    const raw = localStorage.getItem(CHART_COLOR_STYLE_STORAGE_KEY);
+    if (raw === "international" || raw === "korean") return raw;
+  } catch {}
+  return DEFAULT_CHART_COLOR_STYLE;
+}
+
+function saveChartColorStyle(style: ChartColorStyle) {
+  try {
+    localStorage.setItem(CHART_COLOR_STYLE_STORAGE_KEY, style);
   } catch {}
 }
 
@@ -749,6 +1065,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   interval: INITIAL_INTERVAL,
   market: INITIAL_LAST_SYMBOL.market,
   theme: getSavedTheme(),
+  chartColorStyle: getSavedChartColorStyle(),
   chartType: getSavedChartType(),
   multiChartLayout: getSavedMultiChartLayout(),
   workspaceView: getSavedWorkspaceView(),
@@ -1019,15 +1336,38 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       } catch {}
       return { theme: next };
     }),
+  setChartColorStyle: (chartColorStyle) =>
+    set((state) => {
+      saveChartColorStyle(chartColorStyle);
+      const preset = CHART_COLOR_PRESETS[chartColorStyle];
+      const nextIndicators = {
+        ...state.indicators,
+        macd: {
+          ...state.indicators.macd,
+          histogramUpColor: colorWithOpacity(preset.up, state.indicators.macd.histogramOpacity),
+          histogramDownColor: colorWithOpacity(preset.down, state.indicators.macd.histogramOpacity),
+        },
+        volume: {
+          ...state.indicators.volume,
+          upColor: colorWithOpacity(preset.up, state.indicators.volume.opacity),
+          downColor: colorWithOpacity(preset.down, state.indicators.volume.opacity),
+        },
+      };
+      saveIndicators(nextIndicators);
+      return {
+        chartColorStyle,
+        indicators: nextIndicators,
+      };
+    }),
   setChartType: (chartType) => {
     try {
       localStorage.setItem("quanting-chart-type", chartType);
     } catch {}
     set({ chartType });
   },
-  setMultiChartLayout: (multiChartLayout) => {
-    saveMultiChartLayout(multiChartLayout);
-    set({ multiChartLayout });
+  setMultiChartLayout: (_multiChartLayout) => {
+    saveMultiChartLayout(1);
+    set({ multiChartLayout: 1 });
   },
   setWorkspaceView: (workspaceView) => {
     saveWorkspaceView(workspaceView);
@@ -1035,11 +1375,25 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   },
   setIndicator: (key, partial) =>
     set((state) => {
-      const merged = { ...state.indicators[key], ...partial } as IndicatorConfig[typeof key];
-      const nextValue =
-        key === "layout"
-          ? (sanitizeLayoutConfig(merged as IndicatorConfig["layout"]) as IndicatorConfig[typeof key])
-          : merged;
+      let merged = { ...state.indicators[key], ...partial } as IndicatorConfig[typeof key];
+      const preset = CHART_COLOR_PRESETS[state.chartColorStyle];
+      if (key === "volume") {
+        const nextVolume = merged as IndicatorConfig["volume"];
+        merged = {
+          ...nextVolume,
+          upColor: colorWithOpacity(preset.up, nextVolume.opacity),
+          downColor: colorWithOpacity(preset.down, nextVolume.opacity),
+        } as IndicatorConfig[typeof key];
+      }
+      if (key === "macd") {
+        const nextMacd = merged as IndicatorConfig["macd"];
+        merged = {
+          ...nextMacd,
+          histogramUpColor: colorWithOpacity(preset.up, nextMacd.histogramOpacity),
+          histogramDownColor: colorWithOpacity(preset.down, nextMacd.histogramOpacity),
+        } as IndicatorConfig[typeof key];
+      }
+      const nextValue = sanitizeIndicatorEntry(key, merged);
       const updated = {
         indicators: {
           ...state.indicators,

@@ -4,15 +4,22 @@ import {
   useMemo,
   useRef,
   useState,
+  type MouseEvent as ReactMouseEvent,
   type ReactNode,
   type RefObject,
 } from "react";
 import { createPortal } from "react-dom";
 import { useShallow } from "zustand/react/shallow";
 import { Slider } from "@/components/ui/slider";
-import { useSettingsStore, type IndicatorConfig } from "../../stores/useSettingsStore";
-import { COLORS, MA_COLORS } from "../../utils/constants";
+import {
+  extractIndicatorStyleFields,
+  getIndicatorDefaultConfig,
+  useSettingsStore,
+  type IndicatorConfig,
+} from "../../stores/useSettingsStore";
+import { CHART_COLOR_PRESETS, COLORS, MA_COLORS } from "../../utils/constants";
 import { getLowerIndicatorDisplayColor, type LowerIndicatorPaneId } from "../../utils/lowerIndicatorPanes";
+import { INDICATOR_GUIDE, type IndicatorGuide } from "../../utils/indicatorGuide";
 
 type IndicatorKey = Exclude<keyof IndicatorConfig, "layout" | "signalStrategies">;
 type IndicatorGroup = "upper" | "lower";
@@ -73,7 +80,13 @@ const STYLE_PICKER_COLORS = [
   "#C8CDD5", "#74A0F0", "#B16AD8", "#E78E94", "#F1BE57", "#EED26E", "#7BC4C8", "#6DCB95",
 ] as const;
 
-const STYLE_PICKER_WIDTHS = [1, 2, 3, 4] as const;
+const STYLE_PICKER_WIDTHS = [1, 2, 3] as const;
+
+const STYLE_PICKER_LINE_STYLES = [
+  { value: 0, label: "실선", dasharray: "" },
+  { value: 2, label: "대시", dasharray: "6,4" },
+  { value: 1, label: "도트", dasharray: "2,3" },
+] as const;
 
 function toLowerPaneId(key: IndicatorKey): LowerIndicatorPaneId | null {
   switch (key) {
@@ -127,6 +140,18 @@ const STRATEGY_LINKS: Partial<
   vwap: [{ key: "vwapBreakout", label: "VWAP 돌파" }],
   supertrend: [{ key: "supertrendAdx", label: "Supertrend + ADX" }],
   psar: [{ key: "parabolicSar", label: "파라볼릭 SAR" }],
+};
+
+const INDICATOR_GUIDE_KEY_MAP: Partial<Record<IndicatorKey, string>> = {
+  bb: "볼린저 밴드", sma: "SMA", ema: "EMA", ichimoku: "Ichimoku",
+  vwap: "VWAP", supertrend: "Supertrend", psar: "Parabolic SAR",
+  hma: "HMA", donchian: "Donchian Channels", keltner: "Keltner Channels",
+  volumeProfile: "볼륨 프로파일", signalZones: "Quanting 신호 필터",
+  smc: "SMC (스마트머니)", anchoredVwap: "Anchored VWAP", autoFib: "Auto Fibonacci",
+  volume: "거래량", rsi: "RSI", macd: "MACD", stochastic: "스토캐스틱",
+  obv: "OBV(온밸런스볼륨)", atr: "ATR", mfi: "MFI", cmf: "CMF",
+  choppiness: "Choppiness Index", williamsR: "Williams %R", adx: "ADX",
+  cvd: "CVD(누적거래량델타)", rvol: "거래량 비율(RVOL)", stc: "STC",
 };
 
 const INDICATOR_META: Record<IndicatorKey, IndicatorMetaItem> = {
@@ -342,6 +367,104 @@ const INDICATOR_META: Record<IndicatorKey, IndicatorMetaItem> = {
   },
 };
 
+const FIELD_LABEL_MAP: Partial<Record<string, string>> = {
+  period: "기간",
+  periods: "기간 목록",
+  multiplier: "표준편차",
+  lineColor: "선 색상",
+  lineWidth: "선 굵기",
+  lineStyle: "선 유형",
+  fillOpacity: "밴드 채우기",
+  color: "색상",
+  macdColor: "MACD 색상",
+  signalColor: "시그널 색상",
+  histogramOpacity: "히스토그램 투명도",
+  macdLineWidth: "MACD 굵기",
+  signalLineWidth: "시그널 굵기",
+  macdLineStyle: "MACD 선 유형",
+  signalLineStyle: "시그널 선 유형",
+  kPeriod: "%K 기간",
+  dPeriod: "%D 기간",
+  smooth: "스무딩",
+  kColor: "%K 색상",
+  dColor: "%D 색상",
+  kLineWidth: "%K 굵기",
+  dLineWidth: "%D 굵기",
+  kLineStyle: "%K 선 유형",
+  dLineStyle: "%D 선 유형",
+  opacity: "봉 투명도",
+  bins: "가격 구간 수",
+  emaPeriod: "EMA 기간",
+  atrPeriod: "ATR 기간",
+  atrMultiplier: "ATR 배수",
+  plusDiColor: "+DI 색상",
+  minusDiColor: "-DI 색상",
+  diLineWidth: "DI 굵기",
+  diLineStyle: "DI 선 유형",
+  highColor: "강한 거래량 색상",
+  neutralColor: "중립 거래량 색상",
+  lowColor: "약한 거래량 색상",
+  tcLen: "TC 기간",
+  fastMa: "단기 MA",
+  slowMa: "장기 MA",
+  swingLength: "스윙 길이",
+  lookback: "조회 기간",
+  anchorTime: "앵커 시점",
+};
+
+function stableSerialize(value: unknown): string {
+  if (Array.isArray(value)) {
+    return `[${value.map(stableSerialize).join(",")}]`;
+  }
+  if (value && typeof value === "object") {
+    const entries = Object.entries(value as Record<string, unknown>).sort(([a], [b]) => a.localeCompare(b));
+    return `{${entries.map(([key, item]) => `${key}:${stableSerialize(item)}`).join(",")}}`;
+  }
+  return JSON.stringify(value);
+}
+
+function areValuesEqual(a: unknown, b: unknown): boolean {
+  return stableSerialize(a) === stableSerialize(b);
+}
+
+function getChangedFieldLabels(
+  current: Record<string, unknown>,
+  defaults: Record<string, unknown>,
+): Array<{ key: string; label: string }> {
+  return Object.keys({ ...defaults, ...current })
+    .filter((key) => key !== "enabled")
+    .filter((key) => !areValuesEqual(current[key], defaults[key]))
+    .map((key) => ({
+      key,
+      label: FIELD_LABEL_MAP[key] ?? key,
+    }));
+}
+
+function matchesIndicatorSearch(meta: IndicatorMetaItem, query: string): boolean {
+  if (!query) return true;
+  const normalized = query.trim().toLowerCase();
+  if (!normalized) return true;
+  return `${meta.label} ${meta.description}`.toLowerCase().includes(normalized);
+}
+
+function colorWithOpacity(hex: string, opacity: number): string {
+  const alpha = Math.round(Math.min(1, Math.max(0, opacity)) * 255)
+    .toString(16)
+    .padStart(2, "0")
+    .toUpperCase();
+  return `${hex}${alpha}`;
+}
+
+function getPanelHeightBounds(top: number) {
+  if (typeof window === "undefined") {
+    return { minHeight: 320, maxHeight: 624, defaultHeight: 624 };
+  }
+  const minHeight = 320;
+  const maxHeight = Math.max(minHeight, Math.min(780, window.innerHeight - top - 16));
+  const defaultHeight = Math.max(minHeight, Math.min(624, maxHeight));
+  return { minHeight, maxHeight, defaultHeight };
+}
+
 function CheckGlyph() {
   return (
     <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
@@ -430,31 +553,56 @@ function IndicatorNumberField({
   );
 }
 
+function lineStyleToDasharray(style: number): string {
+  switch (style) {
+    case 1: return "2,3";
+    case 2: return "6,4";
+    case 3: return "8,6";
+    case 4: return "2,5";
+    default: return "";
+  }
+}
+
 function IndicatorStylePicker({
   label,
   value,
   onChange,
   lineWidth,
   onLineWidthChange,
+  lineStyle,
+  onLineStyleChange,
+  hideColorPicker,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   lineWidth?: number;
   onLineWidthChange?: (value: number) => void;
+  lineStyle?: number;
+  onLineStyleChange?: (value: number) => void;
+  hideColorPicker?: boolean;
 }) {
   const colorTriggerRef = useRef<HTMLButtonElement | null>(null);
-  const widthTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const styleTriggerRef = useRef<HTMLButtonElement | null>(null);
   const popupRef = useRef<HTMLDivElement | null>(null);
-  const [openPanel, setOpenPanel] = useState<"color" | "width" | null>(null);
+  const nativeColorRef = useRef<HTMLInputElement | null>(null);
+  const [openPanel, setOpenPanel] = useState<"color" | "style" | null>(null);
   const [popupStyle, setPopupStyle] = useState<{ top: number; left: number; width: number } | null>(null);
+  const [hexInput, setHexInput] = useState("");
   const selectedColor = value.startsWith("#") ? value.slice(0, 7).toUpperCase() : value.toUpperCase();
+
+  useEffect(() => {
+    if (openPanel === "color") {
+      setHexInput(selectedColor.replace("#", ""));
+    }
+  }, [openPanel, selectedColor]);
+  const hasStyle = typeof lineWidth === "number" && onLineWidthChange;
 
   useLayoutEffect(() => {
     if (!openPanel) return;
 
     const updatePosition = () => {
-      const trigger = openPanel === "width" ? widthTriggerRef.current : colorTriggerRef.current;
+      const trigger = openPanel === "style" ? styleTriggerRef.current : colorTriggerRef.current;
       if (!trigger || typeof window === "undefined") return;
       const rect = trigger.getBoundingClientRect();
       const viewportPadding = 16;
@@ -464,7 +612,8 @@ function IndicatorStylePicker({
         Math.max(viewportPadding, preferredLeft),
         Math.max(viewportPadding, window.innerWidth - popupWidth - viewportPadding),
       );
-      const estimatedHeight = openPanel === "color" ? 232 : 154;
+      const hasLineStyleSection = openPanel === "style" && typeof lineStyle === "number" && onLineStyleChange;
+      const estimatedHeight = openPanel === "color" ? 280 : hasLineStyleSection ? 310 : 154;
       const nextTop =
         rect.bottom + estimatedHeight + 12 <= window.innerHeight - viewportPadding
           ? rect.bottom + 10
@@ -480,7 +629,7 @@ function IndicatorStylePicker({
       window.removeEventListener("resize", updatePosition);
       window.removeEventListener("scroll", updatePosition, true);
     };
-  }, [openPanel]);
+  }, [openPanel, lineStyle, onLineStyleChange]);
 
   useEffect(() => {
     if (!openPanel) return;
@@ -489,7 +638,7 @@ function IndicatorStylePicker({
       const target = event.target as Node | null;
       if (!target) return;
       if (colorTriggerRef.current?.contains(target)) return;
-      if (widthTriggerRef.current?.contains(target)) return;
+      if (styleTriggerRef.current?.contains(target)) return;
       if (popupRef.current?.contains(target)) return;
       setOpenPanel(null);
     };
@@ -508,40 +657,46 @@ function IndicatorStylePicker({
     };
   }, [openPanel]);
 
+  const currentDasharray = lineStyleToDasharray(lineStyle ?? 0);
+
   return (
     <label className="chart-indicator-panel__field">
       <span className="chart-indicator-panel__field-label">{label}</span>
       <div className="chart-indicator-panel__style-controls">
-        <button
-          ref={colorTriggerRef}
-          type="button"
-          className={`chart-indicator-panel__style-trigger${openPanel === "color" ? " is-open" : ""}`}
-          onClick={() => setOpenPanel((prev) => (prev === "color" ? null : "color"))}
-          aria-label={`${label} 색상 선택`}
-          aria-expanded={openPanel === "color"}
-        >
-          <span
-            className="chart-indicator-panel__style-trigger-swatch"
-            style={{ background: value }}
-            aria-hidden="true"
-          />
-          <span className="chart-indicator-panel__style-trigger-copy">
-            <span className="chart-indicator-panel__style-trigger-value">색상</span>
-            <span className="chart-indicator-panel__style-trigger-meta">{selectedColor}</span>
-          </span>
-        </button>
-        {typeof lineWidth === "number" && onLineWidthChange ? (
+        {!hideColorPicker && (
           <button
-            ref={widthTriggerRef}
+            ref={colorTriggerRef}
             type="button"
-            className={`chart-indicator-panel__style-trigger chart-indicator-panel__style-trigger--width${openPanel === "width" ? " is-open" : ""}`}
-            onClick={() => setOpenPanel((prev) => (prev === "width" ? null : "width"))}
-            aria-label={`${label} 굵기 선택`}
-            aria-expanded={openPanel === "width"}
+            className={`chart-indicator-panel__style-trigger${openPanel === "color" ? " is-open" : ""}`}
+            onClick={() => setOpenPanel((prev) => (prev === "color" ? null : "color"))}
+            aria-label={`${label} 색상 선택`}
+            aria-expanded={openPanel === "color"}
           >
-            <span className="chart-indicator-panel__style-trigger-line" style={{ height: lineWidth }} aria-hidden="true" />
+            <span
+              className="chart-indicator-panel__style-trigger-swatch"
+              style={{ background: value }}
+              aria-hidden="true"
+            />
             <span className="chart-indicator-panel__style-trigger-copy">
-              <span className="chart-indicator-panel__style-trigger-value">굵기</span>
+              <span className="chart-indicator-panel__style-trigger-value">색상</span>
+              <span className="chart-indicator-panel__style-trigger-meta">{selectedColor}</span>
+            </span>
+          </button>
+        )}
+        {hasStyle ? (
+          <button
+            ref={styleTriggerRef}
+            type="button"
+            className={`chart-indicator-panel__style-trigger chart-indicator-panel__style-trigger--width${openPanel === "style" ? " is-open" : ""}`}
+            onClick={() => setOpenPanel((prev) => (prev === "style" ? null : "style"))}
+            aria-label={`${label} 스타일 선택`}
+            aria-expanded={openPanel === "style"}
+          >
+            <svg width="28" height="12" viewBox="0 0 28 12" aria-hidden="true" className="chart-indicator-panel__style-trigger-svg">
+              <line x1="0" y1="6" x2="28" y2="6" stroke="currentColor" strokeWidth={lineWidth} strokeDasharray={currentDasharray} />
+            </svg>
+            <span className="chart-indicator-panel__style-trigger-copy">
+              <span className="chart-indicator-panel__style-trigger-value">스타일</span>
               <span className="chart-indicator-panel__style-trigger-meta">{lineWidth}px</span>
             </span>
           </button>
@@ -576,31 +731,103 @@ function IndicatorStylePicker({
                       />
                     ))}
                   </div>
-                </div>
-              ) : typeof lineWidth === "number" && onLineWidthChange ? (
-                <div className="chart-indicator-panel__style-popup-section">
-                  <div className="chart-indicator-panel__style-popup-title">굵기</div>
-                  <div className="chart-indicator-panel__style-width-grid">
-                    {STYLE_PICKER_WIDTHS.map((width) => (
-                      <button
-                        key={`${label}-${width}`}
-                        type="button"
-                        className={`chart-indicator-panel__style-width${lineWidth === width ? " is-selected" : ""}`}
-                        onClick={() => {
-                          onLineWidthChange(width);
+                  <div className="chart-indicator-panel__hex-row">
+                    <span
+                      className="chart-indicator-panel__hex-preview"
+                      style={{ background: /^[0-9A-Fa-f]{6}$/.test(hexInput) ? `#${hexInput}` : value }}
+                    />
+                    <span className="chart-indicator-panel__hex-prefix">#</span>
+                    <input
+                      type="text"
+                      className="chart-indicator-panel__hex-input"
+                      value={hexInput}
+                      maxLength={6}
+                      spellCheck={false}
+                      onChange={(e) => setHexInput(e.target.value.replace(/[^0-9A-Fa-f]/g, "").slice(0, 6))}
+                      onBlur={() => {
+                        if (/^[0-9A-Fa-f]{6}$/.test(hexInput)) {
+                          onChange(`#${hexInput.toUpperCase()}`);
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && /^[0-9A-Fa-f]{6}$/.test(hexInput)) {
+                          onChange(`#${hexInput.toUpperCase()}`);
                           setOpenPanel(null);
-                        }}
-                      >
-                        <span
-                          className="chart-indicator-panel__style-width-line"
-                          style={{ height: width }}
-                          aria-hidden="true"
-                        />
-                        <span className="chart-indicator-panel__style-width-label">{width}px</span>
-                      </button>
-                    ))}
+                        }
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className="chart-indicator-panel__color-pick-btn"
+                      aria-label="OS 컬러 피커 열기"
+                      onClick={() => nativeColorRef.current?.click()}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M12 2a10 10 0 1 0 0 20 2 2 0 0 1-2-2v-1a2 2 0 0 0-2-2H5.1A10 10 0 0 1 12 2Z" />
+                        <circle cx="8" cy="10" r="1.2" fill="currentColor" /><circle cx="12" cy="7" r="1.2" fill="currentColor" /><circle cx="16" cy="10" r="1.2" fill="currentColor" />
+                      </svg>
+                    </button>
+                    <input
+                      ref={nativeColorRef}
+                      type="color"
+                      value={selectedColor}
+                      style={{ position: "absolute", width: 0, height: 0, opacity: 0, pointerEvents: "none" }}
+                      onChange={(e) => {
+                        const hex = e.target.value.toUpperCase();
+                        onChange(hex);
+                        setHexInput(hex.replace("#", ""));
+                      }}
+                    />
                   </div>
                 </div>
+              ) : hasStyle ? (
+                <>
+                  <div className="chart-indicator-panel__style-preview">
+                    <svg width="100%" height="16" viewBox="0 0 200 16" preserveAspectRatio="none">
+                      <line x1="8" y1="8" x2="192" y2="8" stroke={value} strokeWidth={lineWidth} strokeDasharray={currentDasharray} />
+                    </svg>
+                  </div>
+                  <div className="chart-indicator-panel__style-popup-section">
+                    <div className="chart-indicator-panel__style-popup-title">굵기</div>
+                    <div className="chart-indicator-panel__style-width-grid">
+                      {STYLE_PICKER_WIDTHS.map((width) => (
+                        <button
+                          key={`${label}-w${width}`}
+                          type="button"
+                          className={`chart-indicator-panel__style-width${lineWidth === width ? " is-selected" : ""}`}
+                          onClick={() => onLineWidthChange(width)}
+                        >
+                          <span
+                            className="chart-indicator-panel__style-width-line"
+                            style={{ height: width }}
+                            aria-hidden="true"
+                          />
+                          <span className="chart-indicator-panel__style-width-label">{width}px</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  {typeof lineStyle === "number" && onLineStyleChange ? (
+                    <div className="chart-indicator-panel__style-popup-section">
+                      <div className="chart-indicator-panel__style-popup-title">선 유형</div>
+                      <div className="chart-indicator-panel__style-linestyle-grid">
+                        {STYLE_PICKER_LINE_STYLES.map((ls) => (
+                          <button
+                            key={`${label}-ls${ls.value}`}
+                            type="button"
+                            className={`chart-indicator-panel__style-linestyle${lineStyle === ls.value ? " is-selected" : ""}`}
+                            onClick={() => onLineStyleChange(ls.value)}
+                          >
+                            <svg width="32" height="10" viewBox="0 0 32 10" aria-hidden="true">
+                              <line x1="0" y1="5" x2="32" y2="5" stroke={value} strokeWidth={lineWidth ?? 2} strokeDasharray={ls.dasharray} />
+                            </svg>
+                            <span className="chart-indicator-panel__style-linestyle-label">{ls.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+                </>
               ) : null}
             </div>,
             document.body,
@@ -719,13 +946,54 @@ export default function ChartIndicatorPanel({
   onClose,
   panelRef,
 }: ChartIndicatorPanelProps) {
-  const { indicators, setIndicator, toggleIndicator } = useSettingsStore(
+  const {
+    indicators, chartColorStyle, setIndicator, toggleIndicator,
+    resetIndicator, resetIndicatorStyle, stylePresets, saveStylePreset, loadStylePreset, deleteStylePreset,
+  } = useSettingsStore(
     useShallow((state) => ({
       indicators: state.indicators,
+      chartColorStyle: state.chartColorStyle,
       setIndicator: state.setIndicator,
       toggleIndicator: state.toggleIndicator,
+      resetIndicator: state.resetIndicator,
+      resetIndicatorStyle: state.resetIndicatorStyle,
+      stylePresets: state.stylePresets,
+      saveStylePreset: state.saveStylePreset,
+      loadStylePreset: state.loadStylePreset,
+      deleteStylePreset: state.deleteStylePreset,
     })),
   );
+
+  const [presetFormOpen, setPresetFormOpen] = useState(false);
+  const [presetName, setPresetName] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [userHeight, setUserHeight] = useState<number | null>(null);
+  const resizeStateRef = useRef<{ startY: number; startHeight: number } | null>(null);
+
+  const getComparableDefaultConfig = (key: IndicatorKey): Record<string, unknown> => {
+    const base = getIndicatorDefaultConfig(key) as Record<string, unknown>;
+    const palette = CHART_COLOR_PRESETS[chartColorStyle];
+
+    if (key === "volume") {
+      const volumeBase = base as IndicatorConfig["volume"];
+      return {
+        ...volumeBase,
+        upColor: colorWithOpacity(palette.up, volumeBase.opacity),
+        downColor: colorWithOpacity(palette.down, volumeBase.opacity),
+      };
+    }
+
+    if (key === "macd") {
+      const macdBase = base as IndicatorConfig["macd"];
+      return {
+        ...macdBase,
+        histogramUpColor: colorWithOpacity(palette.up, macdBase.histogramOpacity),
+        histogramDownColor: colorWithOpacity(palette.down, macdBase.histogramOpacity),
+      };
+    }
+
+    return base;
+  };
 
   const initialSelection = useMemo<IndicatorKey>(() => {
     const activeKey = [...UPPER_INDICATORS, ...LOWER_INDICATORS].find((key) => indicators[key].enabled);
@@ -734,7 +1002,23 @@ export default function ChartIndicatorPanel({
   const [selectedKey, setSelectedKey] = useState<IndicatorKey>(initialSelection);
 
   const selectedMeta = INDICATOR_META[selectedKey];
+  const selectedGuide: IndicatorGuide | undefined =
+    INDICATOR_GUIDE[INDICATOR_GUIDE_KEY_MAP[selectedKey] ?? ""];
   const selectedIndicator = indicators[selectedKey];
+  const selectedDefault = getComparableDefaultConfig(selectedKey);
+  const selectedIndicatorRecord = selectedIndicator as Record<string, unknown>;
+  const selectedStyleSnapshot = extractIndicatorStyleFields(selectedIndicatorRecord);
+  const selectedDefaultStyleSnapshot = extractIndicatorStyleFields(selectedDefault);
+  const selectedChangedFields = useMemo(
+    () => getChangedFieldLabels(selectedIndicatorRecord, selectedDefault),
+    [selectedIndicatorRecord, selectedDefault],
+  );
+  const selectedChangedStyleFields = useMemo(
+    () => getChangedFieldLabels(selectedStyleSnapshot, selectedDefaultStyleSnapshot),
+    [selectedStyleSnapshot, selectedDefaultStyleSnapshot],
+  );
+  const hasCustomChanges = selectedChangedFields.length > 0;
+  const hasStyleChanges = selectedChangedStyleFields.length > 0;
   const selectedPaneId = toLowerPaneId(selectedKey);
   const selectedAccentColor =
     selectedMeta.group === "lower" && selectedPaneId
@@ -745,6 +1029,23 @@ export default function ChartIndicatorPanel({
   const selectedLayoutWeightConfig = LOWER_INDICATOR_LAYOUT_MAP[selectedKey];
   const selectedStrategyLinks = STRATEGY_LINKS[selectedKey] ?? [];
   const [panelStyle, setPanelStyle] = useState<{ top: number; left: number; height: number } | null>(null);
+  const customizedCount = useMemo(
+    () =>
+      [...UPPER_INDICATORS, ...LOWER_INDICATORS].filter((key) => {
+        const current = indicators[key] as Record<string, unknown>;
+        const defaults = getComparableDefaultConfig(key);
+        return getChangedFieldLabels(current, defaults).length > 0;
+      }).length,
+    [chartColorStyle, indicators],
+  );
+  const filteredUpperIndicators = useMemo(
+    () => UPPER_INDICATORS.filter((key) => matchesIndicatorSearch(INDICATOR_META[key], searchQuery)),
+    [searchQuery],
+  );
+  const filteredLowerIndicators = useMemo(
+    () => LOWER_INDICATORS.filter((key) => matchesIndicatorSearch(INDICATOR_META[key], searchQuery)),
+    [searchQuery],
+  );
 
   useLayoutEffect(() => {
     const updatePosition = () => {
@@ -760,7 +1061,8 @@ export default function ChartIndicatorPanel({
         Math.max(viewportPadding, window.innerWidth - preferredWidth - viewportPadding),
       );
       const nextTop = rect.bottom + gap;
-      const nextHeight = Math.max(320, Math.min(624, window.innerHeight - nextTop - viewportPadding));
+      const { minHeight, maxHeight, defaultHeight } = getPanelHeightBounds(nextTop);
+      const nextHeight = Math.min(maxHeight, Math.max(minHeight, userHeight ?? defaultHeight));
 
       setPanelStyle({
         top: nextTop,
@@ -776,7 +1078,48 @@ export default function ChartIndicatorPanel({
       window.removeEventListener("resize", updatePosition);
       window.removeEventListener("scroll", updatePosition, true);
     };
-  }, [anchorRef]);
+  }, [anchorRef, userHeight]);
+
+  useEffect(() => {
+    setPresetFormOpen(false);
+    setPresetName("");
+  }, [selectedKey]);
+
+  useEffect(() => {
+    const handlePointerMove = (event: MouseEvent) => {
+      const resizeState = resizeStateRef.current;
+      const currentPanelStyle = panelStyle;
+      if (!resizeState || !currentPanelStyle) return;
+      const { minHeight, maxHeight } = getPanelHeightBounds(currentPanelStyle.top);
+      const deltaY = event.clientY - resizeState.startY;
+      const nextHeight = Math.min(maxHeight, Math.max(minHeight, resizeState.startHeight + deltaY));
+      setUserHeight(nextHeight);
+    };
+
+    const handlePointerUp = () => {
+      resizeStateRef.current = null;
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+
+    window.addEventListener("mousemove", handlePointerMove);
+    window.addEventListener("mouseup", handlePointerUp);
+    return () => {
+      window.removeEventListener("mousemove", handlePointerMove);
+      window.removeEventListener("mouseup", handlePointerUp);
+    };
+  }, [panelStyle]);
+
+  const handleResizeStart = (event: ReactMouseEvent<HTMLButtonElement>) => {
+    if (!panelStyle) return;
+    event.preventDefault();
+    resizeStateRef.current = {
+      startY: event.clientY,
+      startHeight: panelStyle.height,
+    };
+    document.body.style.cursor = "ns-resize";
+    document.body.style.userSelect = "none";
+  };
 
   const renderLowerIndicatorLayoutControl = () => {
     if (!selectedLayoutWeightConfig) return null;
@@ -857,6 +1200,8 @@ export default function ChartIndicatorPanel({
                 onChange={(value) => setIndicator("rsi", { color: value })}
                 lineWidth={indicators.rsi.lineWidth}
                 onLineWidthChange={(value) => setIndicator("rsi", { lineWidth: value })}
+                lineStyle={indicators.rsi.lineStyle}
+                onLineStyleChange={(value) => setIndicator("rsi", { lineStyle: value })}
               />
             </div>
           </IndicatorSectionBlock>
@@ -871,6 +1216,8 @@ export default function ChartIndicatorPanel({
                 onChange={(value) => setIndicator("macd", { macdColor: value })}
                 lineWidth={indicators.macd.macdLineWidth}
                 onLineWidthChange={(value) => setIndicator("macd", { macdLineWidth: value })}
+                lineStyle={indicators.macd.macdLineStyle}
+                onLineStyleChange={(value) => setIndicator("macd", { macdLineStyle: value })}
               />
               <IndicatorStylePicker
                 label="시그널 스타일"
@@ -878,6 +1225,8 @@ export default function ChartIndicatorPanel({
                 onChange={(value) => setIndicator("macd", { signalColor: value })}
                 lineWidth={indicators.macd.signalLineWidth}
                 onLineWidthChange={(value) => setIndicator("macd", { signalLineWidth: value })}
+                lineStyle={indicators.macd.signalLineStyle}
+                onLineStyleChange={(value) => setIndicator("macd", { signalLineStyle: value })}
               />
               <IndicatorNumberField
                 label="히스토그램 투명도"
@@ -901,6 +1250,8 @@ export default function ChartIndicatorPanel({
                 onChange={(value) => setIndicator("stochastic", { kColor: value })}
                 lineWidth={indicators.stochastic.kLineWidth}
                 onLineWidthChange={(value) => setIndicator("stochastic", { kLineWidth: value })}
+                lineStyle={indicators.stochastic.kLineStyle}
+                onLineStyleChange={(value) => setIndicator("stochastic", { kLineStyle: value })}
               />
               <IndicatorStylePicker
                 label="%D 스타일"
@@ -908,6 +1259,8 @@ export default function ChartIndicatorPanel({
                 onChange={(value) => setIndicator("stochastic", { dColor: value })}
                 lineWidth={indicators.stochastic.dLineWidth}
                 onLineWidthChange={(value) => setIndicator("stochastic", { dLineWidth: value })}
+                lineStyle={indicators.stochastic.dLineStyle}
+                onLineStyleChange={(value) => setIndicator("stochastic", { dLineStyle: value })}
               />
             </div>
           </IndicatorSectionBlock>
@@ -922,6 +1275,7 @@ export default function ChartIndicatorPanel({
       case "stc": {
         const config = indicators[selectedKey];
         if (!("color" in config) || !("lineWidth" in config)) return null;
+        const hasLs = "lineStyle" in config;
         return (
           <IndicatorSectionBlock title="스타일">
             <div className="chart-indicator-panel__field-grid">
@@ -935,6 +1289,10 @@ export default function ChartIndicatorPanel({
                 onLineWidthChange={(value) =>
                   setIndicator(selectedKey, { lineWidth: value } as Partial<IndicatorConfig[typeof selectedKey]>)
                 }
+                lineStyle={hasLs ? (config as { lineStyle: number }).lineStyle : undefined}
+                onLineStyleChange={hasLs ? (value) =>
+                  setIndicator(selectedKey, { lineStyle: value } as Partial<IndicatorConfig[typeof selectedKey]>)
+                : undefined}
               />
             </div>
           </IndicatorSectionBlock>
@@ -950,6 +1308,8 @@ export default function ChartIndicatorPanel({
                 onChange={(value) => setIndicator("adx", { color: value })}
                 lineWidth={indicators.adx.lineWidth}
                 onLineWidthChange={(value) => setIndicator("adx", { lineWidth: value })}
+                lineStyle={indicators.adx.lineStyle}
+                onLineStyleChange={(value) => setIndicator("adx", { lineStyle: value })}
               />
               <IndicatorStylePicker
                 label="+DI 스타일"
@@ -957,6 +1317,8 @@ export default function ChartIndicatorPanel({
                 onChange={(value) => setIndicator("adx", { plusDiColor: value })}
                 lineWidth={indicators.adx.diLineWidth}
                 onLineWidthChange={(value) => setIndicator("adx", { diLineWidth: value })}
+                lineStyle={indicators.adx.diLineStyle}
+                onLineStyleChange={(value) => setIndicator("adx", { diLineStyle: value })}
               />
               <IndicatorStylePicker
                 label="-DI 스타일"
@@ -964,6 +1326,8 @@ export default function ChartIndicatorPanel({
                 onChange={(value) => setIndicator("adx", { minusDiColor: value })}
                 lineWidth={indicators.adx.diLineWidth}
                 onLineWidthChange={(value) => setIndicator("adx", { diLineWidth: value })}
+                lineStyle={indicators.adx.diLineStyle}
+                onLineStyleChange={(value) => setIndicator("adx", { diLineStyle: value })}
               />
             </div>
           </IndicatorSectionBlock>
@@ -999,68 +1363,221 @@ export default function ChartIndicatorPanel({
     switch (selectedKey) {
       case "bb":
         return (
-          <div className="chart-indicator-panel__field-grid">
-            <IndicatorNumberField
-              label="기간"
-              value={indicators.bb.period}
-              min={5}
-              max={100}
-              onChange={(value) => setIndicator("bb", { period: Math.round(value) })}
-            />
-            <IndicatorNumberField
-              label="표준편차"
-              value={indicators.bb.multiplier}
-              min={0.5}
-              max={4}
-              step={0.1}
-              onChange={(value) => setIndicator("bb", { multiplier: value })}
-            />
-          </div>
+          <>
+            <div className="chart-indicator-panel__field-grid">
+              <IndicatorNumberField
+                label="기간"
+                value={indicators.bb.period}
+                min={5}
+                max={100}
+                onChange={(value) => setIndicator("bb", { period: Math.round(value) })}
+              />
+              <IndicatorNumberField
+                label="표준편차"
+                value={indicators.bb.multiplier}
+                min={0.5}
+                max={4}
+                step={0.1}
+                onChange={(value) => setIndicator("bb", { multiplier: value })}
+              />
+            </div>
+            <IndicatorSectionBlock title="스타일">
+              <div className="chart-indicator-panel__field-grid">
+                <IndicatorStylePicker
+                  label="선 스타일"
+                  value={indicators.bb.lineColor}
+                  onChange={(value) => setIndicator("bb", { lineColor: value })}
+                  lineWidth={indicators.bb.lineWidth}
+                  onLineWidthChange={(value) => setIndicator("bb", { lineWidth: value })}
+                  lineStyle={indicators.bb.lineStyle}
+                  onLineStyleChange={(value) => setIndicator("bb", { lineStyle: value })}
+                />
+                <IndicatorNumberField
+                  label="밴드 채우기"
+                  value={indicators.bb.fillOpacity}
+                  min={0}
+                  max={0.5}
+                  step={0.01}
+                  onChange={(value) => setIndicator("bb", { fillOpacity: value })}
+                />
+              </div>
+              <IndicatorInfoNote>밴드 채우기는 상단-하단 밴드 사이 영역의 투명도입니다. 0이면 채우기 없음.</IndicatorInfoNote>
+            </IndicatorSectionBlock>
+          </>
         );
       case "sma":
-        return <IndicatorPeriodsEditor labelPrefix="기간" periods={indicators.sma.periods} onChange={(periods) => setIndicator("sma", { periods })} />;
+        return (
+          <>
+            <IndicatorPeriodsEditor labelPrefix="기간" periods={indicators.sma.periods} onChange={(periods) => setIndicator("sma", { periods })} />
+            <IndicatorSectionBlock title="스타일">
+              <div className="chart-indicator-panel__field-grid">
+                <IndicatorStylePicker
+                  label="선 스타일"
+                  value="#000000"
+                  onChange={() => {}}
+                  hideColorPicker
+                  lineWidth={indicators.sma.lineWidth}
+                  onLineWidthChange={(value) => setIndicator("sma", { lineWidth: value })}
+                  lineStyle={indicators.sma.lineStyle}
+                  onLineStyleChange={(value) => setIndicator("sma", { lineStyle: value })}
+                />
+              </div>
+              <IndicatorInfoNote>SMA 색상은 기간별로 자동 배정됩니다. 굵기와 선 유형은 모든 기간에 공통 적용됩니다.</IndicatorInfoNote>
+            </IndicatorSectionBlock>
+          </>
+        );
       case "ema":
-        return <IndicatorPeriodsEditor labelPrefix="기간" periods={indicators.ema.periods} onChange={(periods) => setIndicator("ema", { periods })} />;
+        return (
+          <>
+            <IndicatorPeriodsEditor labelPrefix="기간" periods={indicators.ema.periods} onChange={(periods) => setIndicator("ema", { periods })} />
+            <IndicatorSectionBlock title="스타일">
+              <div className="chart-indicator-panel__field-grid">
+                <IndicatorStylePicker
+                  label="선 스타일"
+                  value="#000000"
+                  onChange={() => {}}
+                  hideColorPicker
+                  lineWidth={indicators.ema.lineWidth}
+                  onLineWidthChange={(value) => setIndicator("ema", { lineWidth: value })}
+                  lineStyle={indicators.ema.lineStyle}
+                  onLineStyleChange={(value) => setIndicator("ema", { lineStyle: value })}
+                />
+              </div>
+              <IndicatorInfoNote>EMA 색상은 기간별로 자동 배정됩니다. 굵기와 선 유형은 모든 기간에 공통 적용됩니다.</IndicatorInfoNote>
+            </IndicatorSectionBlock>
+          </>
+        );
       case "hma":
-        return <IndicatorPeriodsEditor labelPrefix="기간" periods={indicators.hma.periods} onChange={(periods) => setIndicator("hma", { periods })} />;
+        return (
+          <>
+            <IndicatorPeriodsEditor labelPrefix="기간" periods={indicators.hma.periods} onChange={(periods) => setIndicator("hma", { periods })} />
+            <IndicatorSectionBlock title="스타일">
+              <div className="chart-indicator-panel__field-grid">
+                <IndicatorStylePicker
+                  label="선 스타일"
+                  value="#000000"
+                  onChange={() => {}}
+                  hideColorPicker
+                  lineWidth={indicators.hma.lineWidth}
+                  onLineWidthChange={(value) => setIndicator("hma", { lineWidth: value })}
+                  lineStyle={indicators.hma.lineStyle}
+                  onLineStyleChange={(value) => setIndicator("hma", { lineStyle: value })}
+                />
+              </div>
+              <IndicatorInfoNote>HMA 색상은 기간별로 자동 배정됩니다. 굵기와 선 유형은 모든 기간에 공통 적용됩니다.</IndicatorInfoNote>
+            </IndicatorSectionBlock>
+          </>
+        );
+      case "vwap":
+        return (
+          <IndicatorSectionBlock title="스타일">
+            <div className="chart-indicator-panel__field-grid">
+              <IndicatorStylePicker
+                label="선 스타일"
+                value={indicators.vwap.color}
+                onChange={(value) => setIndicator("vwap", { color: value })}
+                lineWidth={indicators.vwap.lineWidth}
+                onLineWidthChange={(value) => setIndicator("vwap", { lineWidth: value })}
+                lineStyle={indicators.vwap.lineStyle}
+                onLineStyleChange={(value) => setIndicator("vwap", { lineStyle: value })}
+              />
+            </div>
+          </IndicatorSectionBlock>
+        );
+      case "supertrend":
+        return (
+          <IndicatorSectionBlock title="스타일">
+            <div className="chart-indicator-panel__field-grid">
+              <IndicatorStylePicker
+                label="선 굵기"
+                value="#000000"
+                onChange={() => {}}
+                hideColorPicker
+                lineWidth={indicators.supertrend.lineWidth}
+                onLineWidthChange={(value) => setIndicator("supertrend", { lineWidth: value })}
+              />
+            </div>
+            <IndicatorInfoNote>Supertrend 색상은 방향(상승/하락)에 따라 자동 결정됩니다.</IndicatorInfoNote>
+          </IndicatorSectionBlock>
+        );
+      case "psar":
+        return (
+          <IndicatorSectionBlock title="스타일">
+            <div className="chart-indicator-panel__field-grid">
+              <IndicatorStylePicker
+                label="선 스타일"
+                value={indicators.psar.color}
+                onChange={(value) => setIndicator("psar", { color: value })}
+                lineWidth={indicators.psar.lineWidth}
+                onLineWidthChange={(value) => setIndicator("psar", { lineWidth: value })}
+              />
+            </div>
+          </IndicatorSectionBlock>
+        );
       case "donchian":
         return (
-          <div className="chart-indicator-panel__field-grid">
-            <IndicatorNumberField
-              label="채널 기간"
-              value={indicators.donchian.period}
-              min={5}
-              max={100}
-              onChange={(value) => setIndicator("donchian", { period: Math.round(value) })}
-            />
-          </div>
+          <>
+            <div className="chart-indicator-panel__field-grid">
+              <IndicatorNumberField
+                label="채널 기간"
+                value={indicators.donchian.period}
+                min={5}
+                max={100}
+                onChange={(value) => setIndicator("donchian", { period: Math.round(value) })}
+              />
+            </div>
+            <IndicatorSectionBlock title="스타일">
+              <div className="chart-indicator-panel__field-grid">
+                <IndicatorStylePicker
+                  label="밴드 스타일"
+                  value={indicators.donchian.lineColor}
+                  onChange={(value) => setIndicator("donchian", { lineColor: value })}
+                  lineWidth={indicators.donchian.lineWidth}
+                  onLineWidthChange={(value) => setIndicator("donchian", { lineWidth: value })}
+                />
+              </div>
+            </IndicatorSectionBlock>
+          </>
         );
       case "keltner":
         return (
-          <div className="chart-indicator-panel__field-grid">
-            <IndicatorNumberField
-              label="EMA 기간"
-              value={indicators.keltner.emaPeriod}
-              min={5}
-              max={50}
-              onChange={(value) => setIndicator("keltner", { emaPeriod: Math.round(value) })}
-            />
-            <IndicatorNumberField
-              label="ATR 기간"
-              value={indicators.keltner.atrPeriod}
-              min={5}
-              max={50}
-              onChange={(value) => setIndicator("keltner", { atrPeriod: Math.round(value) })}
-            />
-            <IndicatorNumberField
-              label="ATR 배수"
-              value={indicators.keltner.atrMultiplier}
-              min={0.5}
-              max={4}
-              step={0.1}
-              onChange={(value) => setIndicator("keltner", { atrMultiplier: value })}
-            />
-          </div>
+          <>
+            <div className="chart-indicator-panel__field-grid">
+              <IndicatorNumberField
+                label="EMA 기간"
+                value={indicators.keltner.emaPeriod}
+                min={5}
+                max={50}
+                onChange={(value) => setIndicator("keltner", { emaPeriod: Math.round(value) })}
+              />
+              <IndicatorNumberField
+                label="ATR 기간"
+                value={indicators.keltner.atrPeriod}
+                min={5}
+                max={50}
+                onChange={(value) => setIndicator("keltner", { atrPeriod: Math.round(value) })}
+              />
+              <IndicatorNumberField
+                label="ATR 배수"
+                value={indicators.keltner.atrMultiplier}
+                min={0.5}
+                max={4}
+                step={0.1}
+                onChange={(value) => setIndicator("keltner", { atrMultiplier: value })}
+              />
+            </div>
+            <IndicatorSectionBlock title="스타일">
+              <div className="chart-indicator-panel__field-grid">
+                <IndicatorStylePicker
+                  label="밴드 스타일"
+                  value={indicators.keltner.lineColor}
+                  onChange={(value) => setIndicator("keltner", { lineColor: value })}
+                  lineWidth={indicators.keltner.lineWidth}
+                  onLineWidthChange={(value) => setIndicator("keltner", { lineWidth: value })}
+                />
+              </div>
+            </IndicatorSectionBlock>
+          </>
         );
       case "volumeProfile":
         return (
@@ -1326,10 +1843,7 @@ export default function ChartIndicatorPanel({
         );
       case "obv":
       case "atr":
-      case "vwap":
       case "ichimoku":
-      case "supertrend":
-      case "psar":
       case "fundamentals":
       case "signalZones":
       case "cvd":
@@ -1346,6 +1860,119 @@ export default function ChartIndicatorPanel({
     }
   };
 
+  const NO_STYLE_INDICATORS = new Set<IndicatorKey>([
+    "signalZones", "volumeProfile", "fundamentals",
+    "ichimoku", "smc", "anchoredVwap", "autoFib",
+  ]);
+
+  const renderPresetControls = () => {
+    if (NO_STYLE_INDICATORS.has(selectedKey)) return null;
+
+    const filteredPresets = stylePresets.filter((p) => p.indicatorKey === selectedKey);
+    const canSavePreset = hasStyleChanges;
+
+    return (
+      <IndicatorSectionBlock title="스타일 프리셋">
+        {filteredPresets.length > 0 ? (
+          <div className="chart-indicator-panel__preset-list">
+            {filteredPresets.map((preset) => (
+              <div key={preset.id} className="chart-indicator-panel__preset-item">
+                <span className="chart-indicator-panel__preset-name">{preset.name}</span>
+                <button
+                  type="button"
+                  className="chart-indicator-panel__preset-apply"
+                  onClick={() => loadStylePreset(preset.id)}
+                >
+                  적용
+                </button>
+                <button
+                  type="button"
+                  className="chart-indicator-panel__preset-delete"
+                  onClick={() => deleteStylePreset(preset.id)}
+                  aria-label={`${preset.name} 삭제`}
+                >
+                  <CloseGlyph />
+                </button>
+              </div>
+            ))}
+          </div>
+        ) : null}
+        {presetFormOpen ? (
+          <div className="chart-indicator-panel__preset-save-form">
+            <input
+              type="text"
+              className="chart-indicator-panel__hex-input"
+              placeholder="프리셋 이름"
+              value={presetName}
+              onChange={(e) => setPresetName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && presetName.trim() && canSavePreset) {
+                  saveStylePreset(selectedKey, presetName.trim());
+                  setPresetName("");
+                  setPresetFormOpen(false);
+                }
+              }}
+              style={{ flex: 1, width: "auto" }}
+            />
+            <button
+              type="button"
+              className="chart-indicator-panel__preset-apply"
+              disabled={!presetName.trim() || !canSavePreset}
+              onClick={() => {
+                if (presetName.trim() && canSavePreset) {
+                  saveStylePreset(selectedKey, presetName.trim());
+                  setPresetName("");
+                  setPresetFormOpen(false);
+                }
+              }}
+            >
+              저장
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            className="chart-indicator-panel__secondary-button"
+            onClick={() => setPresetFormOpen(true)}
+            disabled={!canSavePreset}
+          >
+            스타일 저장
+          </button>
+        )}
+        {!canSavePreset ? (
+          <IndicatorInfoNote>기본 스타일과 동일한 상태라서 지금은 저장할 프리셋이 없습니다.</IndicatorInfoNote>
+        ) : null}
+      </IndicatorSectionBlock>
+    );
+  };
+
+  const renderCustomizationSummary = () => {
+    if (!hasCustomChanges) {
+      return (
+        <IndicatorInfoNote>
+          현재 선택한 지표는 기본값을 그대로 사용 중입니다. 필요하면 값이나 스타일을 바꾼 뒤 프리셋으로 저장할 수 있습니다.
+        </IndicatorInfoNote>
+      );
+    }
+
+    return (
+      <IndicatorSectionBlock title="변경 요약">
+        <div className="chart-indicator-panel__change-summary">
+          {selectedChangedFields.map((field) => (
+            <span key={field.key} className="chart-indicator-panel__change-chip">
+              {field.label}
+            </span>
+          ))}
+        </div>
+        {hasStyleChanges ? (
+          <div className="chart-indicator-panel__note">
+            스타일 변경: {selectedChangedStyleFields.map((field) => field.label).join(", ")}
+          </div>
+        ) : null}
+      </IndicatorSectionBlock>
+    );
+  };
+
   const renderGroup = (title: string, subtitle: string, items: readonly IndicatorKey[]) => (
     <section className="chart-indicator-panel__group">
       <div className="chart-indicator-panel__group-header">
@@ -1353,20 +1980,36 @@ export default function ChartIndicatorPanel({
         <div className="chart-indicator-panel__group-subtitle">{subtitle}</div>
       </div>
       <div className="chart-indicator-panel__group-items">
+        {items.length === 0 ? (
+          <div className="chart-indicator-panel__group-empty">검색 조건에 맞는 지표가 없습니다.</div>
+        ) : null}
         {items.map((key) => {
           const meta = INDICATOR_META[key];
           const enabled = indicators[key].enabled;
           const selected = selectedKey === key;
+          const current = indicators[key] as Record<string, unknown>;
+          const defaults = getComparableDefaultConfig(key);
+          const isCustomized = getChangedFieldLabels(current, defaults).length > 0;
           return (
-            <button
+            <div
               key={key}
-              type="button"
               className={`chart-indicator-panel__nav-item${selected ? " is-active" : ""}`}
-              onClick={() => setSelectedKey(key)}
             >
-              <span className="chart-indicator-panel__nav-copy">
-                <span className="chart-indicator-panel__nav-title">{meta.label}</span>
-              </span>
+              <button
+                type="button"
+                className="chart-indicator-panel__nav-select"
+                onClick={() => setSelectedKey(key)}
+              >
+                <span className="chart-indicator-panel__nav-copy">
+                  <span>
+                    <span className="chart-indicator-panel__nav-title">{meta.label}</span>
+                    <span className="chart-indicator-panel__nav-subtitle">
+                      {enabled ? "차트 표시 중" : "비활성"}
+                      {isCustomized ? " · 커스텀" : ""}
+                    </span>
+                  </span>
+                </span>
+              </button>
               <button
                 type="button"
                 className={`chart-indicator-panel__nav-status${enabled ? " is-enabled" : ""}`}
@@ -1379,7 +2022,7 @@ export default function ChartIndicatorPanel({
               >
                 {enabled ? <CheckGlyph /> : null}
               </button>
-            </button>
+            </div>
           );
         })}
       </div>
@@ -1407,9 +2050,22 @@ export default function ChartIndicatorPanel({
         <div className="chart-indicator-panel__summary">
           <span className="chart-indicator-panel__summary-chip">상단 {upperActiveCount}</span>
           <span className="chart-indicator-panel__summary-chip">하단 {lowerActiveCount}</span>
+          <span className="chart-indicator-panel__summary-chip">커스텀 {customizedCount}</span>
         </div>
-        {renderGroup("상단 지표", "차트 위 오버레이", UPPER_INDICATORS)}
-        {renderGroup("하단 지표", "오실레이터 / 거래량", LOWER_INDICATORS)}
+        <label className="chart-indicator-panel__search">
+          <span className="chart-indicator-panel__field-label">지표 찾기</span>
+          <span className="chart-indicator-panel__input-shell">
+            <input
+              type="text"
+              className="chart-indicator-panel__input"
+              value={searchQuery}
+              placeholder="예: RSI, 볼린저, 거래량"
+              onChange={(event) => setSearchQuery(event.target.value)}
+            />
+          </span>
+        </label>
+        {renderGroup("상단 지표", "차트 위 오버레이", filteredUpperIndicators)}
+        {renderGroup("하단 지표", "오실레이터 / 거래량", filteredLowerIndicators)}
       </div>
 
       <div className="chart-indicator-panel__details">
@@ -1438,16 +2094,55 @@ export default function ChartIndicatorPanel({
         </div>
 
         <div className="chart-indicator-panel__content">
+          {selectedGuide && (
+            <div className="chart-indicator-panel__guide">
+              <div>
+                <span className="chart-indicator-panel__guide-label">요약</span>
+                <p className="chart-indicator-panel__guide-text">{selectedGuide.summary}</p>
+              </div>
+              <div>
+                <span className="chart-indicator-panel__guide-label">활용 팁</span>
+                <p className="chart-indicator-panel__guide-text">{selectedGuide.tip}</p>
+              </div>
+            </div>
+          )}
           {!selectedIndicator.enabled ? (
             <IndicatorInfoNote>
               현재는 비활성 상태입니다. 왼쪽 목록의 체크 버튼을 누르면 바로 차트에 표시됩니다.
             </IndicatorInfoNote>
           ) : null}
+          {renderCustomizationSummary()}
           {renderLowerIndicatorLayoutControl()}
           {renderStrategyLinks()}
           {renderSelectedSettings()}
+          {renderPresetControls()}
+          <div className="chart-indicator-panel__footer-actions">
+            {hasStyleChanges ? (
+              <button
+                type="button"
+                className="chart-indicator-panel__secondary-button"
+                onClick={() => resetIndicatorStyle(selectedKey)}
+              >
+                스타일만 초기화
+              </button>
+            ) : null}
+            <button
+              type="button"
+              className="chart-indicator-panel__secondary-button"
+              onClick={() => resetIndicator(selectedKey)}
+              disabled={!hasCustomChanges}
+            >
+              초기화
+            </button>
+          </div>
         </div>
       </div>
+      <button
+        type="button"
+        className="chart-indicator-panel__resize-handle"
+        onMouseDown={handleResizeStart}
+        aria-label="보조지표 설정창 높이 조절"
+      />
     </div>,
     document.body,
   );

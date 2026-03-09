@@ -67,10 +67,10 @@ export interface AlertHistoryItem {
 }
 
 export interface IndicatorConfig {
-  bb: { enabled: boolean; period: number; multiplier: number };
-  rsi: { enabled: boolean; period: number; color: string; lineWidth: number };
-  sma: { enabled: boolean; periods: number[] };
-  ema: { enabled: boolean; periods: number[] };
+  bb: { enabled: boolean; period: number; multiplier: number; lineColor: string; lineWidth: number; lineStyle: number; fillOpacity: number };
+  rsi: { enabled: boolean; period: number; color: string; lineWidth: number; lineStyle: number };
+  sma: { enabled: boolean; periods: number[]; lineWidth: number; lineStyle: number };
+  ema: { enabled: boolean; periods: number[]; lineWidth: number; lineStyle: number };
   macd: {
     enabled: boolean;
     fastPeriod: number;
@@ -83,6 +83,8 @@ export interface IndicatorConfig {
     histogramOpacity: number;
     macdLineWidth: number;
     signalLineWidth: number;
+    macdLineStyle: number;
+    signalLineStyle: number;
   };
   stochastic: {
     enabled: boolean;
@@ -93,29 +95,33 @@ export interface IndicatorConfig {
     dColor: string;
     kLineWidth: number;
     dLineWidth: number;
+    kLineStyle: number;
+    dLineStyle: number;
   };
   volume: { enabled: boolean; upColor: string; downColor: string; opacity: number };
-  obv: { enabled: boolean; color: string; lineWidth: number };
+  obv: { enabled: boolean; color: string; lineWidth: number; lineStyle: number };
   signalZones: { enabled: boolean };
   volumeProfile: { enabled: boolean; bins: number };
   fundamentals: { enabled: boolean };
-  vwap: { enabled: boolean };
-  atr: { enabled: boolean; color: string; lineWidth: number };
+  vwap: { enabled: boolean; color: string; lineWidth: number; lineStyle: number };
+  atr: { enabled: boolean; color: string; lineWidth: number; lineStyle: number };
   ichimoku: { enabled: boolean };
-  supertrend: { enabled: boolean };
-  psar: { enabled: boolean };
-  hma: { enabled: boolean; periods: number[] };
-  donchian: { enabled: boolean; period: number };
+  supertrend: { enabled: boolean; lineWidth: number };
+  psar: { enabled: boolean; color: string; lineWidth: number };
+  hma: { enabled: boolean; periods: number[]; lineWidth: number; lineStyle: number };
+  donchian: { enabled: boolean; period: number; lineColor: string; lineWidth: number };
   keltner: {
     enabled: boolean;
     emaPeriod: number;
     atrPeriod: number;
     atrMultiplier: number;
+    lineColor: string;
+    lineWidth: number;
   };
-  mfi: { enabled: boolean; period: number; color: string; lineWidth: number };
-  cmf: { enabled: boolean; period: number; color: string; lineWidth: number };
-  choppiness: { enabled: boolean; period: number; color: string; lineWidth: number };
-  williamsR: { enabled: boolean; period: number; color: string; lineWidth: number };
+  mfi: { enabled: boolean; period: number; color: string; lineWidth: number; lineStyle: number };
+  cmf: { enabled: boolean; period: number; color: string; lineWidth: number; lineStyle: number };
+  choppiness: { enabled: boolean; period: number; color: string; lineWidth: number; lineStyle: number };
+  williamsR: { enabled: boolean; period: number; color: string; lineWidth: number; lineStyle: number };
   adx: {
     enabled: boolean;
     period: number;
@@ -124,10 +130,12 @@ export interface IndicatorConfig {
     minusDiColor: string;
     lineWidth: number;
     diLineWidth: number;
+    lineStyle: number;
+    diLineStyle: number;
   };
-  cvd: { enabled: boolean; color: string; lineWidth: number };
+  cvd: { enabled: boolean; color: string; lineWidth: number; lineStyle: number };
   rvol: { enabled: boolean; period: number; highColor: string; neutralColor: string; lowColor: string };
-  stc: { enabled: boolean; tcLen: number; fastMa: number; slowMa: number; color: string; lineWidth: number };
+  stc: { enabled: boolean; tcLen: number; fastMa: number; slowMa: number; color: string; lineWidth: number; lineStyle: number };
   smc: { enabled: boolean; swingLength: number };
   anchoredVwap: { enabled: boolean; anchorTime: number | null };
   autoFib: { enabled: boolean; lookback: number; swingLength: number };
@@ -165,14 +173,24 @@ export interface IndicatorConfig {
   };
 }
 
+export interface StylePreset {
+  id: string;
+  name: string;
+  indicatorKey: string;
+  style: Record<string, unknown>;
+  createdAt: number;
+}
+
 type IndicatorKey = keyof IndicatorConfig;
-type ToggleableIndicatorKey = Exclude<IndicatorKey, "layout" | "signalStrategies">;
+export type ToggleableIndicatorKey = Exclude<IndicatorKey, "layout" | "signalStrategies">;
+
+export { DEFAULT_INDICATORS };
 
 const DEFAULT_INDICATORS: IndicatorConfig = {
-  bb: { enabled: true, period: DEFAULTS.bbPeriod, multiplier: DEFAULTS.bbMultiplier },
-  rsi: { enabled: true, period: DEFAULTS.rsiPeriod, color: COLORS.rsiLine, lineWidth: 2 },
-  sma: { enabled: false, periods: [...INDICATOR_DEFAULTS.sma.periods] },
-  ema: { enabled: false, periods: [...INDICATOR_DEFAULTS.ema.periods] },
+  bb: { enabled: true, period: DEFAULTS.bbPeriod, multiplier: DEFAULTS.bbMultiplier, lineColor: "#FF9800", lineWidth: 1, lineStyle: 0, fillOpacity: 0.12 },
+  rsi: { enabled: true, period: DEFAULTS.rsiPeriod, color: COLORS.rsiLine, lineWidth: 2, lineStyle: 0 },
+  sma: { enabled: false, periods: [...INDICATOR_DEFAULTS.sma.periods], lineWidth: 2, lineStyle: 0 },
+  ema: { enabled: false, periods: [...INDICATOR_DEFAULTS.ema.periods], lineWidth: 2, lineStyle: 0 },
   macd: {
     enabled: false,
     ...INDICATOR_DEFAULTS.macd,
@@ -183,6 +201,8 @@ const DEFAULT_INDICATORS: IndicatorConfig = {
     histogramOpacity: 0.52,
     macdLineWidth: 2,
     signalLineWidth: 1,
+    macdLineStyle: 0,
+    signalLineStyle: 0,
   },
   stochastic: {
     enabled: false,
@@ -191,24 +211,26 @@ const DEFAULT_INDICATORS: IndicatorConfig = {
     dColor: COLORS.stochD,
     kLineWidth: 2,
     dLineWidth: 1,
+    kLineStyle: 0,
+    dLineStyle: 0,
   },
   volume: { enabled: false, upColor: COLORS.volumeUp, downColor: COLORS.volumeDown, opacity: 0.52 },
-  obv: { enabled: false, color: "#14B8A6", lineWidth: 2 },
+  obv: { enabled: false, color: "#14B8A6", lineWidth: 2, lineStyle: 0 },
   signalZones: { enabled: false },
   volumeProfile: { enabled: false, bins: 24 },
   fundamentals: { enabled: false },
-  vwap: { enabled: false },
-  atr: { enabled: false, color: "#38BDF8", lineWidth: 2 },
+  vwap: { enabled: false, color: "#06B6D4", lineWidth: 2, lineStyle: 2 },
+  atr: { enabled: false, color: "#38BDF8", lineWidth: 2, lineStyle: 0 },
   ichimoku: { enabled: false },
-  supertrend: { enabled: false },
-  psar: { enabled: false },
-  hma: { enabled: false, periods: [...INDICATOR_DEFAULTS.hma.periods] },
-  donchian: { enabled: false, ...INDICATOR_DEFAULTS.donchian },
-  keltner: { enabled: false, ...INDICATOR_DEFAULTS.keltner },
-  mfi: { enabled: false, ...INDICATOR_DEFAULTS.mfi, color: COLORS.mfiLine, lineWidth: 2 },
-  cmf: { enabled: false, ...INDICATOR_DEFAULTS.cmf, color: COLORS.cmfLine, lineWidth: 2 },
-  choppiness: { enabled: false, ...INDICATOR_DEFAULTS.choppiness, color: COLORS.chopLine, lineWidth: 2 },
-  williamsR: { enabled: false, ...INDICATOR_DEFAULTS.williamsR, color: COLORS.willrLine, lineWidth: 2 },
+  supertrend: { enabled: false, lineWidth: 2 },
+  psar: { enabled: false, color: "#F97316", lineWidth: 1 },
+  hma: { enabled: false, periods: [...INDICATOR_DEFAULTS.hma.periods], lineWidth: 2, lineStyle: 0 },
+  donchian: { enabled: false, ...INDICATOR_DEFAULTS.donchian, lineColor: COLORS.donchianUpper, lineWidth: 1 },
+  keltner: { enabled: false, ...INDICATOR_DEFAULTS.keltner, lineColor: COLORS.keltnerUpper, lineWidth: 1 },
+  mfi: { enabled: false, ...INDICATOR_DEFAULTS.mfi, color: COLORS.mfiLine, lineWidth: 2, lineStyle: 0 },
+  cmf: { enabled: false, ...INDICATOR_DEFAULTS.cmf, color: COLORS.cmfLine, lineWidth: 2, lineStyle: 0 },
+  choppiness: { enabled: false, ...INDICATOR_DEFAULTS.choppiness, color: COLORS.chopLine, lineWidth: 2, lineStyle: 0 },
+  williamsR: { enabled: false, ...INDICATOR_DEFAULTS.williamsR, color: COLORS.willrLine, lineWidth: 2, lineStyle: 0 },
   adx: {
     enabled: false,
     ...INDICATOR_DEFAULTS.adx,
@@ -217,8 +239,10 @@ const DEFAULT_INDICATORS: IndicatorConfig = {
     minusDiColor: COLORS.adxMinusDi,
     lineWidth: 2,
     diLineWidth: 1,
+    lineStyle: 0,
+    diLineStyle: 0,
   },
-  cvd: { enabled: false, color: COLORS.cvdLine, lineWidth: 2 },
+  cvd: { enabled: false, color: COLORS.cvdLine, lineWidth: 2, lineStyle: 0 },
   rvol: {
     enabled: false,
     ...INDICATOR_DEFAULTS.rvol,
@@ -226,7 +250,7 @@ const DEFAULT_INDICATORS: IndicatorConfig = {
     neutralColor: COLORS.rvolNeutral,
     lowColor: COLORS.rvolLow,
   },
-  stc: { enabled: false, ...INDICATOR_DEFAULTS.stc, color: COLORS.stcLine, lineWidth: 2 },
+  stc: { enabled: false, ...INDICATOR_DEFAULTS.stc, color: COLORS.stcLine, lineWidth: 2, lineStyle: 0 },
   smc: { enabled: false, ...INDICATOR_DEFAULTS.smc },
   anchoredVwap: { enabled: false, anchorTime: null },
   autoFib: { enabled: false, ...INDICATOR_DEFAULTS.autoFib },
@@ -314,6 +338,12 @@ interface SettingsState {
     partial: Partial<IndicatorConfig[K]>,
   ) => void;
   toggleIndicator: (key: ToggleableIndicatorKey) => void;
+  stylePresets: StylePreset[];
+  resetIndicator: (key: ToggleableIndicatorKey) => void;
+  resetIndicatorStyle: (key: ToggleableIndicatorKey) => void;
+  saveStylePreset: (key: ToggleableIndicatorKey, name: string) => void;
+  loadStylePreset: (presetId: string) => void;
+  deleteStylePreset: (presetId: string) => void;
   setShowSettings: (show: boolean) => void;
   toggleFullscreen: () => void;
 }
@@ -333,7 +363,12 @@ function toValidColor(value: unknown, fallback: string): string {
 }
 
 function toLineWidth(value: unknown, fallback: number): number {
-  return clamp(Math.round(toFiniteNumber(value, fallback)), 1, 4);
+  return clamp(Math.round(toFiniteNumber(value, fallback)), 1, 3);
+}
+
+function toLineStyle(value: unknown, fallback: number): number {
+  const n = Math.round(toFiniteNumber(value, fallback));
+  return n >= 0 && n <= 4 ? n : fallback;
 }
 
 function toOpacity(value: unknown, fallback: number): number {
@@ -376,6 +411,7 @@ function sanitizeRsiConfig(config: IndicatorConfig["rsi"] | undefined): Indicato
     period: clamp(toFiniteNumber(config?.period, base.period), 2, 50),
     color: toValidColor(config?.color, base.color),
     lineWidth: toLineWidth(config?.lineWidth, base.lineWidth),
+    lineStyle: toLineStyle(config?.lineStyle, base.lineStyle),
   };
 }
 
@@ -394,6 +430,8 @@ function sanitizeMacdConfig(config: IndicatorConfig["macd"] | undefined): Indica
     histogramOpacity: toOpacity(config?.histogramOpacity, base.histogramOpacity),
     macdLineWidth: toLineWidth(config?.macdLineWidth, base.macdLineWidth),
     signalLineWidth: toLineWidth(config?.signalLineWidth, base.signalLineWidth),
+    macdLineStyle: toLineStyle(config?.macdLineStyle, base.macdLineStyle),
+    signalLineStyle: toLineStyle(config?.signalLineStyle, base.signalLineStyle),
   };
 }
 
@@ -411,6 +449,8 @@ function sanitizeStochasticConfig(
     dColor: toValidColor(config?.dColor, base.dColor),
     kLineWidth: toLineWidth(config?.kLineWidth, base.kLineWidth),
     dLineWidth: toLineWidth(config?.dLineWidth, base.dLineWidth),
+    kLineStyle: toLineStyle(config?.kLineStyle, base.kLineStyle),
+    dLineStyle: toLineStyle(config?.dLineStyle, base.dLineStyle),
   };
 }
 
@@ -425,7 +465,7 @@ function sanitizeVolumeConfig(config: IndicatorConfig["volume"] | undefined): In
   };
 }
 
-function sanitizeSingleLineConfig<T extends { enabled: boolean; color: string; lineWidth: number }>(
+function sanitizeSingleLineConfig<T extends { enabled: boolean; color: string; lineWidth: number; lineStyle: number }>(
   config: T | undefined,
   base: T,
 ): T {
@@ -434,6 +474,7 @@ function sanitizeSingleLineConfig<T extends { enabled: boolean; color: string; l
     ...config,
     color: toValidColor(config?.color, base.color),
     lineWidth: toLineWidth(config?.lineWidth, base.lineWidth),
+    lineStyle: toLineStyle(config?.lineStyle, base.lineStyle),
   };
 }
 
@@ -448,6 +489,8 @@ function sanitizeAdxConfig(config: IndicatorConfig["adx"] | undefined): Indicato
     minusDiColor: toValidColor(config?.minusDiColor, base.minusDiColor),
     lineWidth: toLineWidth(config?.lineWidth, base.lineWidth),
     diLineWidth: toLineWidth(config?.diLineWidth, base.diLineWidth),
+    lineStyle: toLineStyle(config?.lineStyle, base.lineStyle),
+    diLineStyle: toLineStyle(config?.diLineStyle, base.diLineStyle),
   };
 }
 
@@ -463,11 +506,25 @@ function sanitizeRvolConfig(config: IndicatorConfig["rvol"] | undefined): Indica
   };
 }
 
+function sanitizeBbConfig(config: IndicatorConfig["bb"] | undefined): IndicatorConfig["bb"] {
+  const base = DEFAULT_INDICATORS.bb;
+  return {
+    ...base,
+    ...config,
+    lineColor: toValidColor(config?.lineColor, base.lineColor),
+    lineWidth: toLineWidth(config?.lineWidth, base.lineWidth),
+    lineStyle: toLineStyle(config?.lineStyle, base.lineStyle),
+    fillOpacity: clamp(toFiniteNumber(config?.fillOpacity, base.fillOpacity), 0, 0.5),
+  };
+}
+
 function sanitizeIndicatorEntry<K extends IndicatorKey>(
   key: K,
   config: IndicatorConfig[K] | undefined,
 ): IndicatorConfig[K] {
   switch (key) {
+    case "bb":
+      return sanitizeBbConfig(config as IndicatorConfig["bb"]) as IndicatorConfig[K];
     case "layout":
       return sanitizeLayoutConfig(config as IndicatorConfig["layout"]) as IndicatorConfig[K];
     case "rsi":
@@ -567,6 +624,53 @@ function sanitizeIndicatorEntry<K extends IndicatorKey>(
           100,
         ),
       } as IndicatorConfig[K];
+    case "sma": {
+      const c = config as IndicatorConfig["sma"] | undefined;
+      const b = DEFAULT_INDICATORS.sma;
+      return { ...b, ...c, lineWidth: toLineWidth(c?.lineWidth, b.lineWidth), lineStyle: toLineStyle(c?.lineStyle, b.lineStyle) } as IndicatorConfig[K];
+    }
+    case "ema": {
+      const c = config as IndicatorConfig["ema"] | undefined;
+      const b = DEFAULT_INDICATORS.ema;
+      return { ...b, ...c, lineWidth: toLineWidth(c?.lineWidth, b.lineWidth), lineStyle: toLineStyle(c?.lineStyle, b.lineStyle) } as IndicatorConfig[K];
+    }
+    case "hma": {
+      const c = config as IndicatorConfig["hma"] | undefined;
+      const b = DEFAULT_INDICATORS.hma;
+      return { ...b, ...c, lineWidth: toLineWidth(c?.lineWidth, b.lineWidth), lineStyle: toLineStyle(c?.lineStyle, b.lineStyle) } as IndicatorConfig[K];
+    }
+    case "vwap": {
+      const c = config as IndicatorConfig["vwap"] | undefined;
+      const b = DEFAULT_INDICATORS.vwap;
+      return { ...b, ...c, color: toValidColor(c?.color, b.color), lineWidth: toLineWidth(c?.lineWidth, b.lineWidth), lineStyle: toLineStyle(c?.lineStyle, b.lineStyle) } as IndicatorConfig[K];
+    }
+    case "supertrend": {
+      const c = config as IndicatorConfig["supertrend"] | undefined;
+      const b = DEFAULT_INDICATORS.supertrend;
+      return { ...b, ...c, lineWidth: toLineWidth(c?.lineWidth, b.lineWidth) } as IndicatorConfig[K];
+    }
+    case "psar": {
+      const c = config as IndicatorConfig["psar"] | undefined;
+      const b = DEFAULT_INDICATORS.psar;
+      return { ...b, ...c, color: toValidColor(c?.color, b.color), lineWidth: toLineWidth(c?.lineWidth, b.lineWidth) } as IndicatorConfig[K];
+    }
+    case "donchian": {
+      const c = config as IndicatorConfig["donchian"] | undefined;
+      const b = DEFAULT_INDICATORS.donchian;
+      return { ...b, ...c, lineColor: toValidColor(c?.lineColor, b.lineColor), lineWidth: toLineWidth(c?.lineWidth, b.lineWidth) } as IndicatorConfig[K];
+    }
+    case "keltner": {
+      const c = config as IndicatorConfig["keltner"] | undefined;
+      const b = DEFAULT_INDICATORS.keltner;
+      return {
+        ...b, ...c,
+        emaPeriod: clamp(toFiniteNumber(c?.emaPeriod, b.emaPeriod), 5, 50),
+        atrPeriod: clamp(toFiniteNumber(c?.atrPeriod, b.atrPeriod), 5, 50),
+        atrMultiplier: clamp(toFiniteNumber(c?.atrMultiplier, b.atrMultiplier), 0.5, 4),
+        lineColor: toValidColor(c?.lineColor, b.lineColor),
+        lineWidth: toLineWidth(c?.lineWidth, b.lineWidth),
+      } as IndicatorConfig[K];
+    }
     default:
       return (config ?? DEFAULT_INDICATORS[key]) as IndicatorConfig[K];
   }
@@ -618,10 +722,10 @@ function getSavedIndicators(): IndicatorConfig {
     if (saved) {
       const parsed = JSON.parse(saved);
       const nextIndicators = {
-        bb: { ...DEFAULT_INDICATORS.bb, ...parsed.bb },
+        bb: sanitizeIndicatorEntry("bb", { ...DEFAULT_INDICATORS.bb, ...parsed.bb }),
         rsi: sanitizeIndicatorEntry("rsi", { ...DEFAULT_INDICATORS.rsi, ...parsed.rsi }),
-        sma: { ...DEFAULT_INDICATORS.sma, ...parsed.sma },
-        ema: { ...DEFAULT_INDICATORS.ema, ...parsed.ema },
+        sma: sanitizeIndicatorEntry("sma", { ...DEFAULT_INDICATORS.sma, ...parsed.sma }),
+        ema: sanitizeIndicatorEntry("ema", { ...DEFAULT_INDICATORS.ema, ...parsed.ema }),
         macd: sanitizeIndicatorEntry("macd", { ...DEFAULT_INDICATORS.macd, ...parsed.macd }),
         stochastic: sanitizeIndicatorEntry("stochastic", { ...DEFAULT_INDICATORS.stochastic, ...parsed.stochastic }),
         volume: sanitizeIndicatorEntry("volume", { ...DEFAULT_INDICATORS.volume, ...parsed.volume }),
@@ -632,14 +736,14 @@ function getSavedIndicators(): IndicatorConfig {
           ...parsed.volumeProfile,
         },
         fundamentals: { ...DEFAULT_INDICATORS.fundamentals, ...parsed.fundamentals },
-        vwap: { ...DEFAULT_INDICATORS.vwap, ...parsed.vwap },
+        vwap: sanitizeIndicatorEntry("vwap", { ...DEFAULT_INDICATORS.vwap, ...parsed.vwap }),
         atr: sanitizeIndicatorEntry("atr", { ...DEFAULT_INDICATORS.atr, ...parsed.atr }),
         ichimoku: { ...DEFAULT_INDICATORS.ichimoku, ...parsed.ichimoku },
-        supertrend: { ...DEFAULT_INDICATORS.supertrend, ...parsed.supertrend },
-        psar: { ...DEFAULT_INDICATORS.psar, ...parsed.psar },
-        hma: { ...DEFAULT_INDICATORS.hma, ...parsed.hma },
-        donchian: { ...DEFAULT_INDICATORS.donchian, ...parsed.donchian },
-        keltner: { ...DEFAULT_INDICATORS.keltner, ...parsed.keltner },
+        supertrend: sanitizeIndicatorEntry("supertrend", { ...DEFAULT_INDICATORS.supertrend, ...parsed.supertrend }),
+        psar: sanitizeIndicatorEntry("psar", { ...DEFAULT_INDICATORS.psar, ...parsed.psar }),
+        hma: sanitizeIndicatorEntry("hma", { ...DEFAULT_INDICATORS.hma, ...parsed.hma }),
+        donchian: sanitizeIndicatorEntry("donchian", { ...DEFAULT_INDICATORS.donchian, ...parsed.donchian }),
+        keltner: sanitizeIndicatorEntry("keltner", { ...DEFAULT_INDICATORS.keltner, ...parsed.keltner }),
         mfi: sanitizeIndicatorEntry("mfi", { ...DEFAULT_INDICATORS.mfi, ...parsed.mfi }),
         cmf: sanitizeIndicatorEntry("cmf", { ...DEFAULT_INDICATORS.cmf, ...parsed.cmf }),
         choppiness: sanitizeIndicatorEntry("choppiness", { ...DEFAULT_INDICATORS.choppiness, ...parsed.choppiness }),
@@ -672,6 +776,56 @@ function getSavedIndicators(): IndicatorConfig {
 function saveIndicators(indicators: IndicatorConfig) {
   try {
     localStorage.setItem("bb-rsi-indicators", JSON.stringify(indicators));
+  } catch {}
+}
+
+const STYLE_PRESETS_STORAGE_KEY = "quanting-style-presets";
+const MAX_STYLE_PRESETS = 20;
+
+export function extractIndicatorStyleFields(config: Record<string, unknown>): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(config)) {
+    if (
+      key === "enabled" || key === "period" || key === "periods" ||
+      key === "multiplier" || key === "fastPeriod" || key === "slowPeriod" ||
+      key === "signalPeriod" || key === "kPeriod" || key === "dPeriod" ||
+      key === "smooth" || key === "bins" || key === "swingLength" ||
+      key === "anchorTime" || key === "lookback" || key === "emaPeriod" ||
+      key === "atrPeriod" || key === "atrMultiplier" || key === "tcLen" ||
+      key === "fastMa" || key === "slowMa"
+    ) continue;
+    result[key] = value;
+  }
+  return result;
+}
+
+export function getIndicatorDefaultConfig<K extends ToggleableIndicatorKey>(key: K): IndicatorConfig[K] {
+  return DEFAULT_INDICATORS[key];
+}
+
+function getSavedStylePresets(): StylePreset[] {
+  try {
+    const raw = localStorage.getItem(STYLE_PRESETS_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter(
+        (item: unknown): item is StylePreset =>
+          !!item &&
+          typeof (item as StylePreset).id === "string" &&
+          typeof (item as StylePreset).name === "string" &&
+          typeof (item as StylePreset).indicatorKey === "string" &&
+          typeof (item as StylePreset).style === "object",
+      )
+      .slice(0, MAX_STYLE_PRESETS);
+  } catch {}
+  return [];
+}
+
+function saveStylePresets(presets: StylePreset[]) {
+  try {
+    localStorage.setItem(STYLE_PRESETS_STORAGE_KEY, JSON.stringify(presets));
   } catch {}
 }
 
@@ -1077,6 +1231,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   compare: getSavedCompare(),
   priceAlerts: getSavedPriceAlerts(),
   alertHistory: getSavedAlertHistory(),
+  stylePresets: getSavedStylePresets(),
   settingsTab: "indicators" as SettingsTab,
   showSettings: false,
   isFullscreen: false,
@@ -1416,6 +1571,110 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       };
       saveIndicators(updated.indicators);
       return updated;
+    }),
+  resetIndicator: (key) =>
+    set((state) => {
+      const defaultConfig = DEFAULT_INDICATORS[key];
+      const currentEnabled = state.indicators[key].enabled;
+      let restored = { ...defaultConfig, enabled: currentEnabled } as IndicatorConfig[typeof key];
+
+      if (key === "volume" || key === "macd") {
+        const withColors = applyChartColorStyleToIndicators(
+          { ...state.indicators, [key]: restored },
+          state.chartColorStyle,
+        );
+        restored = withColors[key];
+      }
+
+      const updated = {
+        indicators: {
+          ...state.indicators,
+          [key]: restored,
+        },
+      };
+      saveIndicators(updated.indicators);
+      return updated;
+    }),
+  resetIndicatorStyle: (key) =>
+    set((state) => {
+      const currentConfig = state.indicators[key];
+      const defaultStyle = extractIndicatorStyleFields(
+        DEFAULT_INDICATORS[key] as unknown as Record<string, unknown>,
+      );
+      let restored = {
+        ...currentConfig,
+        ...defaultStyle,
+      } as IndicatorConfig[typeof key];
+
+      restored = sanitizeIndicatorEntry(key, restored);
+
+      if (key === "volume" || key === "macd") {
+        const withColors = applyChartColorStyleToIndicators(
+          { ...state.indicators, [key]: restored },
+          state.chartColorStyle,
+        );
+        restored = withColors[key];
+      }
+
+      const updated = {
+        indicators: {
+          ...state.indicators,
+          [key]: restored,
+        },
+      };
+      saveIndicators(updated.indicators);
+      return updated;
+    }),
+  saveStylePreset: (key, name) =>
+    set((state) => {
+      const config = state.indicators[key] as unknown as Record<string, unknown>;
+      const style = extractIndicatorStyleFields(config);
+      const preset: StylePreset = {
+        id: uid("preset"),
+        name,
+        indicatorKey: key,
+        style,
+        createdAt: Date.now(),
+      };
+      let next = [preset, ...state.stylePresets];
+      if (next.length > MAX_STYLE_PRESETS) {
+        next = next.slice(0, MAX_STYLE_PRESETS);
+      }
+      saveStylePresets(next);
+      return { stylePresets: next };
+    }),
+  loadStylePreset: (presetId) =>
+    set((state) => {
+      const preset = state.stylePresets.find((p) => p.id === presetId);
+      if (!preset) return {};
+      const key = preset.indicatorKey as ToggleableIndicatorKey;
+      if (!(key in state.indicators)) return {};
+      const current = state.indicators[key];
+      let merged = { ...current, ...preset.style } as IndicatorConfig[typeof key];
+      merged = sanitizeIndicatorEntry(key, merged);
+
+      if (key === "volume" || key === "macd") {
+        const withColors = applyChartColorStyleToIndicators(
+          { ...state.indicators, [key]: merged },
+          state.chartColorStyle,
+        );
+        merged = withColors[key];
+      }
+
+      const updated = {
+        indicators: {
+          ...state.indicators,
+          [key]: merged,
+        },
+      };
+      saveIndicators(updated.indicators);
+      return updated;
+    }),
+  deleteStylePreset: (presetId) =>
+    set((state) => {
+      const next = state.stylePresets.filter((p) => p.id !== presetId);
+      saveStylePresets(next);
+      return { stylePresets: next };
     }),
   setSettingsTab: (settingsTab) => set({ settingsTab }),
   setShowSettings: (showSettings) => set({ showSettings }),

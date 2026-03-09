@@ -1,7 +1,7 @@
 import type { IndicatorConfig } from "../stores/useSettingsStore";
 import type { AnalysisResponse } from "../types";
 import { clipByTime, buildScopedCandles } from "./chartShared";
-import { COLORS } from "./constants";
+import { hexToRgba } from "./constants";
 import type { LowerIndicatorPaneId } from "./lowerIndicatorPanes";
 import { calculateRvol } from "./rvol";
 
@@ -18,9 +18,17 @@ export interface IndicatorPaneSeriesDefinition {
   lastValueColor?: string;
 }
 
+export interface IndicatorPaneBandFillDefinition {
+  key: string;
+  values: Array<{ time: number; upper: number; lower: number }>;
+  color: string;
+  attachToKey: string;
+}
+
 export interface IndicatorPaneModel {
   paneId: LowerIndicatorPaneId;
   series: IndicatorPaneSeriesDefinition[];
+  bandFills?: IndicatorPaneBandFillDefinition[];
   primarySeriesKey: string;
   primaryValueMap: Map<number, number>;
 }
@@ -29,6 +37,42 @@ function createPrimaryValueMap(
   values: Array<{ time: number; value: number }>,
 ) {
   return new Map(values.map((point) => [point.time, point.value] as const));
+}
+
+function createThresholdLine(
+  key: string,
+  values: Array<{ time: number; value: number }>,
+  threshold: number,
+  color: string,
+): IndicatorPaneSeriesDefinition {
+  return {
+    key,
+    kind: "line",
+    values: values.map((point) => ({ time: point.time, value: threshold })),
+    color,
+    lineWidth: 1,
+    lineStyle: 2,
+  };
+}
+
+function createBandFill(
+  key: string,
+  values: Array<{ time: number; value: number }>,
+  upper: number,
+  lower: number,
+  color: string,
+  attachToKey: string,
+): IndicatorPaneBandFillDefinition {
+  return {
+    key,
+    attachToKey,
+    color: hexToRgba(color, 0.03),
+    values: values.map((point) => ({
+      time: point.time,
+      upper,
+      lower,
+    })),
+  };
 }
 
 export function buildIndicatorPaneModel(
@@ -72,6 +116,7 @@ export function buildIndicatorPaneModel(
     case "rsi": {
       const scoped = clipByTime(data.rsi, replayTime);
       const values = scoped.map((point) => ({ time: point.time, value: point.value }));
+      const guideColor = indicators.rsi.color;
       return {
         paneId,
         series: [
@@ -81,25 +126,13 @@ export function buildIndicatorPaneModel(
             values,
             color: indicators.rsi.color,
             lineWidth: indicators.rsi.lineWidth as 1 | 2 | 3 | 4,
+            lineStyle: indicators.rsi.lineStyle,
             lastValueColor: indicators.rsi.color,
           },
-          {
-            key: "rsi-overbought",
-            kind: "line",
-            values: values.map((point) => ({ time: point.time, value: 70 })),
-            color: COLORS.rsiOverbought,
-            lineWidth: 1,
-            lineStyle: 2,
-          },
-          {
-            key: "rsi-oversold",
-            kind: "line",
-            values: values.map((point) => ({ time: point.time, value: 30 })),
-            color: COLORS.rsiOversold,
-            lineWidth: 1,
-            lineStyle: 2,
-          },
+          createThresholdLine("rsi-overbought", values, 70, guideColor),
+          createThresholdLine("rsi-oversold", values, 30, guideColor),
         ],
+        bandFills: [createBandFill("rsi-band", values, 70, 30, guideColor, "rsi-overbought")],
         primarySeriesKey: "rsi-line",
         primaryValueMap: createPrimaryValueMap(values),
       };
@@ -131,6 +164,7 @@ export function buildIndicatorPaneModel(
             values: macdValues,
             color: indicators.macd.macdColor,
             lineWidth: indicators.macd.macdLineWidth as 1 | 2 | 3 | 4,
+            lineStyle: indicators.macd.macdLineStyle,
             lastValueColor: indicators.macd.macdColor,
           },
           {
@@ -139,6 +173,7 @@ export function buildIndicatorPaneModel(
             values: signalValues,
             color: indicators.macd.signalColor,
             lineWidth: indicators.macd.signalLineWidth as 1 | 2 | 3 | 4,
+            lineStyle: indicators.macd.signalLineStyle,
             lastValueColor: indicators.macd.signalColor,
           },
         ],
@@ -150,6 +185,7 @@ export function buildIndicatorPaneModel(
       const scoped = data.stochastic ? clipByTime(data.stochastic.data, replayTime) : [];
       const kValues = scoped.map((point) => ({ time: point.time, value: point.k }));
       const dValues = scoped.map((point) => ({ time: point.time, value: point.d }));
+      const guideColor = indicators.stochastic.kColor;
       return {
         paneId,
         series: [
@@ -159,6 +195,7 @@ export function buildIndicatorPaneModel(
             values: kValues,
             color: indicators.stochastic.kColor,
             lineWidth: indicators.stochastic.kLineWidth as 1 | 2 | 3 | 4,
+            lineStyle: indicators.stochastic.kLineStyle,
             lastValueColor: indicators.stochastic.kColor,
           },
           {
@@ -167,25 +204,13 @@ export function buildIndicatorPaneModel(
             values: dValues,
             color: indicators.stochastic.dColor,
             lineWidth: indicators.stochastic.dLineWidth as 1 | 2 | 3 | 4,
+            lineStyle: indicators.stochastic.dLineStyle,
             lastValueColor: indicators.stochastic.dColor,
           },
-          {
-            key: "stoch-overbought",
-            kind: "line",
-            values: kValues.map((point) => ({ time: point.time, value: 80 })),
-            color: COLORS.rsiOverbought,
-            lineWidth: 1,
-            lineStyle: 2,
-          },
-          {
-            key: "stoch-oversold",
-            kind: "line",
-            values: kValues.map((point) => ({ time: point.time, value: 20 })),
-            color: COLORS.rsiOversold,
-            lineWidth: 1,
-            lineStyle: 2,
-          },
+          createThresholdLine("stoch-overbought", kValues, 80, guideColor),
+          createThresholdLine("stoch-oversold", kValues, 20, guideColor),
         ],
+        bandFills: [createBandFill("stoch-band", kValues, 80, 20, guideColor, "stoch-overbought")],
         primarySeriesKey: "stoch-k",
         primaryValueMap: createPrimaryValueMap(kValues),
       };
@@ -202,6 +227,7 @@ export function buildIndicatorPaneModel(
             values,
             color: indicators.obv.color,
             lineWidth: indicators.obv.lineWidth as 1 | 2 | 3 | 4,
+            lineStyle: indicators.obv.lineStyle,
             lastValueColor: indicators.obv.color,
           },
         ],
@@ -221,6 +247,7 @@ export function buildIndicatorPaneModel(
             values,
             color: indicators.atr.color,
             lineWidth: indicators.atr.lineWidth as 1 | 2 | 3 | 4,
+            lineStyle: indicators.atr.lineStyle,
             lastValueColor: indicators.atr.color,
           },
         ],
@@ -231,6 +258,7 @@ export function buildIndicatorPaneModel(
     case "mfi": {
       const scoped = data.mfi ? clipByTime(data.mfi.data, replayTime) : [];
       const values = scoped.map((point) => ({ time: point.time, value: point.value }));
+      const guideColor = indicators.mfi.color;
       return {
         paneId,
         series: [
@@ -240,25 +268,13 @@ export function buildIndicatorPaneModel(
             values,
             color: indicators.mfi.color,
             lineWidth: indicators.mfi.lineWidth as 1 | 2 | 3 | 4,
+            lineStyle: indicators.mfi.lineStyle,
             lastValueColor: indicators.mfi.color,
           },
-          {
-            key: "mfi-overbought",
-            kind: "line",
-            values: values.map((point) => ({ time: point.time, value: 80 })),
-            color: COLORS.rsiOverbought,
-            lineWidth: 1,
-            lineStyle: 2,
-          },
-          {
-            key: "mfi-oversold",
-            kind: "line",
-            values: values.map((point) => ({ time: point.time, value: 20 })),
-            color: COLORS.rsiOversold,
-            lineWidth: 1,
-            lineStyle: 2,
-          },
+          createThresholdLine("mfi-overbought", values, 80, guideColor),
+          createThresholdLine("mfi-oversold", values, 20, guideColor),
         ],
+        bandFills: [createBandFill("mfi-band", values, 80, 20, guideColor, "mfi-overbought")],
         primarySeriesKey: "mfi",
         primaryValueMap: createPrimaryValueMap(values),
       };
@@ -275,6 +291,7 @@ export function buildIndicatorPaneModel(
             values,
             color: indicators.cmf.color,
             lineWidth: indicators.cmf.lineWidth as 1 | 2 | 3 | 4,
+            lineStyle: indicators.cmf.lineStyle,
             lastValueColor: indicators.cmf.color,
           },
           {
@@ -293,6 +310,7 @@ export function buildIndicatorPaneModel(
     case "chop": {
       const scoped = data.choppiness ? clipByTime(data.choppiness.data, replayTime) : [];
       const values = scoped.map((point) => ({ time: point.time, value: point.value }));
+      const guideColor = indicators.choppiness.color;
       return {
         paneId,
         series: [
@@ -302,25 +320,13 @@ export function buildIndicatorPaneModel(
             values,
             color: indicators.choppiness.color,
             lineWidth: indicators.choppiness.lineWidth as 1 | 2 | 3 | 4,
+            lineStyle: indicators.choppiness.lineStyle,
             lastValueColor: indicators.choppiness.color,
           },
-          {
-            key: "chop-high",
-            kind: "line",
-            values: values.map((point) => ({ time: point.time, value: 61.8 })),
-            color: "#6B7280",
-            lineWidth: 1,
-            lineStyle: 2,
-          },
-          {
-            key: "chop-low",
-            kind: "line",
-            values: values.map((point) => ({ time: point.time, value: 38.2 })),
-            color: "#6B7280",
-            lineWidth: 1,
-            lineStyle: 2,
-          },
+          createThresholdLine("chop-high", values, 61.8, guideColor),
+          createThresholdLine("chop-low", values, 38.2, guideColor),
         ],
+        bandFills: [createBandFill("chop-band", values, 61.8, 38.2, guideColor, "chop-high")],
         primarySeriesKey: "chop",
         primaryValueMap: createPrimaryValueMap(values),
       };
@@ -328,6 +334,7 @@ export function buildIndicatorPaneModel(
     case "willr": {
       const scoped = data.williamsR ? clipByTime(data.williamsR.data, replayTime) : [];
       const values = scoped.map((point) => ({ time: point.time, value: point.value }));
+      const guideColor = indicators.williamsR.color;
       return {
         paneId,
         series: [
@@ -337,25 +344,13 @@ export function buildIndicatorPaneModel(
             values,
             color: indicators.williamsR.color,
             lineWidth: indicators.williamsR.lineWidth as 1 | 2 | 3 | 4,
+            lineStyle: indicators.williamsR.lineStyle,
             lastValueColor: indicators.williamsR.color,
           },
-          {
-            key: "willr-overbought",
-            kind: "line",
-            values: values.map((point) => ({ time: point.time, value: -20 })),
-            color: COLORS.rsiOverbought,
-            lineWidth: 1,
-            lineStyle: 2,
-          },
-          {
-            key: "willr-oversold",
-            kind: "line",
-            values: values.map((point) => ({ time: point.time, value: -80 })),
-            color: COLORS.rsiOversold,
-            lineWidth: 1,
-            lineStyle: 2,
-          },
+          createThresholdLine("willr-overbought", values, -20, guideColor),
+          createThresholdLine("willr-oversold", values, -80, guideColor),
         ],
+        bandFills: [createBandFill("willr-band", values, -20, -80, guideColor, "willr-overbought")],
         primarySeriesKey: "willr",
         primaryValueMap: createPrimaryValueMap(values),
       };
@@ -374,6 +369,7 @@ export function buildIndicatorPaneModel(
             values: adxValues,
             color: indicators.adx.color,
             lineWidth: indicators.adx.lineWidth as 1 | 2 | 3 | 4,
+            lineStyle: indicators.adx.lineStyle,
             lastValueColor: indicators.adx.color,
           },
           {
@@ -382,6 +378,7 @@ export function buildIndicatorPaneModel(
             values: plusValues,
             color: indicators.adx.plusDiColor,
             lineWidth: indicators.adx.diLineWidth as 1 | 2 | 3 | 4,
+            lineStyle: indicators.adx.diLineStyle,
             lastValueColor: indicators.adx.plusDiColor,
           },
           {
@@ -390,6 +387,7 @@ export function buildIndicatorPaneModel(
             values: minusValues,
             color: indicators.adx.minusDiColor,
             lineWidth: indicators.adx.diLineWidth as 1 | 2 | 3 | 4,
+            lineStyle: indicators.adx.diLineStyle,
             lastValueColor: indicators.adx.minusDiColor,
           },
           {
@@ -417,6 +415,7 @@ export function buildIndicatorPaneModel(
             values,
             color: indicators.cvd.color,
             lineWidth: indicators.cvd.lineWidth as 1 | 2 | 3 | 4,
+            lineStyle: indicators.cvd.lineStyle,
             lastValueColor: indicators.cvd.color,
           },
         ],
@@ -460,6 +459,7 @@ export function buildIndicatorPaneModel(
     case "stc": {
       const scoped = data.stc ? clipByTime(data.stc.data, replayTime) : [];
       const values = scoped.map((point) => ({ time: point.time, value: point.value }));
+      const guideColor = indicators.stc.color;
       return {
         paneId,
         series: [
@@ -469,25 +469,13 @@ export function buildIndicatorPaneModel(
             values,
             color: indicators.stc.color,
             lineWidth: indicators.stc.lineWidth as 1 | 2 | 3 | 4,
+            lineStyle: indicators.stc.lineStyle,
             lastValueColor: indicators.stc.color,
           },
-          {
-            key: "stc-high",
-            kind: "line",
-            values: values.map((point) => ({ time: point.time, value: 75 })),
-            color: "#6B7280",
-            lineWidth: 1,
-            lineStyle: 2,
-          },
-          {
-            key: "stc-low",
-            kind: "line",
-            values: values.map((point) => ({ time: point.time, value: 25 })),
-            color: "#6B7280",
-            lineWidth: 1,
-            lineStyle: 2,
-          },
+          createThresholdLine("stc-high", values, 75, guideColor),
+          createThresholdLine("stc-low", values, 25, guideColor),
         ],
+        bandFills: [createBandFill("stc-band", values, 75, 25, guideColor, "stc-high")],
         primarySeriesKey: "stc",
         primaryValueMap: createPrimaryValueMap(values),
       };

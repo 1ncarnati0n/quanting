@@ -8,6 +8,7 @@ export type ChartPalette = {
   foreground: string;
   grid: string;
   border: string;
+  separatorColor: string;
   fontFamily: string;
   fontSize: number;
 };
@@ -90,6 +91,7 @@ export function readChartPalette(): ChartPalette {
       foreground: "#B2B5BE",
       grid: "#2A2E39",
       border: "#2A2E39",
+      separatorColor: "#2A2E39",
       fontFamily:
         "\"Noto Sans KR\", \"Apple SD Gothic Neo\", \"Malgun Gothic\", \"Segoe UI\", sans-serif",
       fontSize: remToPx(0.8),
@@ -105,6 +107,7 @@ export function readChartPalette(): ChartPalette {
     foreground: value("--chart-foreground", "#B2B5BE"),
     grid: value("--chart-grid", "#2A2E39"),
     border: value("--chart-border", "#2A2E39"),
+    separatorColor: value("--chart-border", "#2A2E39"),
     fontFamily: value(
       "--font-sans",
       "\"Noto Sans KR\", \"Apple SD Gothic Neo\", \"Malgun Gothic\", \"Segoe UI\", sans-serif",

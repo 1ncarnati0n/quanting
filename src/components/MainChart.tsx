@@ -14,14 +14,17 @@ import {
   type ISeriesMarkersPluginApi,
   type SeriesMarker,
   type SeriesType,
+  type LineWidth,
   type Time,
 } from "lightweight-charts";
+import { BandFillPrimitive } from "../primitives/BandFillPrimitive";
 import type { AnalysisResponse, MarketType, SignalType } from "../types";
 import {
   CHART_COLOR_PRESETS,
   CHART_PRICE_SCALE_WIDTH,
   COLORS,
   MA_COLORS,
+  hexToRgba,
 } from "../utils/constants";
 import { formatPrice } from "../utils/formatters";
 import {
@@ -191,6 +194,7 @@ type ChartPalette = {
   foreground: string;
   grid: string;
   border: string;
+  separatorColor: string;
   fontFamily: string;
   fontSize: number;
 };
@@ -202,6 +206,7 @@ function readChartPalette(): ChartPalette {
       foreground: "#B2B5BE",
       grid: "#2A2E39",
       border: "#2A2E39",
+      separatorColor: "#2A2E39",
       fontFamily: "\"Noto Sans KR\", \"Apple SD Gothic Neo\", \"Malgun Gothic\", \"Segoe UI\", sans-serif",
       fontSize: remToPx(0.8),
     };
@@ -213,6 +218,7 @@ function readChartPalette(): ChartPalette {
     foreground: value("--chart-foreground", "#B2B5BE"),
     grid: value("--chart-grid", "#2A2E39"),
     border: value("--chart-border", "#2A2E39"),
+    separatorColor: value("--chart-border", "#2A2E39"),
     fontFamily: value("--font-sans", "\"Noto Sans KR\", \"Apple SD Gothic Neo\", \"Malgun Gothic\", \"Segoe UI\", sans-serif"),
     fontSize: remToPx(0.8),
   };
@@ -235,6 +241,7 @@ export default function MainChart({
   const bbUpperRef = useRef<ISeriesApi<"Line"> | null>(null);
   const bbMiddleRef = useRef<ISeriesApi<"Line"> | null>(null);
   const bbLowerRef = useRef<ISeriesApi<"Line"> | null>(null);
+  const bbFillPrimitiveRef = useRef<BandFillPrimitive | null>(null);
   const markersPluginRef = useRef<ISeriesMarkersPluginApi<Time> | null>(null);
   const dynamicSeriesRef = useRef<Map<string, ISeriesApi<SeriesType>>>(new Map());
   const alertLinesRef = useRef<IPriceLine[]>([]);
@@ -391,6 +398,10 @@ export default function MainChart({
         textColor: palette.foreground,
         fontFamily: palette.fontFamily,
         fontSize: palette.fontSize,
+        panes: {
+          separatorColor: palette.separatorColor,
+          separatorHoverColor: "transparent",
+        },
       },
       grid: {
         vertLines: { color: palette.grid },
@@ -414,6 +425,36 @@ export default function MainChart({
         priceFormatter: makePriceFormatter(useSettingsStore.getState().market),
       },
     });
+
+    // BB series first (renders below main series)
+    const bbStyle = useSettingsStore.getState().indicators.bb;
+    const bbLineRgba = hexToRgba(bbStyle.lineColor, 0.68);
+    const bbLw = bbStyle.lineWidth as LineWidth;
+    const bbUpper = chart.addSeries(LineSeries, {
+      color: bbLineRgba,
+      lineWidth: bbLw,
+      lineStyle: bbStyle.lineStyle,
+      priceLineVisible: false,
+      crosshairMarkerVisible: false,
+    });
+    const bbMiddle = chart.addSeries(LineSeries, {
+      color: bbStyle.lineColor,
+      lineWidth: bbLw,
+      lineStyle: 2,
+      priceLineVisible: false,
+      crosshairMarkerVisible: false,
+    });
+    const bbLower = chart.addSeries(LineSeries, {
+      color: bbLineRgba,
+      lineWidth: bbLw,
+      lineStyle: bbStyle.lineStyle,
+      priceLineVisible: false,
+      crosshairMarkerVisible: false,
+    });
+    // BandFillPrimitive: fills only between upper and lower bands
+    const bandFill = new BandFillPrimitive(hexToRgba(bbStyle.lineColor, bbStyle.fillOpacity));
+    bbUpper.attachPrimitive(bandFill);
+    bbFillPrimitiveRef.current = bandFill;
 
     // Create main series based on chart type
     const currentChartType = useSettingsStore.getState().chartType;
@@ -451,26 +492,6 @@ export default function MainChart({
         wickDownColor: marketColors.down,
       });
     }
-
-    const bbUpper = chart.addSeries(LineSeries, {
-      color: COLORS.bbUpper,
-      lineWidth: 1,
-      priceLineVisible: false,
-      crosshairMarkerVisible: false,
-    });
-    const bbMiddle = chart.addSeries(LineSeries, {
-      color: COLORS.bbMiddle,
-      lineWidth: 1,
-      lineStyle: 2,
-      priceLineVisible: false,
-      crosshairMarkerVisible: false,
-    });
-    const bbLower = chart.addSeries(LineSeries, {
-      color: COLORS.bbLower,
-      lineWidth: 1,
-      priceLineVisible: false,
-      crosshairMarkerVisible: false,
-    });
 
     chartRef.current = chart;
     mainSeriesRef.current = mainSeries;
@@ -722,6 +743,7 @@ export default function MainChart({
         window.cancelAnimationFrame(crosshairRafRef.current);
         crosshairRafRef.current = null;
       }
+      bbFillPrimitiveRef.current = null;
       if (chartRef.current) {
         chartRef.current.remove();
         chartRef.current = null;
@@ -740,6 +762,10 @@ export default function MainChart({
         textColor: palette.foreground,
         fontFamily: palette.fontFamily,
         fontSize: palette.fontSize,
+        panes: {
+          separatorColor: palette.separatorColor,
+          separatorHoverColor: "transparent",
+        },
       },
       grid: {
         vertLines: { color: palette.grid },
@@ -749,6 +775,18 @@ export default function MainChart({
       timeScale: { borderColor: palette.border, visible: showTimeScale },
     });
   }, [showTimeScale, theme]);
+
+  // BB style update
+  useEffect(() => {
+    if (!bbUpperRef.current || !bbMiddleRef.current || !bbLowerRef.current) return;
+    const { lineColor, lineWidth: lw, lineStyle: bbLs, fillOpacity } = indicators.bb;
+    const lineRgba = hexToRgba(lineColor, 0.68);
+    const bbLw = lw as LineWidth;
+    bbUpperRef.current.applyOptions({ color: lineRgba, lineWidth: bbLw, lineStyle: bbLs });
+    bbMiddleRef.current.applyOptions({ color: lineColor, lineWidth: bbLw, lineStyle: 2 });
+    bbLowerRef.current.applyOptions({ color: lineRgba, lineWidth: bbLw, lineStyle: bbLs });
+    bbFillPrimitiveRef.current?.updateStyle(hexToRgba(lineColor, fillOpacity));
+  }, [indicators.bb.lineColor, indicators.bb.lineWidth, indicators.bb.lineStyle, indicators.bb.fillOpacity]);
 
   // Update priceFormatter when market changes
   useEffect(() => {
@@ -892,10 +930,14 @@ export default function MainChart({
       bbLowerRef.current?.setData(
         bollingerData.map((b) => ({ time: b.time as Time, value: b.lower })),
       );
+      bbFillPrimitiveRef.current?.setData(
+        bollingerData.map((b) => ({ time: b.time as Time, upper: b.upper, lower: b.lower })),
+      );
     } else {
       bbUpperRef.current?.setData([]);
       bbMiddleRef.current?.setData([]);
       bbLowerRef.current?.setData([]);
+      bbFillPrimitiveRef.current?.setData([]);
     }
 
     clearDynamicSeries();
@@ -905,7 +947,8 @@ export default function MainChart({
       filteredSma.forEach((ma, idx) => {
         const series = chart.addSeries(LineSeries, {
           color: MA_COLORS[idx % MA_COLORS.length],
-          lineWidth: 2,
+          lineWidth: indicators.sma.lineWidth as LineWidth,
+          lineStyle: indicators.sma.lineStyle,
           priceLineVisible: false,
           crosshairMarkerVisible: false,
           title: `SMA${ma.period}`,
@@ -919,8 +962,8 @@ export default function MainChart({
       filteredEma.forEach((ma, idx) => {
         const series = chart.addSeries(LineSeries, {
           color: MA_COLORS[(idx + filteredSma.length) % MA_COLORS.length],
-          lineWidth: 2,
-          lineStyle: 0,
+          lineWidth: indicators.ema.lineWidth as LineWidth,
+          lineStyle: indicators.ema.lineStyle,
           priceLineVisible: false,
           crosshairMarkerVisible: false,
           title: `EMA${ma.period}`,
@@ -932,9 +975,9 @@ export default function MainChart({
 
     if (indicators.vwap.enabled && filteredVwap?.data.length) {
       const vwapLine = chart.addSeries(LineSeries, {
-        color: "#06B6D4",
-        lineWidth: 2,
-        lineStyle: 2,
+        color: indicators.vwap.color,
+        lineWidth: indicators.vwap.lineWidth as LineWidth,
+        lineStyle: indicators.vwap.lineStyle,
         priceLineVisible: false,
         crosshairMarkerVisible: false,
         title: "VWAP",
@@ -997,16 +1040,17 @@ export default function MainChart({
     }
 
     if (indicators.supertrend.enabled && filteredSupertrend?.data.length) {
+      const stLw = indicators.supertrend.lineWidth as LineWidth;
       const upLine = chart.addSeries(LineSeries, {
         color: "#22C55E",
-        lineWidth: 2,
+        lineWidth: stLw,
         priceLineVisible: false,
         crosshairMarkerVisible: false,
         title: "Supertrend Up",
       });
       const downLine = chart.addSeries(LineSeries, {
         color: "#EF4444",
-        lineWidth: 2,
+        lineWidth: stLw,
         priceLineVisible: false,
         crosshairMarkerVisible: false,
         title: "Supertrend Down",
@@ -1031,8 +1075,8 @@ export default function MainChart({
 
     if (indicators.psar.enabled && filteredPsar?.data.length) {
       const psarLine = chart.addSeries(LineSeries, {
-        color: "#F97316",
-        lineWidth: 1,
+        color: indicators.psar.color,
+        lineWidth: indicators.psar.lineWidth as LineWidth,
         lineStyle: 2,
         priceLineVisible: false,
         crosshairMarkerVisible: false,
@@ -1046,24 +1090,26 @@ export default function MainChart({
 
     // --- Donchian Channels (Overlay, 3 lines) ---
     if (indicators.donchian.enabled && filteredDonchian?.data.length) {
+      const donLw = indicators.donchian.lineWidth as LineWidth;
+      const donColor = indicators.donchian.lineColor;
       const donUpper = chart.addSeries(LineSeries, {
-        color: COLORS.donchianUpper,
-        lineWidth: 1,
+        color: donColor,
+        lineWidth: donLw,
         priceLineVisible: false,
         crosshairMarkerVisible: false,
         title: "DC Upper",
       });
       const donMiddle = chart.addSeries(LineSeries, {
         color: COLORS.donchianMiddle,
-        lineWidth: 1,
+        lineWidth: donLw,
         lineStyle: 2,
         priceLineVisible: false,
         crosshairMarkerVisible: false,
         title: "DC Mid",
       });
       const donLower = chart.addSeries(LineSeries, {
-        color: COLORS.donchianLower,
-        lineWidth: 1,
+        color: donColor,
+        lineWidth: donLw,
         priceLineVisible: false,
         crosshairMarkerVisible: false,
         title: "DC Lower",
@@ -1078,24 +1124,26 @@ export default function MainChart({
 
     // --- Keltner Channels (Overlay, 3 lines) ---
     if (indicators.keltner.enabled && filteredKeltner?.data.length) {
+      const kelLw = indicators.keltner.lineWidth as LineWidth;
+      const kelColor = indicators.keltner.lineColor;
       const kelUpper = chart.addSeries(LineSeries, {
-        color: COLORS.keltnerUpper,
-        lineWidth: 1,
+        color: kelColor,
+        lineWidth: kelLw,
         priceLineVisible: false,
         crosshairMarkerVisible: false,
         title: "KC Upper",
       });
       const kelMiddle = chart.addSeries(LineSeries, {
         color: COLORS.keltnerMiddle,
-        lineWidth: 1,
+        lineWidth: kelLw,
         lineStyle: 2,
         priceLineVisible: false,
         crosshairMarkerVisible: false,
         title: "KC Mid",
       });
       const kelLower = chart.addSeries(LineSeries, {
-        color: COLORS.keltnerLower,
-        lineWidth: 1,
+        color: kelColor,
+        lineWidth: kelLw,
         priceLineVisible: false,
         crosshairMarkerVisible: false,
         title: "KC Lower",
@@ -1113,7 +1161,8 @@ export default function MainChart({
       filteredHma.forEach((ma, idx) => {
         const series = chart.addSeries(LineSeries, {
           color: MA_COLORS[(idx + filteredSma.length + filteredEma.length) % MA_COLORS.length],
-          lineWidth: 2,
+          lineWidth: indicators.hma.lineWidth as LineWidth,
+          lineStyle: indicators.hma.lineStyle,
           priceLineVisible: false,
           crosshairMarkerVisible: false,
           title: `HMA${ma.period}`,
@@ -1136,6 +1185,8 @@ export default function MainChart({
         replayIndex,
       );
       if (!paneModel) return;
+
+      const paneSeriesMap = new Map<string, ISeriesApi<SeriesType>>();
 
       paneModel.series.forEach((definition) => {
         const series =
@@ -1186,6 +1237,21 @@ export default function MainChart({
         dynamicSeriesRef.current.set(
           `${pane.id}:${definition.key}`,
           series as ISeriesApi<SeriesType>,
+        );
+        paneSeriesMap.set(definition.key, series as ISeriesApi<SeriesType>);
+      });
+
+      paneModel.bandFills?.forEach((bandFillDefinition) => {
+        const anchorSeries = paneSeriesMap.get(bandFillDefinition.attachToKey);
+        if (!anchorSeries) return;
+        const bandFill = new BandFillPrimitive(bandFillDefinition.color);
+        anchorSeries.attachPrimitive(bandFill);
+        bandFill.setData(
+          bandFillDefinition.values.map((point) => ({
+            time: point.time as Time,
+            upper: point.upper,
+            lower: point.lower,
+          })),
         );
       });
     });
@@ -1366,20 +1432,36 @@ export default function MainChart({
     indicators.bb.multiplier,
     indicators.bb.period,
     indicators.ema.enabled,
+    indicators.ema.lineWidth,
+    indicators.ema.lineStyle,
     indicators.ichimoku.enabled,
     indicators.macd.enabled,
     indicators.obv.enabled,
     indicators.psar.enabled,
+    indicators.psar.color,
+    indicators.psar.lineWidth,
     indicators.rsi.enabled,
     indicators.sma.enabled,
+    indicators.sma.lineWidth,
+    indicators.sma.lineStyle,
     indicators.stochastic.enabled,
     indicators.supertrend.enabled,
+    indicators.supertrend.lineWidth,
     indicators.atr.enabled,
     indicators.volume.enabled,
     indicators.vwap.enabled,
+    indicators.vwap.color,
+    indicators.vwap.lineWidth,
+    indicators.vwap.lineStyle,
     indicators.donchian.enabled,
+    indicators.donchian.lineColor,
+    indicators.donchian.lineWidth,
     indicators.keltner.enabled,
+    indicators.keltner.lineColor,
+    indicators.keltner.lineWidth,
     indicators.hma.enabled,
+    indicators.hma.lineWidth,
+    indicators.hma.lineStyle,
     indicators.mfi.enabled,
     indicators.cmf.enabled,
     indicators.choppiness.enabled,

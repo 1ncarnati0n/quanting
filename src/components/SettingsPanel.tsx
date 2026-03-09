@@ -1051,7 +1051,7 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
               >
                 <IndicatorSection
                   title="볼린저 밴드"
-                  color={COLORS.bbUpper}
+                  color={indicators.bb.lineColor}
                   enabled={indicators.bb.enabled}
                   onToggle={() => toggleIndicator("bb")}
                 >
@@ -1072,6 +1072,16 @@ export default function SettingsPanel({ onClose, embedded = false }: SettingsPan
                     step={0.1}
                     onChange={(v) => setIndicator("bb", { multiplier: v })}
                     description={paramDesc("볼린저 밴드", "승수")}
+                  />
+                  <SliderRow
+                    label="밴드 채우기"
+                    value={indicators.bb.fillOpacity}
+                    min={0}
+                    max={0.5}
+                    step={0.01}
+                    formatValue={(v) => `${Math.round(v * 100)}%`}
+                    onChange={(v) => setIndicator("bb", { fillOpacity: v })}
+                    description="상단-하단 밴드 사이 영역의 투명도"
                   />
                 </IndicatorSection>
 

@@ -1,5 +1,14 @@
 import type { MarketType } from "../types";
 
+/** hex 색상을 rgba 문자열로 변환. ex) hexToRgba("#FF9800", 0.12) → "rgba(255,152,0,0.12)" */
+export function hexToRgba(hex: string, alpha: number): string {
+  const h = hex.replace("#", "");
+  const r = parseInt(h.substring(0, 2), 16);
+  const g = parseInt(h.substring(2, 4), 16);
+  const b = parseInt(h.substring(4, 6), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
 // --- Intervals ---
 export const CRYPTO_INTERVALS = [
   "1m",

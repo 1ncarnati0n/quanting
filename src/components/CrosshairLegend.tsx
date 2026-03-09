@@ -108,16 +108,16 @@ function buildOverlayRows(
       indicatorKeys: ["bb"],
       tokens: latestBand
         ? [
-            { text: "중심선", color: COLORS.bbMiddle },
+            { text: "중심선", color: indicators.bb.lineColor },
             { text: formatPrice(latestBand.middle, market) },
-            { text: "상한선", color: COLORS.bbUpper },
+            { text: "상한선", color: indicators.bb.lineColor },
             { text: formatPrice(latestBand.upper, market) },
-            { text: "하한선", color: COLORS.bbLower },
+            { text: "하한선", color: indicators.bb.lineColor },
             { text: formatPrice(latestBand.lower, market) },
           ]
         : [
-            { text: formatParam(indicators.bb.period), color: COLORS.bbMiddle },
-            { text: formatParam(indicators.bb.multiplier), color: COLORS.bbUpper },
+            { text: formatParam(indicators.bb.period), color: indicators.bb.lineColor },
+            { text: formatParam(indicators.bb.multiplier), color: indicators.bb.lineColor },
           ],
     });
   }
